@@ -1,0 +1,75 @@
+---
+description: Enforces best practices for React Native Expo development within the src directory, promoting maintainable and efficient code.
+globs: src/**/*.*
+alwaysApply: false
+---
+---
+description: Enforces best practices for React Native Expo development within the src directory, promoting maintainable and efficient code.
+globs: src/**/*.*
+---
+
+# React Native Expo Best Practices
+
+## Architecture & Components
+- Use functional components with hooks
+- Keep components small and focused
+- Implement clear folder structure
+- Extract reusable logic into custom hooks
+- Follow single responsibility principle
+
+## Expo SDK & Features
+- Leverage Expo SDK features and APIs
+- Implement navigation using Expo Router
+- Manage assets with Expo's asset system for images and fonts
+- Incorporate Expo Vector Icons
+- Use Expo's SecureStore for sensitive data
+
+## State & Data Management
+- Implement robust error handling and crash reporting
+- Utilize Expo's push notification system
+- Implement proper offline support
+- Handle application state efficiently
+- Follow caching and data persistence patterns
+
+## Development & TypeScript
+- Adopt TypeScript for type safety
+- Define clear interfaces for props and state
+- Use strict types to prevent errors
+<!-- - Enable strict typing in `tsconfig.json`. -->
+- Document important components and functions
+- Maintain naming consistency
+- Utilize `React.FC` for defining functional components with props.
+
+## Styling & UI
+- Apply consistent styling using NativeWind
+- Maintain responsive and adaptive UI
+- Follow iOS and Android design guidelines
+- Optimize UI performance
+
+## Performance & Optimization
+- Optimize performance following React Native best practices
+- Implement lazy loading where appropriate
+- Minimize unnecessary re-renders
+- Optimize memory and resource usage
+- Monitor and improve app performance
+
+## Deployment & Updates
+<!-- - Deploy updates using Expo's OTA mechanism -->
+- Maintain semantic versioning
+- Implement pre-deployment testing
+- Follow robust CI/CD process
+- Keep documentation up-to-date
+
+## Security
+- Implement secure authentication
+- Protect sensitive data
+- Follow mobile security best practices
+- Validate user inputs
+- Keep dependencies updated
+
+## Testing
+- Write unit tests for business logic
+- Implement integration tests
+- Perform UI testing
+- Maintain adequate test coverage
+- Use mocks appropriately

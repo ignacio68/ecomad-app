@@ -1,0 +1,10 @@
+.expo
+.eas
+.git
+.vscode
+android
+coverage
+ios
+node_modules
+package.json
+.eslintignore
