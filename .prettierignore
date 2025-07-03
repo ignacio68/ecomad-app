@@ -1,10 +1,31 @@
-.expo
-.eas
-.git
-.vscode
-android
-coverage
-ios
+# Ignora dependencias y builds
 node_modules
-package.json
-.eslintignore
+android
+ios
+dist
+build
+coverage
+.expo
+.expo-shared
+.next
+out
+
+# Ignora archivos de lock y logs
+bun.lockb
+yarn.lock
+package-lock.json
+npm-debug.log
+
+# Ignora archivos de caché
+.cache
+*.tsbuildinfo
+
+# Ignora archivos de pruebas y snapshots
+*.snap
+
+# Ignora archivos de sistema
+.DS_Store
+Thumbs.db
+
+# No ignores archivos de configuración ni package.json ni app.config.ts
+# Puedes añadir aquí otros archivos que no quieras formatear
