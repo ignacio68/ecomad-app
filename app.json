@@ -2,21 +2,26 @@
   "expo": {
     "name": "ecomad-app",
     "slug": "ecomad-app",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo_fondo_transparente.png",
     "scheme": "ecomadapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ecomad.app",
+      "buildNumber": "1.0.3",
+      "requireFullScreen": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.ecomad.app",
+      "versionCode": 103
     },
     "web": {
       "bundler": "metro",
@@ -35,6 +40,7 @@
         }
       ]
     ],
+    "owner": "Ignacio López-Amor",
     "experiments": {
       "typedRoutes": true
     }
