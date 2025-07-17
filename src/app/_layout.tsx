@@ -11,6 +11,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 SplashScreen.preventAutoHideAsync().catch(console.warn)
 
 export default function RootLayout() {
+	useEffect(() => {
+		console.log('RootLayout')
+	}, [])
 
 		const [loaded, error] = useFonts({
 			'Lato-Regular': require('../assets/fonts/Lato2OFL/Lato-Regular.ttf'),
@@ -37,8 +40,10 @@ export default function RootLayout() {
 
   return (
 		<SafeAreaProvider>
-			<Stack screenOptions={{ headerShown: false }} />
-			<StatusBar style="auto" />
+			<Stack screenOptions={{ headerShown: false }}>
+				<Stack.Screen name="index" options={{ headerShown: false }} />
+			</Stack>
+			<StatusBar translucent={true} style="auto" />
 		</SafeAreaProvider>
 	)
 }
