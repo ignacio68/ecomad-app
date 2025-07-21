@@ -1,10 +1,9 @@
+import { MapAdapter } from '../services/mapService'
+import { ComponentProps } from 'react'
 
-
-export interface CameraProps {
-  centerCoordinate: [number, number]
-  zoomLevel: number
-}
-
-export interface MapViewProps {
-  styleURL: string
-}
+export interface MapViewProps
+	extends ComponentProps<typeof MapAdapter.MapView> {}
+export interface CameraProps
+	extends ComponentProps<typeof MapAdapter.Camera> {}
+export interface MarkerProps
+	extends ComponentProps<typeof MapAdapter.Marker> {}

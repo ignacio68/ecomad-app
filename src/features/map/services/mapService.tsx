@@ -1,17 +1,19 @@
 import { MapboxAdapter} from '../adapters/MapboxAdapter';
-import { ComponentProps } from 'react';
+import { MapViewProps, CameraProps, MarkerProps } from '../types';
 
-export { setMapAccessToken } from '../adapters/MapboxAdapter'
+export { MapboxAdapter as MapAdapter } from '../adapters/MapboxAdapter'
+export { setMapboxAccessToken as setMapAccessToken } from '../adapters/MapboxAdapter'
 
-export function MapView(props: ComponentProps<typeof MapboxAdapter.MapView>) {
+
+export function MapView(props: MapViewProps) {
   return <MapboxAdapter.MapView {...props}/>;
 }
 
-export function Camera(props: ComponentProps<typeof MapboxAdapter.Camera>) {
+export function Camera(props: CameraProps) {
   return <MapboxAdapter.Camera {...props} />;
 }
 
-export function Marker(props: ComponentProps<typeof MapboxAdapter.Marker>) {
+export function Marker(props: MarkerProps) {
   return <MapboxAdapter.Marker {...props} />;
 }
 

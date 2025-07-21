@@ -1,7 +1,7 @@
 import Mapbox from '@rnmapbox/maps'
-import { MAPBOX_SECRET_TOKEN } from '../constants'
+import { MAPBOX_SECRET_TOKEN } from '../constants/map'
 
-export const setMapAccessToken = () => {
+export const setMapboxAccessToken = () => {
 	Mapbox.setAccessToken(MAPBOX_SECRET_TOKEN)
 }
 
