@@ -16,11 +16,11 @@ export default function RootLayout() {
 	}, [])
 
 		const [loaded, error] = useFonts({
-			'Lato-Regular': require('../assets/fonts/Lato2OFL/Lato-Regular.ttf'),
-			'Lato-Light': require('../assets/fonts/Lato2OFL/Lato-Light.ttf'),
-			'Lato-Medium': require('../assets/fonts/Lato2OFL/Lato-Medium.ttf'),
-			'Lato-Semibold': require('../assets/fonts/Lato2OFL/Lato-Semibold.ttf'),
-			'Lato-Bold': require('../assets/fonts/Lato2OFL/Lato-Bold.ttf'),
+			'lato-regular': require('../assets/fonts/Lato2OFL/Lato-Regular.ttf'),
+			'lato-light': require('../assets/fonts/Lato2OFL/Lato-Light.ttf'),
+			'lato-medium': require('../assets/fonts/Lato2OFL/Lato-Medium.ttf'),
+			'lato-semibold': require('../assets/fonts/Lato2OFL/Lato-Semibold.ttf'),
+			'lato-bold': require('../assets/fonts/Lato2OFL/Lato-Bold.ttf'),
 		})
 
    useEffect(() => {
