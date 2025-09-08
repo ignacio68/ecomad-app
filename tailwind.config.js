@@ -1,18 +1,17 @@
 /** @type {import('tailwindcss').Config} */
+
 module.exports = {
-	content: [
-		'./src/**/*.{js,jsx,ts,tsx}',
-		'./src/(app|components)/**/*.{js,jsx,ts,tsx}',
-	],
+	content: ['./src/**/*.{js,jsx,ts,tsx}'],
 	presets: [require('nativewind/preset')],
 	theme: {
 		extend: {
 			fontFamily: {
-				'lato-regular': ['Lato-Regular', 'sans-serif'],
-				'lato-light': ['Lato-Light', 'sans-serif'],
-				'lato-medium': ['Lato-Medium', 'sans-serif'],
-				'lato-semibold': ['Lato-SemiBold', 'sans-serif'],
-				'lato-bold': ['Lato-Bold', 'sans-serif'],
+				'lato-regular': ['Lato-Regular'],
+				'lato-light': ['Lato-Light'],
+				'lato-medium': ['Lato-Medium'],
+				'lato-semibold': ['Lato-Semibold'],
+				'lato-bold': ['Lato-Bold'],
+				'lato-italic': ['Lato-Italic'],
 			},
 			colors: {
 				primary: '#3d9970',
@@ -24,4 +23,3 @@ module.exports = {
 	},
 	plugins: [],
 }
-
