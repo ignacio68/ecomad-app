@@ -16,5 +16,5 @@
     "expo-env.d.ts",
     "types/nativewind-env.d.ts",
     "nativewind-env.d.ts"
-  ]
+, "src/features/map/components/ChipPopupModalMenu/ChipPopupMenuItems.tsx"  ]
 }
