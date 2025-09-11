@@ -1,61 +1,66 @@
-import { RestoreBinIcon, BicycleIcon, Tree02Icon, Car04Icon } from '@hugeicons-pro/core-stroke-rounded'
-import { RestoreBinIcon as RestoreBinIconSolid, BicycleIcon as BicycleIconSolid, Tree02Icon as Tree02IconSolid, Car04Icon as Car04IconSolid } from '@hugeicons-pro/core-solid-rounded'
-import { CustomButtonProps } from '@/components/ui/CustomButton/types'
-export const CHIPS_LIST: CustomButtonProps[] = [
+import { BaseButtonProps } from '@/shared/components/ui/buttons/types'
+
+import {
+	Book02Icon as Book02IconSolid,
+	// BicycleIcon as BicycleIconSolid,
+	// Car04Icon as Car04IconSolid,
+	CardiganIcon as CardiganIconSolid,
+	MilkBottleIcon as MilkBottleIconSolid,
+	OilBarrelIcon as OilBarrelIconSolid,
+	MilkCartonIcon as MilkCartonIconSolid,
+} from '@hugeicons-pro/core-solid-rounded'
+import {
+	Book02Icon,
+	// BicycleIcon,
+	// Car04Icon,
+	CardiganIcon,
+	MilkBottleIcon,
+	OilBarrelIcon,
+	MilkCartonIcon,
+} from '@hugeicons-pro/core-duotone-rounded'
+
+export const createChipsList = (): BaseButtonProps[] => [
 	{
-		id: 'reciclaje',
-    title: 'Reciclaje',
-    mode: 'primary',
-    flavor: 'chip',
-    icon: RestoreBinIcon,
-    iconSelected: RestoreBinIconSolid,
-    onPress: () => {
-      console.log('Contenedores')
-    },
-  },
-  {
-    id: 'ocio',
-    title: 'Ocio',
-    mode: 'primary',
-    flavor: 'button',
-    size: 'large',
-    icon: Tree02Icon,
-    iconSelected: Tree02IconSolid,
-    onPress: () => {
-      console.log('Ocio')
-    },
-  },
-  {
-    id: 'bicis',
-    title: 'Bicis',
-    mode: 'primary',
-    flavor: 'chip',
-    icon: BicycleIcon,
-    iconSelected: BicycleIconSolid,
-    onPress: () => {
-      console.log('Bicis')
-    },
-  },
-  {
-    id: 'coches',
-    title: 'Coches',
-    mode: 'primary',
-    flavor: 'chip',
-    icon: Car04Icon,
-    iconSelected: Car04IconSolid,
-    onPress: () => {
-      console.log('Coches')
-    },
-  },
-  {
-    id: 'otros',
-    title: 'Otros',
-    mode: 'primary',
-    flavor: 'chip',
-    icon: Car04Icon,
-    iconSelected: Car04IconSolid,
-    onPress: () => {
-      console.log('Coches')
-    },
-  }
+		id: 'clothes',
+		title: 'Ropa',
+		mode: 'primary',
+		icon: CardiganIcon,
+		iconSelected: CardiganIconSolid,
+		onPress: () => {},
+	},
+	{
+		id: 'oil',
+		title: 'Aceite',
+		mode: 'primary',
+		icon: OilBarrelIcon,
+		iconSelected: OilBarrelIconSolid,
+		onPress: () => {},
+	},
+	{
+		id: 'glass',
+		title: 'Vidrio',
+		mode: 'primary',
+		icon: MilkBottleIcon,
+		iconSelected: MilkBottleIconSolid,
+		onPress: () => {},
+	},
+	{
+		id: 'paper',
+		title: 'Papel',
+		mode: 'primary',
+		icon: Book02Icon,
+		iconSelected: Book02IconSolid,
+		onPress: () => {},
+	},
+	{
+		id: 'plastic',
+		title: 'Envases',
+		mode: 'primary',
+		icon: MilkCartonIcon,
+		iconSelected: MilkCartonIconSolid,
+		onPress: () => {},
+	},
+
 ]
+
+export const CHIPS_LIST: BaseButtonProps[] = createChipsList()

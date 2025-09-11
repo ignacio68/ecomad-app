@@ -1,4 +1,5 @@
 import { ConfigContext, ExpoConfig } from '@expo/config'
+import { isAndroid } from '@rnmapbox/maps/lib/typescript/src/utils'
 import 'dotenv/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -9,11 +10,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	orientation: 'portrait',
 	icon: './src/assets/images/logo_fondo_transparente.png',
 	scheme: 'com.ecomad.app',
-	userInterfaceStyle: 'automatic',
+	userInterfaceStyle: 'light',
+	backgroundColor: '#ffffff',
 	newArchEnabled: true,
-	assetBundlePatterns: ['src/assets/**/*'],
 	splash: {
-		image: './src/assets/images/splash.png',
+		image: './src/assets/images/splash-icon.png',
 		resizeMode: 'contain',
 		backgroundColor: '#ffffff',
 	},
@@ -22,6 +23,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: 'com.ecomad.app',
 		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.3',
 		requireFullScreen: true,
+		userInterfaceStyle: 'light',
+		infoPlist: {
+			UIUserInterfaceStyle: 'light',
+			NSLocationWhenInUseUsageDescription:
+				'Permite que la aplicación acceda a su ubicación siempre y cuando esté en uso',
+		},
 	},
 	android: {
 		adaptiveIcon: {
@@ -31,6 +38,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		edgeToEdgeEnabled: true,
 		package: 'com.ecomad.app',
 		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 103,
+		userInterfaceStyle: 'light',
+		permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
 	},
 	web: {
 		bundler: 'metro',
@@ -52,10 +61,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			'@rnmapbox/maps',
 			{
-				RNMapboxMapsDownloadToken: process.env.MAPBOX_SECRET_TOKEN as string,
-				RNMapboxMapsVersion: "11.0.0", // opcional
+				RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN as string,
+				RNMapboxMapsVersion: '11.14.4',
 			},
 		],
+		[
+			'expo-location',
+			{
+				locationAlwaysAndWhenInUsePermission:
+					'Permite que la aplicación acceda a su ubicación siempre y cuando esté en uso',
+				locationWhenInUsePermission:
+					'Permite que la aplicación acceda a su ubicación cuando esté en uso',
+			},
+		],
+		// [
+		// 	'expo-dev-client',
+		// 	{
+		// 		launchMode: 'most-recent',
+		// 	},
+		// ],
 	],
 	owner: 'ignacio68',
 	experiments: {
@@ -64,11 +88,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	runtimeVersion: {
 		policy: 'appVersion',
 	},
+	updates: {
+		assetPatternsToBeBundled: [
+			'./src/assets/fonts/**/*.ttf',
+			'./src/assets/images/**/*.png',
+			'./src/assets/icons/**/*.svg',
+		],
+	},
 	extra: {
 		router: {},
 		eas: {
 			projectId: 'eeb844bb-6337-4cfd-890a-c3414df1da68',
 		},
-		MAPBOX_SECRET_TOKEN: process.env.MAPBOX_SECRET_TOKEN as string,
+		MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN as string,
 	},
 })

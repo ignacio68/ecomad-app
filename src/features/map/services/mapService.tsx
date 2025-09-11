@@ -1,20 +1,16 @@
-import { MapboxAdapter} from '../adapters/MapboxAdapter';
-import { MapViewProps, CameraProps, MarkerProps } from '../types';
 
-export { MapboxAdapter as MapAdapter } from '../adapters/MapboxAdapter'
-export { setMapboxAccessToken as setMapAccessToken } from '../adapters/MapboxAdapter'
+import Mapbox from '@rnmapbox/maps'
+import { MAPBOX_DOWNLOADS_TOKEN } from '../constants/map'
 
-
-export function MapView(props: MapViewProps) {
-  return <MapboxAdapter.MapView {...props}/>;
+export const setMapboxAccessToken = () => {
+	try {
+		if (!MAPBOX_DOWNLOADS_TOKEN) {
+			console.warn('Mapbox token no encontrado')
+			return
+		}
+		Mapbox.setAccessToken(MAPBOX_DOWNLOADS_TOKEN)
+	} catch (error) {
+		console.error('Error al configurar Mapbox token:', error)
+	}
 }
 
-export function Camera(props: CameraProps) {
-  return <MapboxAdapter.Camera {...props} />;
-}
-
-export function Marker(props: MarkerProps) {
-  return <MapboxAdapter.Marker {...props} />;
-}
-
-// Puedes añadir más funciones según necesidades
