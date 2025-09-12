@@ -3,11 +3,16 @@ import { create } from 'zustand'
 import * as Location from 'expo-location'
 import type { LocationSubscription } from 'expo-location'
 
+interface Coords {
+	longitude: number
+	latitude: number
+}
+
 type LocationState = {
 	// estado
 	granted: boolean | null
 	error: string | null
-	location: Location.LocationObject | null
+	location: Coords | null
 	isRunning: boolean
 
 	// opciones
@@ -81,7 +86,8 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 		try {
 			const acc = accuracyOverride ?? get().accuracy
 			const loc = await Location.getCurrentPositionAsync({ accuracy: acc })
-			set({ location: loc, error: null })
+			set({ location: { longitude:loc.coords.longitude, latitude: loc.coords.latitude } })
+			console.log('Ubicación actual:', location)
 			return loc
 		} catch (e: any) {
 			set({ error: e?.message ?? 'No se pudo obtener la ubicación actual.' })
@@ -101,17 +107,26 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
 		const { accuracy, timeInterval, distanceInterval } = get()
 
-		// primer fix rápido (opcional)
-		try {
-			const current = await Location.getCurrentPositionAsync({ accuracy })
-			set({ location: current })
-		} catch {}
+		// // primer fix rápido (opcional)
+		// try {
+		// 	const current = await Location.getCurrentPositionAsync({ accuracy })
+		// 	set({ location: { longitude:current.coords.longitude, latitude: current.coords.latitude }  })
+		// } catch {}
 
 		try {
 			const sub = await Location.watchPositionAsync(
 				{ accuracy, timeInterval, distanceInterval },
-				loc => set({ location: loc }), // <-- aquí guardamos SIEMPRE la última posición
+				loc => {
+					set({
+						location: {
+							longitude: loc.coords.longitude,
+							latitude: loc.coords.latitude,
+						},
+					})
+					console.log('watch::Ubicación actual:', location)
+				}, // <-- aquí guardamos SIEMPRE la última posición
 			)
+
 			set({ _sub: sub, isRunning: true, error: null })
 		} catch (e: any) {
 			set({

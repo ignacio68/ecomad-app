@@ -3,7 +3,7 @@ import React from 'react'
 import { ActivityIndicator, Pressable, Text } from 'react-native'
 import { CustomButtonProps } from './types'
 
-export const CustomButton = React.memo(
+ const CustomButton = React.memo(
 	({
 		title,
 		mode,
@@ -171,4 +171,4 @@ export const CustomButton = React.memo(
 	},
 )
 
-CustomButton.displayName = 'CustomButton'
+export default CustomButton
