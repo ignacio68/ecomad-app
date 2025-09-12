@@ -1,5 +1,17 @@
 // Configuración base del cliente HTTP
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
+const API_BASE_URL =
+	process.env.EXPO_PUBLIC_API_BASE_URL ||
+	process.env.API_BASE_URL ||
+	'https://ecomad-back-mvp.onrender.com'
+
+// Debug: Log de la URL base
+console.log('🔧 API_BASE_URL:', API_BASE_URL)
+console.log('🔧 process.env.API_BASE_URL:', process.env.API_BASE_URL)
+console.log(
+	'🔧 process.env.EXPO_PUBLIC_API_BASE_URL:',
+	process.env.EXPO_PUBLIC_API_BASE_URL,
+)
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV)
 
 // Tipos para las respuestas
 interface ApiResponse<T> {
@@ -24,7 +36,7 @@ const defaultHeaders = {
 
 // Cliente HTTP principal
 class HttpClient {
-	private baseURL: string
+	private readonly baseURL: string
 
 	constructor(baseURL: string = API_BASE_URL) {
 		this.baseURL = baseURL
@@ -52,13 +64,17 @@ class HttpClient {
 			const data = await response.json()
 
 			console.log(`✅ HTTP Response: ${response.status} ${url}`)
+			console.log(`📦 Response data:`, data)
 
-			return {
+			const result = {
 				success: response.ok,
 				message: data.message || 'Request completed',
-				data: data.data || data,
+				data: data.responseObject || data.data || data,
 				statusCode: response.status,
 			}
+
+			console.log(`📋 Parsed result:`, result)
+			return result
 		} catch (error) {
 			console.error(`❌ HTTP Error: ${url}`, error)
 

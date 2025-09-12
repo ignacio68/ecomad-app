@@ -1,14 +1,14 @@
 import {
-	getAllClothingContainers,
+	getAllClothingBins,
 	getClothingContainerByDistrict,
 	getClothingContainerByNearby,
-} from '@/shared/services/api/containers/clothingApi'
+} from '@/shared/services/api/bins/clothingApi'
 
-export const getAllClothingContainersService = async () => {
+export const getAllClothingBinsService = async () => {
 	try {
-		const response = await getAllClothingContainers()
+		const response = await getAllClothingBins()
 		if (response.success) {
-			console.log('Clothes containers success')
+			console.log('Clothes bins success')
 			console.table(response.data)
 			return response.data
 		}
@@ -17,7 +17,7 @@ export const getAllClothingContainersService = async () => {
 			throw new Error('Error al obtener los contenedores de ropa')
 		}
 	} catch (error) {
-		console.error(`Clothes containers error: ${error}`)
+		console.error(`Clothes bins error: ${error}`)
 		throw error
 	}
 	return []
@@ -42,7 +42,7 @@ export const getClothingContainerByDistrictService = async (
 			throw new Error('Error al obtener los contenedores de ropa')
 		}
 	} catch (error) {
-		console.error(`Clothes containers error: ${error}`)
+		console.error(`Clothes bins error: ${error}`)
 		throw error
 	}
 	return []

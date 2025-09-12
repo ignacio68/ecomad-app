@@ -3,12 +3,14 @@ import Mapbox, {
 	LocationPuck,
 	MapView,
 	UserLocation,
-	type Location,
 } from '@rnmapbox/maps'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
+import { useMapDataStore } from '../stores/mapDataStore'
 import { useMapStore } from '../stores/mapStore'
+import { useMapViewportStore } from '../stores/mapViewportStore'
 import { useLocationStore } from '../stores/userLocationStore'
 import { mapStyles } from '../styles/mapStyles'
+import MapMarkers from './MapMarkers'
 
 const MapBase = React.memo(() => {
 	const mapRef = useRef<MapView | null>(null)
@@ -17,21 +19,60 @@ const MapBase = React.memo(() => {
 	const userLocationRef = useRef<UserLocation | null>(null)
 
 	const { isUserLocationFABActivated } = useMapStore()
-	const {
-		setPermissions,
-		startWatching,
-		stopWatching,
-		location: expoLocation,
-	} = useLocationStore()
+	const { setPermissions, startWatching, stopWatching } = useLocationStore()
+	const { setZoom, setBounds } = useMapViewportStore()
+	const { mapData } = useMapDataStore()
 
 	// Memoizar los callbacks para evitar re-renderizados
 	const handleMapIdle = useCallback(() => {
-		console.log('Mapa cargado correctamente')
-	}, [])
+		console.log('🗺️ Mapa cargado correctamente')
+		// Establecer bounds iniciales para Madrid
+		const initialBounds = {
+			minLat: 40.35,
+			maxLat: 40.5,
+			minLng: -3.8,
+			maxLng: -3.6,
+		}
+		console.log('📍 Setting initial bounds:', initialBounds)
+		setBounds(initialBounds)
+	}, [setBounds])
 
 	const handleMapLoadingError = useCallback(() => {
 		console.error('Error al cargar mapa')
 	}, [])
+
+	const handleCameraChanged = useCallback(
+		(state: any) => {
+			if (state.properties && state.properties.zoomLevel) {
+				setZoom(state.properties.zoomLevel)
+			}
+
+			// Calcular bounds cuando la cámara cambia
+			if (state.properties.center) {
+				const [lng, lat] = state.properties.center
+				const zoom = state.properties.zoomLevel ?? 10
+
+				const latDelta = 180 / Math.pow(2, zoom)
+				const lngDelta = 360 / Math.pow(2, zoom)
+
+				const newBounds = {
+					minLat: lat - latDelta / 2,
+					maxLat: lat + latDelta / 2,
+					minLng: lng - lngDelta / 2,
+					maxLng: lng + lngDelta / 2,
+				}
+
+				// Validar que los bounds sean válidos
+				if (
+					newBounds.minLat < newBounds.maxLat &&
+					newBounds.minLng < newBounds.maxLng
+				) {
+					setBounds(newBounds)
+				}
+			}
+		},
+		[setZoom, setBounds],
+	)
 
 	useEffect(() => {
 		let isMounted = true
@@ -57,31 +98,7 @@ const MapBase = React.memo(() => {
 		}
 	}, [isUserLocationFABActivated, setPermissions, startWatching, stopWatching])
 
-	const [location, setLocation] = useState<Location>()
-
-	useEffect(() => {
-		if (location) {
-			const { coords } = location
-			console.log('location coords:', [coords.longitude, coords.latitude])
-		}
-	}, [location])
-
-	// Fallback: si Mapbox no emite, usa expo-location cuando el FAB esté activo
-	useEffect(() => {
-		if (!isUserLocationFABActivated || !expoLocation) return
-		const { coords } = expoLocation
-		setLocation({
-			coords: {
-				latitude: coords.latitude,
-				longitude: coords.longitude,
-				altitude: coords.altitude ?? 0,
-				accuracy: coords.accuracy ?? 0,
-				heading: coords.heading ?? 0,
-				speed: coords.speed ?? 0,
-			},
-			timestamp: expoLocation.timestamp,
-		} as unknown as Location)
-	}, [isUserLocationFABActivated, expoLocation])
+	// Las coordenadas ya las gestiona userLocationStore con startWatching
 
 	useEffect(() => {
 		// Limpiar cualquier referencia residual al desmontar
@@ -100,6 +117,7 @@ const MapBase = React.memo(() => {
 			compassPosition={{ top: 240, right: 14 }}
 			onMapIdle={handleMapIdle}
 			onMapLoadingError={handleMapLoadingError}
+			onCameraChanged={handleCameraChanged}
 			zoomEnabled
 			rotateEnabled
 		>
@@ -107,7 +125,7 @@ const MapBase = React.memo(() => {
 				ref={cameraRef}
 				defaultSettings={{
 					centerCoordinate: [-3.7038, 40.4168],
-					zoomLevel: 11,
+					zoomLevel: 10,
 					animationDuration: 1000,
 					animationMode: 'flyTo',
 				}}
@@ -132,6 +150,8 @@ const MapBase = React.memo(() => {
 					/>
 				</>
 			)}
+			{/* Markers de contenedores */}
+			<MapMarkers mapData={mapData} />
 		</MapView>
 	)
 })
