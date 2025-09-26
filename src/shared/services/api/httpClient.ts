@@ -1,8 +1,31 @@
 // Configuración base del cliente HTTP
-const API_BASE_URL =
-	process.env.EXPO_PUBLIC_API_BASE_URL ||
-	process.env.API_BASE_URL ||
-	'https://ecomad-back-mvp.onrender.com'
+import { Platform } from 'react-native'
+
+// Detectar si estamos en emulador o dispositivo físico
+const getBaseURL = () => {
+	if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+		return process.env.EXPO_PUBLIC_API_BASE_URL
+	}
+
+	if (process.env.API_BASE_URL) {
+		return process.env.API_BASE_URL
+	}
+
+	// Para Android emulador
+	if (Platform.OS === 'android') {
+		return 'http://10.0.2.2:3000'
+	}
+
+	// Para iOS simulator
+	if (Platform.OS === 'ios') {
+		return 'http://localhost:3000'
+	}
+
+	// Fallback
+	return 'http://localhost:3000'
+}
+
+const API_BASE_URL = getBaseURL()
 
 // Debug: Log de la URL base
 console.log('🔧 API_BASE_URL:', API_BASE_URL)
@@ -12,6 +35,8 @@ console.log(
 	process.env.EXPO_PUBLIC_API_BASE_URL,
 )
 console.log('🔧 NODE_ENV:', process.env.NODE_ENV)
+console.log('🔧 Platform.OS:', Platform.OS)
+console.log('🔧 __DEV__:', __DEV__)
 
 // Tipos para las respuestas
 interface ApiResponse<T> {
@@ -64,16 +89,16 @@ class HttpClient {
 			const data = await response.json()
 
 			console.log(`✅ HTTP Response: ${response.status} ${url}`)
-			console.log(`📦 Response data:`, data)
+			// console.log(`📦 Response data:`, data)
 
 			const result = {
-				success: response.ok,
+				success: data.success ?? response.ok,
 				message: data.message || 'Request completed',
-				data: data.responseObject || data.data || data,
-				statusCode: response.status,
+				data: data.data || data,
+				statusCode: data.statusCode || response.status,
 			}
 
-			console.log(`📋 Parsed result:`, result)
+			// console.log(`📋 Parsed result:`, result)
 			return result
 		} catch (error) {
 			console.error(`❌ HTTP Error: ${url}`, error)

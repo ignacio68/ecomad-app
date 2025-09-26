@@ -1,6 +1,6 @@
 import { StyleURL } from '@rnmapbox/maps'
 import Constants from 'expo-constants'
-import { CameraProps, MapViewProps } from '../domain'
+import { CameraProps, MapViewProps } from '../types/mapConfig'
 
 export const MAPBOX_DOWNLOADS_TOKEN = Constants.expoConfig?.extra
 	?.MAPBOX_DOWNLOADS_TOKEN as string

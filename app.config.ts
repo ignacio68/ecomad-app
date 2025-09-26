@@ -8,16 +8,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	slug: 'ecomad-app',
 	version: process.env.APP_VERSION ?? '1.0.3',
 	orientation: 'portrait',
-	icon: './src/assets/images/logo_fondo_transparente.png',
+	icon: './src/assets/images/icon.png',
 	scheme: 'com.ecomad.app',
 	userInterfaceStyle: 'light',
 	backgroundColor: '#ffffff',
 	newArchEnabled: true,
-	splash: {
-		image: './src/assets/images/splash-icon.png',
-		resizeMode: 'contain',
-		backgroundColor: '#ffffff',
-	},
+	// splash: {
+	// 	image: './src/assets/images/splash-icon.png',
+	// 	resizeMode: 'contain',
+	// 	backgroundColor: '#3D9970',
+	// },
 	ios: {
 		supportsTablet: true,
 		bundleIdentifier: 'com.ecomad.app',
@@ -31,10 +31,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		},
 	},
 	android: {
-		adaptiveIcon: {
-			foregroundImage: './src/assets/images/adaptive-icon.png',
-			backgroundColor: '#ffffff',
-		},
+		// adaptiveIcon: {
+		// 	foregroundImage: './src/assets/images/adaptive-icon.png',
+		// 	backgroundColor: '#ffffff',
+		// },
 		edgeToEdgeEnabled: true,
 		package: 'com.ecomad.app',
 		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 103,
@@ -54,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				image: './src/assets/images/splash-icon.png',
 				imageWidth: 200,
 				resizeMode: 'contain',
-				backgroundColor: '#ffffff',
+				backgroundColor: '#3D9970',
 			},
 		],
 		'expo-font',
@@ -74,12 +74,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 					'Permite que la aplicación acceda a su ubicación cuando esté en uso',
 			},
 		],
-		// [
-		// 	'expo-dev-client',
-		// 	{
-		// 		launchMode: 'most-recent',
-		// 	},
-		// ],
+		[
+			'expo-dev-client',
+			{
+				launchMode: 'most-recent',
+			},
+		],
 	],
 	owner: 'ignacio68',
 	experiments: {

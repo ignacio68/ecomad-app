@@ -1,10 +1,11 @@
 import ChipsContainer, {
 	ChipsContainerProps,
 } from '@/shared/components/ui/ChipsContainer'
-import { useMapChipsMenuStore } from '../stores/mapChipsMenuStore'
 import type { IconSvgElement } from '@hugeicons/react-native'
 import React, { useCallback } from 'react'
+import { useLocalBinsCache } from '../hooks/useLocalBinsCache'
 import { useMapBottomSheetStore } from '../stores/mapBottomSheetStore'
+import { useMapChipsMenuStore } from '../stores/mapChipsMenuStore'
 
 interface Chip {
 	id: string
@@ -24,14 +25,50 @@ const MapChipsContainer = React.memo(
 	}: ChipsContainerProps) => {
 		const { selectedChip, setSelectedChip } = useMapChipsMenuStore()
 		const { setMapBottomSheetTitle } = useMapBottomSheetStore()
+		const { ensureDataAvailable } = useLocalBinsCache()
 
 		const handleChipPress = useCallback(
-			(chipId: string, title: string, originalOnPress?: () => void) => {
+			async (chipId: string, title: string, originalOnPress?: () => void) => {
 				onChipPress(chipId, title)
-				setSelectedChip(chipId)
-				setMapBottomSheetTitle(title)
+
+				// Encontrar el chip para obtener su endPoint
+				const selectedChipData = chips.find(chip => chip.id === chipId)
+				const endPoint = selectedChipData?.endPoint
+
+				// Toggle logic: si el chip ya está seleccionado, lo deseleccionamos
+				if (selectedChip === chipId) {
+					setSelectedChip('') // Deseleccionar sin endPoint
+					setMapBottomSheetTitle('') // Limpiar título
+				} else {
+					setSelectedChip(chipId, endPoint) // Seleccionar con endPoint
+					setMapBottomSheetTitle(title)
+
+					// Asegurar que los datos estén disponibles en cache local
+					if (endPoint) {
+						console.log(`🔄 Ensuring data availability for ${endPoint}...`)
+						const startTime = Date.now()
+
+						try {
+							await ensureDataAvailable(endPoint)
+							const endTime = Date.now()
+							const duration = endTime - startTime
+							console.log(
+								`✅ Data ensured for ${endPoint} (took ${duration}ms)`,
+							)
+						} catch (error) {
+							console.error(`❌ Error ensuring data for ${endPoint}:`, error)
+						}
+					}
+				}
 			},
-			[setSelectedChip, setMapBottomSheetTitle, onChipPress],
+			[
+				selectedChip,
+				setSelectedChip,
+				setMapBottomSheetTitle,
+				onChipPress,
+				chips,
+				ensureDataAvailable,
+			],
 		)
 
 		return (

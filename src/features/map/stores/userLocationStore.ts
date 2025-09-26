@@ -1,7 +1,7 @@
 // src/stores/location.ts
-import { create } from 'zustand'
-import * as Location from 'expo-location'
 import type { LocationSubscription } from 'expo-location'
+import * as Location from 'expo-location'
+import { create } from 'zustand'
 
 interface Coords {
 	longitude: number
@@ -86,7 +86,12 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 		try {
 			const acc = accuracyOverride ?? get().accuracy
 			const loc = await Location.getCurrentPositionAsync({ accuracy: acc })
-			set({ location: { longitude:loc.coords.longitude, latitude: loc.coords.latitude } })
+			set({
+				location: {
+					longitude: loc.coords.longitude,
+					latitude: loc.coords.latitude,
+				},
+			})
 			console.log('Ubicación actual:', location)
 			return loc
 		} catch (e: any) {
@@ -95,7 +100,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 		}
 	},
 
-	// Watch continuo: actualiza `location` en cada fix
 	startWatching: async opts => {
 		const { _sub, isRunning, setPermissions } = get()
 		if (isRunning && _sub) return
@@ -107,12 +111,6 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 
 		const { accuracy, timeInterval, distanceInterval } = get()
 
-		// // primer fix rápido (opcional)
-		// try {
-		// 	const current = await Location.getCurrentPositionAsync({ accuracy })
-		// 	set({ location: { longitude:current.coords.longitude, latitude: current.coords.latitude }  })
-		// } catch {}
-
 		try {
 			const sub = await Location.watchPositionAsync(
 				{ accuracy, timeInterval, distanceInterval },
@@ -123,8 +121,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 							latitude: loc.coords.latitude,
 						},
 					})
-					console.log('watch::Ubicación actual:', location)
-				}, // <-- aquí guardamos SIEMPRE la última posición
+				},
 			)
 
 			set({ _sub: sub, isRunning: true, error: null })

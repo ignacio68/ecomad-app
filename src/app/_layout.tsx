@@ -9,10 +9,14 @@ import 'react-native-reanimated'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { useDatabaseInit } from '../features/map/hooks/useDatabaseInit'
 
 SplashScreen.preventAutoHideAsync().catch(console.warn)
 
 export default function RootLayout() {
+	// Inicializar base de datos
+	const { isInitialized: dbInitialized, error: dbError } = useDatabaseInit()
+
 	useEffect(() => {
 		console.log('RootLayout')
 		// Forzar modo claro
@@ -42,15 +46,19 @@ export default function RootLayout() {
 		}
 	}, [loaded])
 
-	if (!loaded) {
-		// Async font loading only occurs in development.
-		console.log('Fonts not loaded')
+	if (!loaded || !dbInitialized) {
+		// Esperar a que se carguen las fuentes y se inicialice la base de datos
+		console.log('Loading:', { fonts: loaded, database: dbInitialized })
 		return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#7251BC" />
+			<View className="flex-1 items-center justify-center">
+				<ActivityIndicator size="large" color="#7251BC" />
 			</View>
 		)
-		// return null
+	}
+
+	if (dbError) {
+		console.error('Database initialization error:', dbError)
+		// Continuar sin base de datos por ahora
 	}
 
 	return (

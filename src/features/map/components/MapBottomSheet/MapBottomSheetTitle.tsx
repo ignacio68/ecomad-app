@@ -49,7 +49,7 @@ const MapBottomSheetTitle = React.memo(({ title }: { title: string }) => {
 					</View>
 				</Popover>
 			</View>
-			<Pressable onPress={handleClose} className="rounded-full bg-gray-100 p-2">
+			{/* <Pressable onPress={handleClose} className="rounded-full bg-gray-100 p-2">
 				<HugeiconsIcon
 					icon={Cancel01Icon}
 					size={16}
@@ -58,7 +58,7 @@ const MapBottomSheetTitle = React.memo(({ title }: { title: string }) => {
 					accessibilityLabel={`Cierra el bottom sheet de ${title}`}
 					testID={`CloseBottomSheet`}
 				/>
-			</Pressable>
+			</Pressable> */}
 		</View>
 	)
 })
