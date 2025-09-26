@@ -1,0 +1,102 @@
+---
+description: Frontend development rules using backend API reference
+globs:
+alwaysApply: true
+---
+
+# Frontend Development Rules
+
+## Backend API Reference
+
+When developing frontend features, ALWAYS reference the backend implementation in `../ecomad-back-mvp/` to understand:
+
+### API Endpoints Structure
+
+- **Base URL**: `/api/v1/:binType`
+- **Available binTypes**: `clothing_bins`, `oil_bins`, `glass_bins`, `paper_bins`, `plastic_bins`, `organic_bins`, `other_bins`
+- **Dynamic routing**: All endpoints use `:binType` parameter
+
+### Available Endpoints
+
+Reference `../ecomad-back-mvp/src/api/v1/bins/routes/binsRouter.ts`:
+
+- `GET /api/v1/:binType` - Get all bins
+- `GET /api/v1/:binType/count` - Get bin count
+- `GET /api/v1/:binType/location/:locationType/:locationValue` - Get bins by location
+- `GET /api/v1/:binType/nearby` - Get nearby bins (requires lat, lng, radius)
+- `GET /api/v1/:binType/counts` - Get hierarchical counts (districts/neighborhoods)
+- `POST /api/v1/:binType/load-data` - Load CSV data (admin only)
+- `GET /api/v1/:binType/debug` - Debug endpoint
+
+### Response Format
+
+Always use the `ServiceResponse` format from `../ecomad-back-mvp/src/shared/models/serviceResponse.ts`:
+
+```typescript
+{
+  success: boolean;
+  message: string;
+  data: any | null;
+  statusCode: number;
+}
+```
+
+### Error Handling
+
+Reference `../ecomad-back-mvp/src/api/v1/bins/constants/errorMessages.ts` for consistent error messages:
+
+- **400**: Validation errors, invalid parameters
+- **200**: Success (even with empty data)
+- **500**: Server errors, database issues
+
+### Data Types
+
+Reference `../ecomad-back-mvp/src/api/v1/bins/types/binTypes.ts` for:
+
+- `BinType` enum
+- `BinRecord` interface
+- Response types and schemas
+
+### Validation
+
+Reference `../ecomad-back-mvp/src/api/v1/bins/schemas/binsSchema.ts` for:
+
+- Request validation schemas
+- Response schemas
+- Zod validation rules
+
+## Frontend Implementation Rules
+
+### API Calls
+
+- Always use the correct `binType` parameter in URLs
+- Handle `ServiceResponse` format in all API calls
+- Implement proper error handling for 400, 500 status codes
+- Use TypeScript interfaces matching backend types
+
+### State Management
+
+- Mirror backend data structures in frontend state
+- Handle loading states for async operations
+- Implement proper error states matching backend error messages
+
+### Type Safety
+
+- Import and use types from backend when available
+- Ensure frontend interfaces match backend `BinRecord` and response types
+- Use the same `BinType` enum values
+
+### Testing
+
+- Mock API responses using the same `ServiceResponse` format
+- Test error scenarios matching backend error codes
+- Use the same test data structures as backend mocks
+
+## Documentation
+
+Reference `../ecomad-back-mvp/README.md` for:
+
+- Complete API documentation
+- Architecture overview
+- Development setup
+- Available bin types and their usage

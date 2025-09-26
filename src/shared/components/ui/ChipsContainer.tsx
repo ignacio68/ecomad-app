@@ -1,10 +1,9 @@
 import React, { useCallback } from 'react'
 import { FlatList, View } from 'react-native'
-import { Chip } from './buttons/Chip'
-import { BaseButtonProps } from './buttons/types'
+import Chip, { type ChipProps } from './buttons/Chip'
 
 export interface ChipsContainerProps {
-	chips: BaseButtonProps[]
+	chips: ChipProps[]
 	containerClassName?: string
 	scrollViewClassName?: string
 	onChipPress: (chipId: string, title: string) => void
@@ -27,7 +26,7 @@ const ChipsContainer = React.memo(
 		)
 
 		const renderItem = useCallback(
-			({ item }: { item: BaseButtonProps }) => (
+			({ item }: { item: ChipProps }) => (
 				<View key={item.id}>
 					<Chip
 						id={item.id}
@@ -38,13 +37,14 @@ const ChipsContainer = React.memo(
 						isSelected={selectedChipId === item.id}
 						onPress={() => handleChipPress(item.id, item.title)}
 						testID={`chip-${item.id}`}
+						endPoint={item.endPoint}
 					/>
 				</View>
 			),
 			[selectedChipId, handleChipPress],
 		)
 
-		const keyExtractor = useCallback((item: BaseButtonProps) => item.id, [])
+		const keyExtractor = useCallback((item: ChipProps) => item.id, [])
 
 		return (
 			<View className={containerClassName}>

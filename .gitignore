@@ -42,3 +42,6 @@ yarn-error.*
 
 app-example
 mcp.json
+
+
+coverage/**/*

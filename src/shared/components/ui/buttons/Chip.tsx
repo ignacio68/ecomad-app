@@ -1,19 +1,26 @@
+import { BinType } from '@/shared/types/bins'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import React from 'react'
 import { Pressable, Text } from 'react-native'
 import { BaseButtonProps } from './types'
 
-export const Chip = React.memo(
+export interface ChipProps extends BaseButtonProps {
+	id: string
+	endPoint: BinType
+}
+const Chip = React.memo(
 	({
+		id,
 		title,
 		mode,
 		icon,
 		iconSelected,
+		endPoint,
 		isSelected = false,
 		disabled = false,
 		loading = false,
 		onPress,
-	}: BaseButtonProps) => {
+	}: ChipProps) => {
 		const getSize = () => {
 			return `h-10 pl-2 pr-4`
 		}
@@ -108,22 +115,24 @@ export const Chip = React.memo(
 				}}
 				accessibilityLiveRegion={loading ? 'polite' : undefined}
 			>
-						{icon && (
-							<HugeiconsIcon
-								icon={getIcon()}
-								className={`${getIconStyle()}`}
-								size={20}
-								color={getIconColor()}
-								accessibilityLabel={`Icono de ${title}`}
-							/>
-						)}
-						<Text
-							className={`${getTextColor()} ${getTextSize()} ${getFontFamily()}`}
-							accessibilityRole="text"
-						>
-							{title}
-						</Text>
+				{icon && (
+					<HugeiconsIcon
+						icon={getIcon()}
+						className={`${getIconStyle()}`}
+						size={20}
+						color={getIconColor()}
+						accessibilityLabel={`Icono de ${title}`}
+					/>
+				)}
+				<Text
+					className={`${getTextColor()} ${getTextSize()} ${getFontFamily()}`}
+					accessibilityRole="text"
+				>
+					{title}
+				</Text>
 			</Pressable>
 		)
 	},
 )
+
+export default Chip
