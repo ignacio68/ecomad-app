@@ -179,10 +179,7 @@ const waitForStableZoom = async (
 			// Zoom válido, resolver inmediatamente
 			resolve(zoom)
 		} else {
-			// Zoom inválido, esperar un poco y reintentar
-			setTimeout(() => {
-				resolve(zoom || 11) // Fallback a zoom 11
-			}, timeoutMs)
+			resolve(zoom || 11)
 		}
 	})
 }
@@ -200,11 +197,7 @@ const waitForValidBounds = async (
 			// Bounds válidos, resolver inmediatamente
 			resolve(bounds!)
 		} else {
-			// Bounds inválidos, esperar un poco y reintentar
-			setTimeout(() => {
-				if (isValidBounds(bounds)) {
-					resolve(bounds!)
-				} else {
+
 					// Si siguen siendo inválidos, usar bounds de Madrid por defecto
 					console.log(`🔍 Using Madrid default bounds after timeout`)
 					resolve([
@@ -212,8 +205,7 @@ const waitForValidBounds = async (
 						[-3.6, 40.5], // ne
 					])
 				}
-			}, timeoutMs)
-		}
+
 	})
 }
 
