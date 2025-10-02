@@ -80,5 +80,5 @@ export enum MapZoomLevels {
 	DISTRICT = 11, // Zoom inicial para ver toda Madrid
 	NEIGHBORHOOD = 14,
 	CONTAINER = 16,
-	CLUSTER = 13.5,
+	CLUSTER = 15, // Aumentado para mantener clusters durante zoom programático
 }

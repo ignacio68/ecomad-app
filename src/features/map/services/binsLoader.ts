@@ -7,6 +7,7 @@ import {
 	MAX_VISIBLE_POINTS_LOW_ZOOM,
 	VIEWPORT_BUFFER,
 } from '../constants/clustering'
+import { INITIAL_BOUNDS } from '../constants/map'
 import { BinPoint, type LngLatBounds } from '../types/mapData'
 import { convertContainersToGeoJSON } from '../utils/geoUtils'
 
@@ -194,18 +195,26 @@ const waitForValidBounds = async (
 ): Promise<LngLatBounds> => {
 	return new Promise(resolve => {
 		if (isValidBounds(bounds)) {
-			// Bounds válidos, resolver inmediatamente
-			resolve(bounds!)
+			// Verificar si los bounds son de Europa (muy amplios)
+			const [[minLng, minLat], [maxLng, maxLat]] = bounds!
+			const lngRange = maxLng - minLng
+			const latRange = maxLat - minLat
+
+			// Si los bounds son muy amplios (Europa), usar bounds iniciales por defecto
+			if (lngRange > 10 || latRange > 10) {
+				console.log(`🔍 Bounds too wide (Europe):`, bounds)
+				console.log(`🔍 Using INITIAL_BOUNDS instead`)
+				resolve(INITIAL_BOUNDS)
+			} else {
+				console.log(`🔍 Using provided valid bounds:`, bounds)
+				resolve(bounds!)
+			}
 		} else {
-
-					// Si siguen siendo inválidos, usar bounds de Madrid por defecto
-					console.log(`🔍 Using Madrid default bounds after timeout`)
-					resolve([
-						[-3.8, 40.35], // sw
-						[-3.6, 40.5], // ne
-					])
-				}
-
+			// Si siguen siendo inválidos, usar bounds iniciales por defecto
+			console.log(`🔍 Invalid bounds provided:`, bounds)
+			console.log(`🔍 Using INITIAL_BOUNDS`)
+			resolve(INITIAL_BOUNDS)
+		}
 	})
 }
 
