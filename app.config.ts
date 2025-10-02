@@ -4,7 +4,7 @@ import 'dotenv/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
-	name: 'ecomad-app',
+	name: 'EcoMAD',
 	slug: 'ecomad-app',
 	version: process.env.APP_VERSION ?? '1.0.3',
 	orientation: 'portrait',

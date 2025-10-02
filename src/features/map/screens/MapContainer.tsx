@@ -26,7 +26,7 @@ const MapContainer = React.memo(() => {
 		() => (
 			<MapChipsContainer
 				chips={chipsList}
-				containerClassName="absolute left-0 right-0 top-16"
+				containerClassName="absolute left-0 right-0 top-16" // TODO: Convertir a constante
 				scrollViewClassName="px-4 py-2"
 				onChipPress={handleChipPress}
 			/>

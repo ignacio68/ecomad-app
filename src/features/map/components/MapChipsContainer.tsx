@@ -45,7 +45,11 @@ const MapChipsContainer = React.memo(
 
 					// Asegurar que los datos estén disponibles en cache local
 					if (endPoint) {
-						console.log(`🔄 Ensuring data availability for ${endPoint}...`)
+						const callId = Math.random().toString(36).substr(2, 9)
+						console.log(
+							`🔄 [${callId}] Ensuring data availability for ${endPoint}...`,
+						)
+						console.log(`📍 [${callId}] Called from MapChipsContainer.tsx`)
 						const startTime = Date.now()
 
 						try {
@@ -53,7 +57,7 @@ const MapChipsContainer = React.memo(
 							const endTime = Date.now()
 							const duration = endTime - startTime
 							console.log(
-								`✅ Data ensured for ${endPoint} (took ${duration}ms)`,
+								`✅ [${callId}] Data ensured for ${endPoint} (took ${duration}ms)`,
 							)
 						} catch (error) {
 							console.error(`❌ Error ensuring data for ${endPoint}:`, error)

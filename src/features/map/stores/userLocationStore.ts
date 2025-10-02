@@ -2,6 +2,10 @@
 import type { LocationSubscription } from 'expo-location'
 import * as Location from 'expo-location'
 import { create } from 'zustand'
+import {
+	USER_LOCATION_TIME_INTERVAL_MS,
+	USER_LOCATION_DISTANCE_INTERVAL_M,
+} from '../constants/clustering'
 
 interface Coords {
 	longitude: number
@@ -50,8 +54,8 @@ export const useLocationStore = create<LocationState>((set, get) => ({
 	isRunning: false,
 
 	accuracy: Location.Accuracy.Balanced,
-	timeInterval: 1000,
-	distanceInterval: 5,
+	timeInterval: USER_LOCATION_TIME_INTERVAL_MS,
+	distanceInterval: USER_LOCATION_DISTANCE_INTERVAL_M,
 
 	_sub: null,
 
