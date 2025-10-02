@@ -1,4 +1,3 @@
-import { Bounds } from '@/shared/types/search'
 import Mapbox, {
 	Camera,
 	LocationPuck,
@@ -6,28 +5,44 @@ import Mapbox, {
 	UserLocation,
 } from '@rnmapbox/maps'
 import React, { useCallback, useEffect, useRef } from 'react'
-import { useMapDataByZoom } from '../hooks/useMapDataByZoom'
+import {
+	ANIMATION_DURATION_MS,
+	ANIMATION_TIMEOUT_MS,
+	COMPASS_POSITION,
+	DEFAULT_ZOOM_FALLBACK,
+	ZOOM_CHANGE_THRESHOLD,
+} from '../constants/clustering'
+import { INITIAL_BOUNDS, INITIAL_CENTER } from '../constants/map'
 import { useMapStore } from '../stores/mapStore'
 import { useMapViewportStore } from '../stores/mapViewportStore'
 import { useLocationStore } from '../stores/userLocationStore'
 import { mapStyles } from '../styles/mapStyles'
-import MapMarkers from './MapMarkers'
+import { LngLatBounds, MapZoomLevels } from '../types/mapData'
+import { SuperclusterMarkers } from './SuperclusterMarkers'
 
 const MapBase = React.memo(() => {
 	const mapRef = useRef<MapView | null>(null)
 	const cameraRef = useRef<Camera | null>(null)
+	const isAnimatingRef = useRef(false)
 	// Eliminado lastLocationRef por no utilizarse
 	const userLocationRef = useRef<UserLocation | null>(null)
+	const lastFocusedRef = useRef<{
+		center: { lat: number; lng: number }
+		zoom: number
+	} | null>(null)
 
 	const { isUserLocationFABActivated } = useMapStore()
 	const { setPermissions, startWatching, stopWatching } = useLocationStore()
-	const { setZoom, setBounds, setCenter, viewport } = useMapViewportStore()
-
-	// Hook para manejar datos del mapa según zoom
-	const { mapData } = useMapDataByZoom()
-
-	// Debug temporal para mapData del store (comentado)
-	// console.log(`🗺️ MAPBASE: mapData from store - type=${mapData.type}, items=${mapData.data.length}`)
+	const {
+		setZoom,
+		setBounds,
+		setCenter,
+		viewport,
+		shouldAnimate,
+		resetAnimation,
+		updateBoundsFromMap,
+	} = useMapViewportStore()
+	// Eliminado markerState por no utilizarse
 
 	// Ref para controlar si ya se ejecutó handleMapIdle
 	const mapIdleExecutedRef = useRef<boolean>(false)
@@ -43,24 +58,18 @@ const MapBase = React.memo(() => {
 		console.log('🗺️ Mapa cargado correctamente - first time only')
 		mapIdleExecutedRef.current = true
 
-		// Solo establecer bounds y centro inicial si no existen
+		// Solo establecer bounds inicial si no existen
+		if (__DEV__) {
+			console.log('🔍 Current viewport.bounds:', viewport.bounds)
+			console.log('🔍 Current viewport.center:', viewport.center)
+		}
+
 		if (!viewport.bounds) {
-			const initialBounds: Bounds = {
-				minLat: 40.35,
-				maxLat: 40.5,
-				minLng: -3.8,
-				maxLng: -3.6,
-			}
+			const initialBounds = INITIAL_BOUNDS
 			console.log('📍 Setting initial bounds (first time only):', initialBounds)
 			setBounds(initialBounds)
 		}
-
-		if (!viewport.center) {
-			const initialCenter = { lat: 40.4168, lng: -3.7038 } // Centro de Madrid
-			console.log('📍 Setting initial center (first time only):', initialCenter)
-			setCenter(initialCenter)
-		}
-	}, [setBounds, setCenter, viewport.bounds, viewport.center])
+	}, [setBounds, viewport.bounds, viewport.center])
 
 	const handleMapLoadingError = useCallback(() => {
 		console.error('Error al cargar mapa')
@@ -72,19 +81,26 @@ const MapBase = React.memo(() => {
 
 	const handleCameraChanged = useCallback(
 		(state: any) => {
+			if (isAnimatingRef.current) {
+				return
+			}
+
 			// Actualizar zoom y centro inmediatamente (sin throttling)
 			if (state?.properties?.zoom) {
+				if (__DEV__) {
+					console.log(`🔍 Camera changed - zoom: ${state.properties.zoom}`)
+				}
 				setZoom(state.properties.zoom)
 			}
 
 			// Actualizar centro inmediatamente cuando la cámara cambia
 			if (state.properties.center) {
 				const [lng, lat] = state.properties.center
-				const zoom = state.properties.zoom ?? 10
+				const zoom = state.properties.zoom ?? DEFAULT_ZOOM_FALLBACK
 
 				// Guardar el centro del mapa inmediatamente
 				setCenter({ lat, lng })
-				console.log(`📍 MapBase: Updating center to ${lat}, ${lng}`)
+				// console.log(`📍 MapBase: Updating center to ${lat}, ${lng}`)
 
 				// Throttling solo para bounds (cálculos más pesados)
 				const now = Date.now()
@@ -94,23 +110,47 @@ const MapBase = React.memo(() => {
 				if (shouldUpdateBounds) {
 					lastBoundsUpdateRef.current = now
 
-					// Solo calcular bounds si el zoom cambió significativamente
-					const zoomChanged = Math.abs(zoom - (viewport.zoom || 10)) > 0.5
-					if (zoomChanged) {
+					// Usar getVisibleBounds() del MapView para obtener bounds precisos
+					const zoomChanged =
+						Math.abs(zoom - (viewport.zoom || DEFAULT_ZOOM_FALLBACK)) >
+						ZOOM_CHANGE_THRESHOLD
+					const centerChanged =
+						!viewport.center ||
+						Math.abs(viewport.center.lat - lat) > 0.001 ||
+						Math.abs(viewport.center.lng - lng) > 0.001
+
+					// Forzar actualización si hay cambio drástico de centro (más de 1 grado)
+					const drasticCenterChange =
+						viewport.center &&
+						(Math.abs(viewport.center.lat - lat) > 1 ||
+							Math.abs(viewport.center.lng - lng) > 1)
+
+					if (zoomChanged || centerChanged || drasticCenterChange) {
+						// Usar fallback: calcular bounds basados en el centro y zoom
+						// getVisibleBounds() está devolviendo bounds incorrectos
 						const latDelta = 180 / Math.pow(2, zoom)
 						const lngDelta = 360 / Math.pow(2, zoom)
 
-						const newBounds: Bounds = {
-							minLat: lat - latDelta / 2,
-							maxLat: lat + latDelta / 2,
-							minLng: lng - lngDelta / 2,
-							maxLng: lng + lngDelta / 2,
+						const newBounds: LngLatBounds = [
+							[lng - lngDelta / 2, lat - latDelta / 2], // sw
+							[lng + lngDelta / 2, lat + latDelta / 2], // ne
+						]
+
+						if (__DEV__) {
+							console.log(`🔍 MapBase: Calculated bounds (fallback):`, {
+								center: { lat, lng },
+								zoom,
+								latDelta,
+								lngDelta,
+								bounds: newBounds,
+							})
 						}
 
 						// Validar que los bounds sean válidos
+						const [sw, ne] = newBounds
 						if (
-							newBounds.minLat < newBounds.maxLat &&
-							newBounds.minLng < newBounds.maxLng
+							sw[1] < ne[1] && // lat
+							sw[0] < ne[0] // lng
 						) {
 							setBounds(newBounds)
 						}
@@ -118,7 +158,7 @@ const MapBase = React.memo(() => {
 				}
 			}
 		},
-		[setZoom, setBounds, setCenter, viewport.zoom],
+		[setZoom, setBounds, setCenter, viewport.zoom, updateBoundsFromMap],
 	)
 
 	useEffect(() => {
@@ -148,6 +188,31 @@ const MapBase = React.memo(() => {
 	// Las coordenadas ya las gestiona userLocationStore con startWatching
 
 	useEffect(() => {
+		if (!viewport.center || !cameraRef.current || !shouldAnimate) {
+			return
+		}
+
+		console.log(
+			'🔍 Animating to center:',
+			viewport.center,
+			'zoom:',
+			viewport.zoom,
+		)
+		isAnimatingRef.current = true
+		cameraRef.current.setCamera({
+			centerCoordinate: [viewport.center.lng, viewport.center.lat],
+			zoomLevel: viewport.zoom,
+			animationMode: 'flyTo',
+			animationDuration: ANIMATION_DURATION_MS,
+		})
+		const timeout = setTimeout(() => {
+			isAnimatingRef.current = false
+			resetAnimation()
+		}, ANIMATION_TIMEOUT_MS)
+		return () => clearTimeout(timeout)
+	}, [viewport.center, viewport.zoom, shouldAnimate, resetAnimation])
+
+	useEffect(() => {
 		// Limpiar cualquier referencia residual al desmontar
 		return () => {
 			// Cleanup si es necesario
@@ -161,7 +226,7 @@ const MapBase = React.memo(() => {
 			style={mapStyles.map}
 			scaleBarEnabled={false}
 			compassEnabled
-			compassPosition={{ top: 240, right: 14 }}
+			compassPosition={COMPASS_POSITION}
 			onMapIdle={handleMapIdle}
 			onMapLoadingError={handleMapLoadingError}
 			onCameraChanged={handleCameraChanged}
@@ -171,15 +236,17 @@ const MapBase = React.memo(() => {
 			<Camera
 				ref={cameraRef}
 				defaultSettings={{
-					centerCoordinate: [-3.7038, 40.4168],
-					zoomLevel: 10,
-					animationDuration: 1000,
+					centerCoordinate: INITIAL_CENTER,
+					zoomLevel: MapZoomLevels.DISTRICT, // Usar zoom fijo para evitar conflictos
+					animationDuration: 1000, // Mantener 1000ms para la animación inicial
 					animationMode: 'flyTo',
 				}}
 				// bounds={{ ne: [40.35, -3.8], sw: [40.5, -3.6] }}
 				followUserLocation={isUserLocationFABActivated}
 				followZoomLevel={15}
 			/>
+			{/* Clusters y marcadores de contenedores */}
+			<SuperclusterMarkers />
 			{isUserLocationFABActivated && (
 				<>
 					<UserLocation
@@ -198,8 +265,6 @@ const MapBase = React.memo(() => {
 					/>
 				</>
 			)}
-			{/* Markers de contenedores */}
-			<MapMarkers />
 		</MapView>
 	)
 })
