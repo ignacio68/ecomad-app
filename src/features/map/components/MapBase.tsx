@@ -7,7 +7,6 @@ import Mapbox, {
 import React, { useCallback, useEffect, useRef } from 'react'
 import {
 	ANIMATION_DURATION_MS,
-	ANIMATION_TIMEOUT_MS,
 	COMPASS_POSITION,
 	DEFAULT_ZOOM_FALLBACK,
 	ZOOM_CHANGE_THRESHOLD,
@@ -26,10 +25,7 @@ const MapBase = React.memo(() => {
 	const isAnimatingRef = useRef(false)
 	// Eliminado lastLocationRef por no utilizarse
 	const userLocationRef = useRef<UserLocation | null>(null)
-	const lastFocusedRef = useRef<{
-		center: { lat: number; lng: number }
-		zoom: number
-	} | null>(null)
+	// Eliminado lastFocusedRef por no utilizarse
 
 	const { isUserLocationFABActivated } = useMapStore()
 	const { setPermissions, startWatching, stopWatching } = useLocationStore()
@@ -40,7 +36,6 @@ const MapBase = React.memo(() => {
 		viewport,
 		shouldAnimate,
 		resetAnimation,
-		updateBoundsFromMap,
 	} = useMapViewportStore()
 	// Eliminado markerState por no utilizarse
 
@@ -77,88 +72,121 @@ const MapBase = React.memo(() => {
 
 	// Ref para throttling de eventos de cámara (solo para bounds)
 	const lastBoundsUpdateRef = useRef<number>(0)
-	const BOUNDS_THROTTLE_MS = 100 // Actualizar bounds máximo cada 100ms
+	const BOUNDS_THROTTLE_MS = 50 // Actualizar bounds máximo cada 50ms para mejor respuesta
 
 	const handleCameraChanged = useCallback(
-		(state: any) => {
+		async (state: any) => {
 			if (isAnimatingRef.current) {
 				return
 			}
 
-			// Actualizar zoom y centro inmediatamente (sin throttling)
-			if (state?.properties?.zoom) {
-				if (__DEV__) {
-					console.log(`🔍 Camera changed - zoom: ${state.properties.zoom}`)
-				}
-				setZoom(state.properties.zoom)
-			}
+			// Usar métodos nativos para obtener zoom y center precisos
+			if (mapRef.current) {
+				try {
+					// Obtener zoom actual del mapa
+					const currentZoom = await mapRef.current.getZoom()
+					if (__DEV__) {
+						console.log(`🔍 Camera changed - zoom: ${currentZoom}`)
+					}
+					setZoom(currentZoom)
 
-			// Actualizar centro inmediatamente cuando la cámara cambia
-			if (state.properties.center) {
-				const [lng, lat] = state.properties.center
-				const zoom = state.properties.zoom ?? DEFAULT_ZOOM_FALLBACK
+					// Obtener center actual del mapa
+					const currentCenter = await mapRef.current.getCenter()
+					if (currentCenter) {
+						const [lng, lat] = currentCenter
+						setCenter({ lat, lng })
 
-				// Guardar el centro del mapa inmediatamente
-				setCenter({ lat, lng })
-				// console.log(`📍 MapBase: Updating center to ${lat}, ${lng}`)
-
-				// Throttling solo para bounds (cálculos más pesados)
-				const now = Date.now()
-				const shouldUpdateBounds =
-					now - lastBoundsUpdateRef.current > BOUNDS_THROTTLE_MS
-
-				if (shouldUpdateBounds) {
-					lastBoundsUpdateRef.current = now
-
-					// Usar getVisibleBounds() del MapView para obtener bounds precisos
-					const zoomChanged =
-						Math.abs(zoom - (viewport.zoom || DEFAULT_ZOOM_FALLBACK)) >
-						ZOOM_CHANGE_THRESHOLD
-					const centerChanged =
-						!viewport.center ||
-						Math.abs(viewport.center.lat - lat) > 0.001 ||
-						Math.abs(viewport.center.lng - lng) > 0.001
-
-					// Forzar actualización si hay cambio drástico de centro (más de 1 grado)
-					const drasticCenterChange =
-						viewport.center &&
-						(Math.abs(viewport.center.lat - lat) > 1 ||
-							Math.abs(viewport.center.lng - lng) > 1)
-
-					if (zoomChanged || centerChanged || drasticCenterChange) {
-						// Usar fallback: calcular bounds basados en el centro y zoom
-						// getVisibleBounds() está devolviendo bounds incorrectos
-						const latDelta = 180 / Math.pow(2, zoom)
-						const lngDelta = 360 / Math.pow(2, zoom)
-
-						const newBounds: LngLatBounds = [
-							[lng - lngDelta / 2, lat - latDelta / 2], // sw
-							[lng + lngDelta / 2, lat + latDelta / 2], // ne
-						]
+						// Throttling solo para bounds (cálculos más pesados)
+						const now = Date.now()
+						const timeSinceLastUpdate = now - lastBoundsUpdateRef.current
+						const shouldUpdateBounds = timeSinceLastUpdate > BOUNDS_THROTTLE_MS
 
 						if (__DEV__) {
-							console.log(`🔍 MapBase: Calculated bounds (fallback):`, {
-								center: { lat, lng },
-								zoom,
-								latDelta,
-								lngDelta,
-								bounds: newBounds,
-							})
+							console.log(
+								`🔍 Step 1 - Bounds throttling: timeSinceLastUpdate=${timeSinceLastUpdate}ms, shouldUpdateBounds=${shouldUpdateBounds}`,
+							)
 						}
 
-						// Validar que los bounds sean válidos
-						const [sw, ne] = newBounds
-						if (
-							sw[1] < ne[1] && // lat
-							sw[0] < ne[0] // lng
-						) {
-							setBounds(newBounds)
+						if (shouldUpdateBounds) {
+							lastBoundsUpdateRef.current = now
+
+							// Verificar si realmente necesitamos actualizar bounds
+							const zoomChanged =
+								Math.abs(
+									currentZoom - (viewport.zoom || DEFAULT_ZOOM_FALLBACK),
+								) > ZOOM_CHANGE_THRESHOLD
+							const centerChanged =
+								!viewport.center ||
+								Math.abs(viewport.center.lat - lat) > 0.001 ||
+								Math.abs(viewport.center.lng - lng) > 0.001
+							const drasticCenterChange =
+								viewport.center &&
+								(Math.abs(viewport.center.lat - lat) > 1 ||
+									Math.abs(viewport.center.lng - lng) > 1)
+
+							if (__DEV__) {
+								console.log(
+									`🔍 Step 1 - Update conditions: zoomChanged=${zoomChanged}, centerChanged=${centerChanged}, drasticCenterChange=${drasticCenterChange}`,
+								)
+								console.log(
+									`🔍 Step 1 - Zoom comparison: current=${currentZoom}, stored=${viewport.zoom}, threshold=${ZOOM_CHANGE_THRESHOLD}`,
+								)
+							}
+
+							// Siempre actualizar bounds en zoom out para mostrar más contenedores
+							if (
+								zoomChanged ||
+								centerChanged ||
+								drasticCenterChange ||
+								currentZoom < (viewport.zoom || 0)
+							) {
+								// Usar getVisibleBounds() del MapView para obtener bounds precisos
+								const bounds = await mapRef.current.getVisibleBounds()
+								if (__DEV__) {
+									console.log(`🔍 Step 1 - getVisibleBounds() result:`, bounds)
+								}
+
+								if (bounds && Array.isArray(bounds) && bounds.length === 2) {
+									// getVisibleBounds() devuelve [[lng, lat], [lng, lat]]
+									// Determinar cuál es sw y cuál es ne
+									const [point1, point2] = bounds
+									const newBounds: LngLatBounds = [
+										[
+											Math.min(point1[0], point2[0]),
+											Math.min(point1[1], point2[1]),
+										], // sw: [min_lng, min_lat]
+										[
+											Math.max(point1[0], point2[0]),
+											Math.max(point1[1], point2[1]),
+										], // ne: [max_lng, max_lat]
+									]
+
+									if (__DEV__) {
+										console.log(`🔍 Step 1 - Setting bounds:`, newBounds)
+									}
+									setBounds(newBounds)
+								} else {
+									// Fallback si getVisibleBounds() falla
+									console.warn(
+										`⚠️ getVisibleBounds() returned invalid data, using fallback`,
+									)
+									const latDelta = 180 / Math.pow(2, currentZoom)
+									const lngDelta = 360 / Math.pow(2, currentZoom)
+									const newBounds: LngLatBounds = [
+										[lng - lngDelta / 2, lat - latDelta / 2], // sw
+										[lng + lngDelta / 2, lat + latDelta / 2], // ne
+									]
+									setBounds(newBounds)
+								}
+							}
 						}
 					}
+				} catch (error) {
+					console.warn(`⚠️ Error getting map state:`, error)
 				}
 			}
 		},
-		[setZoom, setBounds, setCenter, viewport.zoom, updateBoundsFromMap],
+		[setZoom, setBounds, setCenter, viewport.zoom, viewport.center],
 	)
 
 	useEffect(() => {
@@ -205,10 +233,49 @@ const MapBase = React.memo(() => {
 			animationMode: 'flyTo',
 			animationDuration: ANIMATION_DURATION_MS,
 		})
-		const timeout = setTimeout(() => {
+
+		// Actualizar bounds después de la animación usando timeout
+		const timeout = setTimeout(async () => {
 			isAnimatingRef.current = false
 			resetAnimation()
-		}, ANIMATION_TIMEOUT_MS)
+
+			// Actualizar bounds al finalizar animación
+			if (mapRef.current) {
+				try {
+					const currentZoom = await mapRef.current.getZoom()
+					const currentCenter = await mapRef.current.getCenter()
+					if (currentCenter) {
+						const [lng, lat] = currentCenter
+						setCenter({ lat, lng })
+						setZoom(currentZoom)
+
+						// Obtener bounds actualizados
+						const bounds = await mapRef.current.getVisibleBounds()
+						if (bounds && Array.isArray(bounds) && bounds.length === 2) {
+							const [point1, point2] = bounds
+							const newBounds: LngLatBounds = [
+								[
+									Math.min(point1[0], point2[0]),
+									Math.min(point1[1], point2[1]),
+								], // sw: [min_lng, min_lat]
+								[
+									Math.max(point1[0], point2[0]),
+									Math.max(point1[1], point2[1]),
+								], // ne: [max_lng, max_lat]
+							]
+
+							if (__DEV__) {
+								console.log(`🔍 Post-animation bounds update:`, newBounds)
+							}
+							setBounds(newBounds)
+						}
+					}
+				} catch (error) {
+					console.warn(`⚠️ Error updating bounds after animation:`, error)
+				}
+			}
+		}, ANIMATION_DURATION_MS + 100) // Tiempo de animación + buffer
+
 		return () => clearTimeout(timeout)
 	}, [viewport.center, viewport.zoom, shouldAnimate, resetAnimation])
 

@@ -194,6 +194,7 @@ export const useSuperclusterBins = () => {
 	// Filtrar puntos usando pipeline asíncrono
 	const [filteredPoints, setFilteredPoints] = useState<BinPoint[]>([])
 
+	// STEP 2: Filtrar puntos con debounce adaptativo
 	useEffect(() => {
 		// Solo filtrar si hay chip seleccionado Y puntos válidos
 		if (!selectedEndPoint) {
@@ -206,8 +207,23 @@ export const useSuperclusterBins = () => {
 			return
 		}
 
-		const filterPoints = async () => {
+		// Debounce más corto para zoom out (más reactivo)
+		const currentZoom = viewport.zoom ?? MapZoomLevels.DISTRICT
+		const previousZoom = throttledZoom
+		const isZoomingOut = currentZoom < previousZoom
+		
+		// Debounce más corto para zoom out (50ms vs 150ms)
+		const debounceTime = isZoomingOut ? 50 : 150
+
+		const filterTimeoutId = setTimeout(async () => {
 			try {
+				if (__DEV__) {
+					console.log(
+						`🔍 Step 2 - Starting filtering with stable bounds:`,
+						viewport.bounds,
+					)
+				}
+
 				const zoom = viewport.zoom ?? MapZoomLevels.DISTRICT
 				const filtered = await filterPointsAsync(
 					validPoints,
@@ -216,19 +232,28 @@ export const useSuperclusterBins = () => {
 					viewport.center,
 				)
 				setFilteredPoints(filtered)
+
+				if (__DEV__) {
+					console.log(
+						`🔍 Step 2 - Filtering completed: ${validPoints.length} → ${filtered.length} points`,
+					)
+				}
 			} catch (error) {
 				console.error(`❌ Error filtering points:`, error)
 				setFilteredPoints([])
 			}
-		}
+		}, debounceTime)
 
-		filterPoints()
+		return () => {
+			clearTimeout(filterTimeoutId)
+		}
 	}, [
 		selectedEndPoint,
 		validPoints,
 		viewport.zoom,
 		viewport.bounds,
 		viewport.center,
+		throttledZoom,
 	])
 
 	// Debug: Log del filtrado de puntos (optimizado)

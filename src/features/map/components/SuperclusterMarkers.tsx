@@ -57,10 +57,7 @@ export const SuperclusterMarkers: React.FC = () => {
 	// Manejar clic en cluster
 	const handleClusterPress = useCallback(
 		(cluster: any) => {
-			const expansionZoom = Math.max(
-				getClusterExpansionZoom(cluster.id),
-				MapZoomLevels.CLUSTER,
-			)
+			const expansionZoom = getClusterExpansionZoom(cluster.id)
 			const [longitude, latitude] = cluster.geometry.coordinates
 
 			setSelectedCluster(cluster)

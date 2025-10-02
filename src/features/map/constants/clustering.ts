@@ -1,8 +1,8 @@
 import { LngLatBounds } from '../types/mapData'
 
 // Constantes para clustering y rendimiento
-export const CLUSTER_RADIUS = 80 // Radio para clustering
-export const CLUSTER_MAX_ZOOM = 16 // Zoom máximo donde supercluster genera clusters
+export const CLUSTER_RADIUS = 120 // Radio para clustering (aumentado para mejor agrupación)
+export const CLUSTER_MAX_ZOOM = 16 // Zoom máximo donde supercluster genera clusters (aumentado para zoom programático)
 export const CLUSTER_USE_UNTIL_ZOOM = 17 // Zoom hasta el cual usar supercluster
 export const MIN_CLUSTER_SIZE = 6 // Tamaño mínimo para mantener como cluster
 export const MAX_VISIBLE_POINTS_LOW_ZOOM = 800 // Límite de puntos en zoom bajo

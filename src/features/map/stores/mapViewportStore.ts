@@ -45,17 +45,23 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 			if (current && bounds) {
 				const [currentSW, currentNE] = current
 				const [newSW, newNE] = bounds
-				if (
+				const isEqual =
 					Math.abs(currentSW[0] - newSW[0]) < 1e-6 && // lng
 					Math.abs(currentSW[1] - newSW[1]) < 1e-6 && // lat
 					Math.abs(currentNE[0] - newNE[0]) < 1e-6 && // lng
 					Math.abs(currentNE[1] - newNE[1]) < 1e-6 // lat
-				) {
+				if (isEqual) {
+					if (__DEV__) {
+						console.log(`🔍 setBounds: Bounds are equal, not updating`)
+					}
 					return state
 				}
 			}
 			if (!current && !bounds) {
 				return state
+			}
+			if (__DEV__) {
+				console.log(`🔍 setBounds: Updating bounds from`, current, `to`, bounds)
 			}
 			return {
 				viewport: { ...state.viewport, bounds },
