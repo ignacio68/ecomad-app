@@ -8,8 +8,11 @@ const GeneralInfo = ({
 	totalBins: number | null
 }) => {
 	const getTotalCountText = (totalBins: number | null) => {
-		return totalBins == null || totalBins > 0
-			? `En Madrid hay ${totalBins?.toLocaleString()} contenedores de ${mapBottomSheetTitle}`
+		if (totalBins == null) {
+			return `Cargando información de contenedores de ${mapBottomSheetTitle}...`
+		}
+		return totalBins > 0
+			? `En Madrid hay ${totalBins.toLocaleString()} contenedores de ${mapBottomSheetTitle}`
 			: `Madrid no dispone de contenedores de ${mapBottomSheetTitle}`
 	}
 	return (

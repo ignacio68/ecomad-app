@@ -1,9 +1,8 @@
 import { BinType } from '@/shared/types/bins'
 import {
-	CLUSTER_SIZE_THRESHOLD_SMALL,
 	CLUSTER_SIZE_THRESHOLD_MEDIUM,
-	CLUSTER_SIZE_THRESHOLD_LARGE,
-} from '@/features/map/constants/clustering'
+	CLUSTER_SIZE_THRESHOLD_SMALL,
+} from '@map/constants/clustering'
 import { MarkerView } from '@rnmapbox/maps'
 import React from 'react'
 import { Pressable, Text, View } from 'react-native'

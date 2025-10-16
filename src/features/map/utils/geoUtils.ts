@@ -1,6 +1,6 @@
 import { BinType } from '@/shared/types/bins'
 import * as turf from '@turf/turf'
-import { BinsContainersCacheRecord } from '../../../db/bins/schema'
+import { BinsContainersCacheRecord } from '@/db/bins/schema'
 import {
 	COORDINATE_PRECISION,
 	MOVEMENT_THRESHOLD_ZOOM_10,
@@ -9,8 +9,8 @@ import {
 	MOVEMENT_THRESHOLD_ZOOM_16,
 	MOVEMENT_THRESHOLD_ZOOM_18,
 	MOVEMENT_THRESHOLD_ZOOM_EXTREME,
-} from '../constants/clustering'
-import { BinPoint } from '../types/mapData'
+} from '@map/constants/clustering'
+import { BinPoint } from '@map/types/mapData'
 
 export interface Point {
 	lat: number
@@ -110,17 +110,6 @@ export const convertContainersToGeoJSON = (
 		}
 
 		const containerId = `bin-${container.containerId}`
-
-		// Debug: Verificar duplicados
-		if (containerId === 'bin-2117') {
-			console.log(`🔍 DEBUG: Processing bin-2117 - container:`, {
-				id: container.id,
-				containerId: container.containerId,
-				coords: [lng, lat],
-				distrito: container.distrito,
-				barrio: container.barrio,
-			})
-		}
 
 		points.push({
 			type: 'Feature',

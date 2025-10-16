@@ -1,14 +1,18 @@
 import { LngLatBounds } from '../types/mapData'
 
 // Constantes para clustering y rendimiento
-export const CLUSTER_RADIUS = 120 // Radio para clustering (aumentado para mejor agrupación)
-export const CLUSTER_MAX_ZOOM = 16 // Zoom máximo donde supercluster genera clusters (aumentado para zoom programático)
-export const CLUSTER_USE_UNTIL_ZOOM = 17 // Zoom hasta el cual usar supercluster
+export const CLUSTER_RADIUS = 80 // Radio para clustering (reducido para crear más clusters)
+export const CLUSTER_MAX_ZOOM = 13 // Zoom máximo donde supercluster genera clusters
+export const CLUSTER_MIN_ZOOM = 0 // Zoom mínimo donde supercluster genera clusters
+export const CLUSTER_USE_UNTIL_ZOOM = 13 // Zoom hasta el cual usar supercluster - debe ser igual a CLUSTER_MAX_ZOOM
 export const MIN_CLUSTER_SIZE = 6 // Tamaño mínimo para mantener como cluster
-export const MAX_VISIBLE_POINTS_LOW_ZOOM = 800 // Límite de puntos en zoom bajo
-export const MAX_VISIBLE_POINTS_HIGH_ZOOM = 500 // Límite de puntos en zoom alto
+
+// Constantes para expansión de clusters
+export const LARGE_CLUSTER_ZOOM = 15 // Zoom fijo para todos los clusters - debe ser > CLUSTER_MAX_ZOOM (13)
+export const MAX_VISIBLE_POINTS_LOW_ZOOM = 800 // Límite de puntos en zoom bajo (optimizado)
+export const MAX_VISIBLE_POINTS_HIGH_ZOOM = 1000 // Límite de puntos en zoom alto (aumentado para evitar que desaparezcan contenedores)
 export const HIGH_ZOOM_THRESHOLD = 14 // Umbral para considerar zoom alto
-export const VIEWPORT_BUFFER = 0.002 // Buffer para filtrado de viewport
+export const VIEWPORT_BUFFER = 0.015 // Buffer para filtrado de viewport (aumentado para cubrir CENTRO)
 
 // Constantes para supercluster
 export const SUPERCLUSTER_EXTENT = 512 // Estándar para tiles de 512px
@@ -55,16 +59,6 @@ export const CLUSTER_SIZE_THRESHOLD_LARGE = 100 // Umbral para cluster grande
 // Constantes para cache
 export const BINS_CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutos
 
-// Constantes para geolocalización del usuario
-export const USER_LOCATION_TIME_INTERVAL_MS = 1000 // Intervalo de tiempo para geolocalización
-export const USER_LOCATION_DISTANCE_INTERVAL_M = 5 // Intervalo de distancia para geolocalización
-
-// Constantes para UI
-export const COMPASS_POSITION = { top: 240, right: 14 } // Posición del compás
-
-// Constantes para bottom sheet
-export const BOTTOM_SHEET_SNAP_POINTS = ['25%', '80%'] // Puntos de snap del bottom sheet
-
 // Constantes para marcadores
 export const BIN_MARKER_ICON_SIZE = 16 // Tamaño del icono del marcador
 export const HERO_MARKER_SIZE = 56 // Tamaño del marcador hero (14 * 4 = 56)
@@ -73,3 +67,4 @@ export const HERO_MARKER_SHADOW_RADIUS = 8 // Radio de sombra del marcador hero
 export const HERO_MARKER_SHADOW_OPACITY = 0.25 // Opacidad de sombra del marcador hero
 export const HERO_MARKER_TRIANGLE_MARGIN_TOP = -6 // Margen superior del triángulo
 export const HERO_MARKER_TRIANGLE_MARGIN_BOTTOM = -10 // Margen inferior del triángulo
+

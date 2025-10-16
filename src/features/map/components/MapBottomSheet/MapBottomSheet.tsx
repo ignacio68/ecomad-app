@@ -1,12 +1,11 @@
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet'
 import { useEffect, useMemo, useRef } from 'react'
-
 import { View } from 'react-native'
-import { useBinsCountStore } from '../../stores/binsCountStore'
-import { useMapBottomSheetStore } from '../../stores/mapBottomSheetStore'
-import { useMapChipsMenuStore } from '../../stores/mapChipsMenuStore'
-import { useMapDataStore } from '../../stores/mapDataStore'
-import { BOTTOM_SHEET_SNAP_POINTS } from '../../constants/clustering'
+import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
+import { useBinsCountStore } from '@map/stores/binsCountStore'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
+import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
+import { MarkerType } from '@map/types/mapData'
 import BinInfo from './BinInfo'
 import ClusterInfo from './ClusterInfo'
 import GeneralInfo from './GeneralInfo'
@@ -20,7 +19,6 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 	const snapPoints = useMemo(() => BOTTOM_SHEET_SNAP_POINTS, [])
 	const bottomSheetRef = useRef<BottomSheet>(null)
 	const { mapBottomSheetTitle, markerState } = useMapBottomSheetStore()
-	const { clearMapData } = useMapDataStore()
 	const { selectedChip, selectedEndPoint } = useMapChipsMenuStore()
 	const { getTotalCount } = useBinsCountStore()
 
@@ -32,13 +30,12 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 			bottomSheetRef.current?.snapToIndex(1)
 		} else {
 			bottomSheetRef.current?.close()
-			clearMapData()
 		}
-	}, [isAnyChipSelected, clearMapData])
+	}, [isAnyChipSelected])
 
 	const renderContent = () => {
 		switch (markerState.markerType) {
-			case 'cluster':
+			case MarkerType.CLUSTER:
 				return markerState.selectedCluster ? (
 					<ClusterInfo cluster={markerState.selectedCluster} />
 				) : (
@@ -47,7 +44,7 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 						totalBins={totalBins}
 					/>
 				)
-			case 'bin':
+			case MarkerType.BIN:
 				return markerState.selectedBin ? (
 					<BinInfo bin={markerState.selectedBin} />
 				) : (
@@ -56,7 +53,7 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 						totalBins={totalBins}
 					/>
 				)
-			case 'general':
+			case MarkerType.GENERAL:
 			default:
 				return (
 					<GeneralInfo
@@ -76,7 +73,7 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 			enableOverDrag={false}
 		>
 			<BottomSheetView>
-				<View className="flex-1 items-center justify-center">
+				<View className="mb-8 flex-1 items-center justify-center">
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>

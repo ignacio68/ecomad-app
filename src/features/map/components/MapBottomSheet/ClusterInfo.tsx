@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native'
-import { ClusterFeature } from '../../types/mapData'
+import { ClusterFeature } from '@map/types/mapData'
 
 interface ClusterInfoProps {
 	cluster: ClusterFeature

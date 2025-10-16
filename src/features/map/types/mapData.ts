@@ -19,8 +19,17 @@ export interface BinPoint {
 	}
 }
 
-export type MapLocationType = 'districts' | 'neighborhoods' | 'containers'
-export type MarkerType = 'general' | 'cluster' | 'bin'
+export enum MapLocationType {
+	DISTRICTS = 'districts',
+	NEIGHBORHOODS = 'neighborhoods',
+	CONTAINERS = 'containers',
+}
+
+export enum MarkerType {
+	GENERAL = 'general',
+	CLUSTER = 'cluster',
+	BIN = 'bin',
+}
 
 export type LngLat = [number, number]
 export type LngLatBounds = [LngLat, LngLat]
