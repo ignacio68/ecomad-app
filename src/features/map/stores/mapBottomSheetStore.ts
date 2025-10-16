@@ -1,17 +1,17 @@
-import { create } from 'zustand'
-import type { BinPoint } from '../hooks/useSuperclusterBins'
-import type {
-	BottomSheetState,
-	ClusterFeature,
+import {
+	type BinPoint,
+	type BottomSheetState,
+	type ClusterFeature,
 	MarkerType,
-} from '../types/mapData'
+} from '@map/types/mapData'
+import { create } from 'zustand'
 
 interface MapBottomSheetStore {
 	mapBottomSheetTitle: string
-	setMapBottomSheetTitle: (title: string) => void
 	isMapBottomSheetOpen: boolean
-	setIsMapBottomSheetOpen: (isOpen: boolean) => void
 	markerState: BottomSheetState
+	setMapBottomSheetTitle: (title: string) => void
+	setIsMapBottomSheetOpen: (isOpen: boolean) => void
 	setMarkerType: (markerType: MarkerType) => void
 	setSelectedBin: (bin: BinPoint | null) => void
 	setSelectedCluster: (cluster: ClusterFeature | null) => void
@@ -20,14 +20,14 @@ interface MapBottomSheetStore {
 
 export const useMapBottomSheetStore = create<MapBottomSheetStore>(set => ({
 	mapBottomSheetTitle: '',
-	setMapBottomSheetTitle: title => set({ mapBottomSheetTitle: title }),
 	isMapBottomSheetOpen: false,
-	setIsMapBottomSheetOpen: isOpen => set({ isMapBottomSheetOpen: isOpen }),
 	markerState: {
-		markerType: 'general',
+		markerType: MarkerType.GENERAL,
 		selectedBin: null,
 		selectedCluster: null,
 	},
+	setMapBottomSheetTitle: title => set({ mapBottomSheetTitle: title }),
+	setIsMapBottomSheetOpen: isOpen => set({ isMapBottomSheetOpen: isOpen }),
 	setMarkerType: markerType =>
 		set(state => ({
 			markerState: {
@@ -40,7 +40,7 @@ export const useMapBottomSheetStore = create<MapBottomSheetStore>(set => ({
 			markerState: {
 				...state.markerState,
 				selectedBin: bin,
-				markerType: bin ? 'bin' : state.markerState.markerType,
+				markerType: bin ? MarkerType.BIN : state.markerState.markerType,
 				selectedCluster: bin ? null : state.markerState.selectedCluster,
 			},
 		})),
@@ -49,15 +49,14 @@ export const useMapBottomSheetStore = create<MapBottomSheetStore>(set => ({
 			markerState: {
 				...state.markerState,
 				selectedCluster: cluster,
-				markerType: cluster ? 'cluster' : state.markerState.markerType,
+				markerType: cluster ? MarkerType.CLUSTER : state.markerState.markerType,
 				selectedBin: cluster ? null : state.markerState.selectedBin,
 			},
 		})),
 	reset: () =>
 		set(state => ({
 			markerState: {
-				...state.markerState,
-				markerType: 'general',
+				markerType: MarkerType.GENERAL,
 				selectedBin: null,
 				selectedCluster: null,
 			},

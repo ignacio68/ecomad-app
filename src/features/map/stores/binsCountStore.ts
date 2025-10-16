@@ -1,6 +1,6 @@
 import { BinType } from '@/shared/types/bins'
+import { BINS_CACHE_DURATION_MS } from '@map/constants/clustering'
 import { create } from 'zustand'
-import { BINS_CACHE_DURATION_MS } from '../constants/clustering'
 
 interface BinsCountStore {
 	// Cache de conteos totales por tipo de contenedor

@@ -10,7 +10,7 @@ import { httpClient } from './httpClient'
 
 // URL base para la API de bins desde variables de entorno
 const BINS_BASE_URL =
-	process.env.EXPO_PUBLIC_API_BINS_BASE_URL || '/api/v1/bins'
+	process.env.EXPO_PUBLIC_API_BINS_BASE_URL as string
 
 // Schema para conteos jerárquicos
 const hierarchyCountSchema = z.object({

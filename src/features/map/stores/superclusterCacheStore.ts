@@ -1,6 +1,6 @@
 import { BinType } from '@/shared/types/bins'
+import { type BinPoint } from '@map/types/mapData'
 import { create } from 'zustand'
-import { BinPoint } from '../hooks/useSuperclusterBins'
 
 interface SuperclusterCacheState {
 	// Cache de puntos procesados por binType

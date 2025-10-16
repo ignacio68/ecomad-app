@@ -1,36 +1,41 @@
 import { HugeiconsIcon, IconSvgElement } from '@hugeicons/react-native'
-import React from 'react'
 import { Pressable } from 'react-native'
+import Animated from 'react-native-reanimated'
 
-interface FABProps {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
+
+export interface FABProps {
 	name: string
 	icon: IconSvgElement
 	iconSelected?: IconSvgElement
+	colorSelected?: string
 	isSelected: boolean
 	disabled?: boolean
 	loading?: boolean
 	onPress: () => void
 }
 
-const FAB = React.memo(
+const FAB =
 	({
 		name,
 		icon,
 		iconSelected,
 		isSelected = false,
+		colorSelected = '#111111',
 		disabled = false,
 		loading = false,
 		onPress,
 	}: FABProps) => {
+
 		const getIcon = () => (isSelected ? iconSelected : icon)
 
-		const getIconColor = () => (isSelected ? 'red' : '#111111')
+		const getIconColor = () => (isSelected ? colorSelected : '#111111')
 
 		return (
-			<Pressable
+			<AnimatedPressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`rounded-xl shadow-xl h-14 w-14 flex-1 flex-row items-center justify-center bg-white `}
+				className={`h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl bg-white shadow-2xl border-[0.5px] border-gray-300`}
 				accessibilityRole="button"
 				accessibilityLabel="Fab"
 				accessibilityHint="Presiona para abrir la pantalla de mapa"
@@ -47,9 +52,9 @@ const FAB = React.memo(
 					color={getIconColor()}
 					accessibilityLabel={`Icono de FAB ${name}`}
 				/>
-			</Pressable>
+			</AnimatedPressable>
 		)
-	},
-)
+	}
+
 
 export default FAB

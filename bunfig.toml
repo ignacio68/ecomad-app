@@ -1,2 +1,2 @@
 [install.scopes]
-"@hugeicons-pro" = { token = "$HUGEICONS_PRO_TOKEN", url = "https://npm.hugeicons.com/" }
+"@hugeicons-pro" = { token = "$EXPO_PUBLIC_HUGEICONS_PRO_TOKEN", url = "https://npm.hugeicons.com/" }
