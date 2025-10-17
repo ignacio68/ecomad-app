@@ -11,8 +11,7 @@ export const MAPBOX_PUBLIC_TOKEN = process.env
 export const EXPO_PUBLIC_MAPBOX_DIRECTIONS_URL = process.env
 	.EXPO_PUBLIC_MAPBOX_DIRECTIONS_URL as string
 
-export const INITIAL_CENTER: LngLat = [-3.7038, 40.4168] //Coordenadas de Madrid por defecto
-
+export const INITIAL_CENTER: LngLat = [-3.7038, 40.4168]
 export const INITIAL_BOUNDS: LngLatBounds = [
 	[-3.8, 40.35], // sw (southwest)
 	[-3.6, 40.5], // ne (northeast)

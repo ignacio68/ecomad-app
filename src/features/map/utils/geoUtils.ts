@@ -1,5 +1,5 @@
 import { BinType } from '@/shared/types/bins'
-import * as turf from '@turf/turf'
+import { area, bboxPolygon, distance, point } from '@turf/turf'
 import { BinsContainersCacheRecord } from '@/db/bins/schema'
 import {
 	COORDINATE_PRECISION,
@@ -10,7 +10,7 @@ import {
 	MOVEMENT_THRESHOLD_ZOOM_18,
 	MOVEMENT_THRESHOLD_ZOOM_EXTREME,
 } from '@map/constants/clustering'
-import { BinPoint } from '@map/types/mapData'
+import { BinPoint, LngLatBounds } from '@map/types/mapData'
 
 export interface Point {
 	lat: number
@@ -24,9 +24,9 @@ export interface Point {
  * @returns Distancia en metros
  */
 export const calculateDistance = (point1: Point, point2: Point): number => {
-	const from = turf.point([point1.lng, point1.lat])
-	const to = turf.point([point2.lng, point2.lat])
-	return turf.distance(from, to, { units: 'meters' })
+	const from = point([point1.lng, point1.lat])
+	const to = point([point2.lng, point2.lat])
+	return distance(from, to, { units: 'meters' })
 }
 
 /**
@@ -131,4 +131,14 @@ export const convertContainersToGeoJSON = (
 	}
 
 	return points
+}
+
+export const getCurrentBoundsArea = (currentBounds: LngLatBounds): number => {
+	const poly = bboxPolygon([
+		currentBounds[0][0],
+		currentBounds[0][1],
+		currentBounds[1][0],
+		currentBounds[1][1],
+	])
+	return area(poly)
 }

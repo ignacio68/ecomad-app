@@ -37,7 +37,17 @@ export const ANIMATION_TIMEOUT_MS = 820 // Timeout para animaciones
 
 // Constantes para zoom levels
 export const DEFAULT_ZOOM_FALLBACK = 10 // Zoom por defecto si no hay zoom válido
-export const ZOOM_CHANGE_THRESHOLD = 0.5 // Umbral para detectar cambios de zoom significativos
+export const ZOOM_CHANGE_THRESHOLD_OLD = 0.5 // Umbral antiguo (deprecated)
+
+// ✅ NUEVA ESTRATEGIA - Constantes de recálculo optimizadas
+export const ZOOM_RECALC_THRESHOLD = 1 // Recalcular solo si zoom cambia >= 1 unidad entera
+export const ZOOM_NO_BOUNDS_RECALC = 10 // Con zoom < 13, NO recalcular por cambios de bounds
+export const BOUNDS_AREA_CHANGE_PERCENT = 15 // % de cambio de área para recalcular bounds
+export const MIN_CONTAINERS_STABLE = 50 // Si hay < 50 contenedores, mantener estables (no recalcular por bounds)
+
+// Delays para recálculo
+export const ZOOM_CHANGE_DELAY_MS = 0 // Sin delay para cambios de zoom
+export const BOUNDS_CHANGE_DELAY_MS = 50 // Delay para cambios de bounds (debounce)
 
 // Constantes para geolocalización
 export const MOVEMENT_THRESHOLD_ZOOM_10 = 2000 // 2km - distritos
@@ -67,4 +77,3 @@ export const HERO_MARKER_SHADOW_RADIUS = 8 // Radio de sombra del marcador hero
 export const HERO_MARKER_SHADOW_OPACITY = 0.25 // Opacidad de sombra del marcador hero
 export const HERO_MARKER_TRIANGLE_MARGIN_TOP = -6 // Margen superior del triángulo
 export const HERO_MARKER_TRIANGLE_MARGIN_BOTTOM = -10 // Margen inferior del triángulo
-
