@@ -39,14 +39,14 @@ const ClusterMarker: React.FC<ClusterMarkerProps> = React.memo(
 		const [longitude, latitude] = cluster.geometry.coordinates
 
 		// Manejar el clic del PointAnnotation
-		const handlePointAnnotationPress = () => onPress?.(cluster)
+		const handleClusterMarkerPress = () => onPress?.(cluster)
 
 		return (
 			<MarkerView
 				coordinate={[longitude, latitude]}
 				anchor={{ x: 0.5, y: 0.5 }}
 			>
-				<Pressable onPress={handlePointAnnotationPress}>
+				<Pressable onPress={handleClusterMarkerPress}>
 					<View
 						className={getClusterClassName(point_count, binType)}
 						collapsable={false}

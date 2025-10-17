@@ -14,17 +14,17 @@ import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import { mapStyles } from '@map/styles/mapStyles'
 import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
-import { Camera, LocationPuck, MapView, UserLocation } from '@rnmapbox/maps'
+import { Camera, MapView } from '@rnmapbox/maps'
 import { PermissionStatus } from 'expo-location'
 import { memo, useCallback, useEffect, useRef } from 'react'
 import RouteLayer from './RouteLayer'
 import SuperclusterMarkers from './markers/SuperclusterMarkers'
+import UserLocationMarker from './markers/UserLocationMarker'
 
 const MapBase = memo(() => {
 	const mapRef = useRef<MapView | null>(null)
 	const cameraRef = useRef<Camera | null>(null)
 	const isAnimatingRef = useRef(false)
-	const userLocationRef = useRef<UserLocation | null>(null)
 
 	const { isUserLocationFABActivated, isManuallyActivated } =
 		useUserLocationFABStore()
@@ -191,22 +191,13 @@ const MapBase = memo(() => {
 	useEffect(() => {
 		const handleUserLocationToggle = async () => {
 			if (!isUserLocationFABActivated) {
-				// Detener seguimiento
 				await stopTracking()
-				if (userLocationRef.current) {
-					await userLocationRef.current.setLocationManager({ running: false })
-				}
 				return
 			}
 
 			// Solicitar permisos y iniciar seguimiento
 			const permissionStatus = await requestPermissions()
 			if (permissionStatus === PermissionStatus.GRANTED) {
-				if (userLocationRef.current) {
-					await userLocationRef.current.setLocationManager({ running: true })
-				}
-
-				// Obtener ubicación inicial primero
 				await getCurrentLocation()
 				await startTracking()
 			}
@@ -292,7 +283,7 @@ const MapBase = memo(() => {
 				defaultSettings={{
 					centerCoordinate: INITIAL_CENTER,
 					zoomLevel: MapZoomLevels.DISTRICT,
-					animationDuration: 1000, 
+					animationDuration: 1000,
 					animationMode: 'flyTo',
 				}}
 				// bounds={{ ne: [40.35, -3.8], sw: [40.5, -3.6] }}
@@ -309,24 +300,7 @@ const MapBase = memo(() => {
 
 			{route && <RouteLayer route={route} />}
 
-			{isUserLocationFABActivated && (
-				<>
-					<UserLocation
-						ref={userLocationRef}
-						showsUserHeadingIndicator
-						animated
-						androidRenderMode="compass"
-						visible={isUserLocationFABActivated}
-						minDisplacement={0}
-					/>
-					<LocationPuck
-						visible={isUserLocationFABActivated}
-						puckBearingEnabled
-						puckBearing="heading"
-						pulsing={{ isEnabled: true }}
-					/>
-				</>
-			)}
+			{isUserLocationFABActivated && <UserLocationMarker />}
 		</MapView>
 	)
 })
