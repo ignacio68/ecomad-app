@@ -3,8 +3,9 @@ import {
 	NAVIGATION_PADDING_LEFT,
 	NAVIGATION_PADDING_RIGHT,
 	NAVIGATION_PADDING_TOP,
+	MAPBOX_DOWNLOADS_TOKEN,
 } from '@map/constants/map'
-import { MAPBOX_DOWNLOADS_TOKEN } from '@map/constants/map'
+
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
 import type { Camera } from '@rnmapbox/maps'
 import Mapbox from '@rnmapbox/maps'

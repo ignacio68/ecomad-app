@@ -1,5 +1,7 @@
 import { BinType } from '@/shared/types/bins'
 import {
+	BOUNDS_AREA_CHANGE_PERCENT,
+	BOUNDS_CHANGE_DELAY_MS,
 	CLUSTER_MAX_ZOOM,
 	CLUSTER_MIN_ZOOM,
 	CLUSTER_RADIUS,
@@ -7,7 +9,9 @@ import {
 	MIN_CLUSTER_SIZE,
 	SUPERCLUSTER_EXTENT,
 	SUPERCLUSTER_NODE_SIZE,
-	ZOOM_THROTTLE_MS,
+	ZOOM_CHANGE_DELAY_MS,
+	ZOOM_NO_BOUNDS_RECALC,
+	ZOOM_RECALC_THRESHOLD,
 } from '@map/constants/clustering'
 import { INITIAL_BOUNDS } from '@map/constants/map'
 import { ensureDataAvailable } from '@map/services/binsCacheService'
@@ -22,8 +26,7 @@ import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import { BinPoint, MapZoomLevels } from '@map/types/mapData'
-import { area } from '@turf/area'
-import { bboxPolygon } from '@turf/turf'
+import { getCurrentBoundsArea } from '@map/utils/geoUtils'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSupercluster from 'use-supercluster'
 
@@ -79,34 +82,29 @@ export const useSuperclusterBins = () => {
 
 	const [points, setPoints] = useState<BinPoint[]>([])
 	const [isLoadingPoints, setIsLoadingPoints] = useState(false)
-	const [isRecalculatingClusters, setIsRecalculatingClusters] = useState(false)
 
-	// ✅ OPTIMIZACIÓN: Early return si no hay endpoint seleccionado
-	// Evita todos los cálculos innecesarios al inicio
+	// ✅ Early return si no hay endpoint seleccionado
 	const hasNoData = !selectedEndPoint && points.length === 0
 
-	// ✅ OPTIMIZACIÓN: Ref para detectar primera carga de datos
-	const previousPointsLengthRef = useRef(0)
-
-	// ✅ OPTIMIZACIÓN: Ref para guardar el timeout actual y poder cancelarlo
-	const filterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-	// ✅ OPTIMIZACIÓN: Ref para detectar cuándo fue el último movimiento programático
-	const lastProgrammaticMoveRef = useRef<number>(0)
-
-	// ✅ OPTIMIZACIÓN: Ref para guardar bounds anteriores y zoom
-	const previousBoundsRef = useRef<typeof stableBounds | null>(null)
+	// ✅ Refs para detectar cambios significativos (SIMPLIFICADOS)
 	const previousZoomRef = useRef<number | null>(null)
+	const previousBoundsAreaRef = useRef<number | null>(null)
+
+	const setBinData = (
+		calculatedPoints: BinPoint[] | [],
+		isLoadingPoints: boolean,
+	) => {
+		setPoints(calculatedPoints)
+		setIsLoadingPoints(isLoadingPoints)
+	}
 
 	useEffect(() => {
 		let isMounted = true
 
 		const loadPoints = async () => {
 			if (!selectedEndPoint) {
-				setPoints([])
-				setIsLoadingPoints(false)
+				setBinData([], false)
 				clearBinsCache(binsCache)
-				previousPointsLengthRef.current = 0
 				return
 			}
 
@@ -114,23 +112,19 @@ export const useSuperclusterBins = () => {
 
 			try {
 				await ensureDataAvailable(selectedEndPoint)
+				if (!isMounted) return
 
 				const calculatedPoints = await loadContainersAsGeoJSON(
 					selectedEndPoint,
 					binsCache,
 				)
-				if (isMounted) {
-					setPoints(calculatedPoints)
-				}
+				if (!isMounted) return
+
+				setBinData(calculatedPoints, false)
 			} catch (error) {
 				console.error('❌ Error loading points:', error)
-				if (isMounted) {
-					setPoints([])
-				}
-			} finally {
-				if (isMounted) {
-					setIsLoadingPoints(false)
-				}
+				if (!isMounted) return
+				setBinData([], false)
 			}
 		}
 
@@ -168,37 +162,6 @@ export const useSuperclusterBins = () => {
 		[],
 	)
 
-	const [throttledZoom, setThrottledZoom] = useState(viewport.zoom)
-	const [isDebouncing, setIsDebouncing] = useState(false)
-
-	useEffect(() => {
-		const currentZoom = viewport.zoom ?? MapZoomLevels.DISTRICT
-		const previousZoom = throttledZoom
-		const isZoomingOut = currentZoom < previousZoom
-		const shouldSkipThrottling =
-			isZoomingOut || currentZoom <= MapZoomLevels.CLUSTER
-
-		if (shouldSkipThrottling) {
-			setThrottledZoom(currentZoom)
-			setIsRecalculatingClusters(false)
-			setIsDebouncing(false)
-			return
-		}
-
-		setIsDebouncing(true)
-		setIsRecalculatingClusters(true)
-		const timeoutId = setTimeout(() => {
-			setThrottledZoom(currentZoom)
-			setIsRecalculatingClusters(false)
-			setIsDebouncing(false)
-		}, ZOOM_THROTTLE_MS)
-
-		return () => {
-			clearTimeout(timeoutId)
-			setIsDebouncing(false)
-		}
-	}, [viewport.zoom, throttledZoom])
-
 	const [filteredPoints, setFilteredPoints] = useState<BinPoint[]>([])
 
 	const stableBounds = useMemo(
@@ -216,218 +179,133 @@ export const useSuperclusterBins = () => {
 		[viewport.center?.lat, viewport.center?.lng],
 	)
 
+	// ✅ Refs para estabilizar useSupercluster (solo actualizar cuando filtramos)
+	const superclusterBoundsRef = useRef(stableBounds)
+	const superclusterZoomRef = useRef(viewport.zoom ?? MapZoomLevels.DISTRICT)
+
 	useEffect(() => {
-		// ✅ OPTIMIZACIÓN: Early return sin logs si no hay datos
 		if (!selectedEndPoint || points.length === 0) {
 			setFilteredPoints([])
-			// Cancelar timeout pendiente si lo hay
-			if (filterTimeoutRef.current) {
-				clearTimeout(filterTimeoutRef.current)
-				filterTimeoutRef.current = null
-			}
 			return
 		}
 
-		const effectStartTime = performance.now()
-		console.log('⏱️ [TIMING] Filter useEffect triggered')
+		const currentZoom = viewport.zoom ?? MapZoomLevels.DISTRICT
+		const currentBounds = stableBounds ?? INITIAL_BOUNDS
 
-		// ✅ OPTIMIZACIÓN: Cancelar timeout anterior si existe
-		if (filterTimeoutRef.current) {
-			clearTimeout(filterTimeoutRef.current)
-			console.log('⏱️ [TIMING] Cancelled previous filter timeout')
-		}
+		const isFirstLoad = previousZoomRef.current === null
 
-		// ✅ Detectar si es primera carga (pasamos de 0 a muchos puntos)
-		const isFirstLoad =
-			previousPointsLengthRef.current === 0 && points.length > 0
-		previousPointsLengthRef.current = points.length
+		const zoomDiff =
+			previousZoomRef.current !== null
+				? currentZoom - previousZoomRef.current
+				: 0
+		const zoomChangedSignificantly = Math.abs(zoomDiff) >= ZOOM_RECALC_THRESHOLD
 
-		// ✅ OPTIMIZACIÓN: Detectar si bounds/zoom cambiaron significativamente
-		const currentZoom = viewport.zoom ?? 11
-		const zoomChanged = previousZoomRef.current !== currentZoom
+		let currentBoundsArea = 0
+		let boundsAreaChangedSignificantly = false
 
-		// ✅ Detectar si acabamos de tener un movimiento programático
-		const timeSinceLastProgrammaticMove =
-			Date.now() - lastProgrammaticMoveRef.current
-		const IGNORE_BOUNDS_AFTER_PROGRAMMATIC_MS = 1500 // 1.5 segundos
-		const isJustAfterProgrammaticMove =
-			timeSinceLastProgrammaticMove < IGNORE_BOUNDS_AFTER_PROGRAMMATIC_MS &&
-			!isProgrammaticMove
+		try {
+			currentBoundsArea = getCurrentBoundsArea(currentBounds)
 
-		// ✅ OPTIMIZACIÓN: HARD STOP - Ignorar cambios de bounds justo después de programático
-		// Durante 1.5s después de animación, SOLO filtrar si el zoom cambió
-		if (isJustAfterProgrammaticMove && !zoomChanged) {
-			console.log(
-				'⏱️ [TIMING] HARD STOP - Ignoring bounds changes after programmatic move',
-				{
-					timeSince: timeSinceLastProgrammaticMove + 'ms',
-				},
-			)
-			return
-		}
+			if (previousBoundsAreaRef.current !== null) {
+				const areaDiffPercent =
+					(Math.abs(currentBoundsArea - previousBoundsAreaRef.current) /
+						previousBoundsAreaRef.current) *
+					100
+				boundsAreaChangedSignificantly =
+					areaDiffPercent > BOUNDS_AREA_CHANGE_PERCENT
 
-		// Comparar bounds usando Turf para calcular diferencia de área
-		let boundsChangedSignificantly = true
-
-		if (previousBoundsRef.current && stableBounds) {
-			const prevBounds = previousBoundsRef.current
-			const currBounds = stableBounds
-
-			try {
-				// Crear polígonos de los bounds
-				const prevPoly = bboxPolygon([
-					prevBounds[0][0],
-					prevBounds[0][1],
-					prevBounds[1][0],
-					prevBounds[1][1],
-				])
-				const currPoly = bboxPolygon([
-					currBounds[0][0],
-					currBounds[0][1],
-					currBounds[1][0],
-					currBounds[1][1],
-				])
-
-				// Calcular áreas
-				const prevArea = area(prevPoly)
-				const currArea = area(currPoly)
-
-				// Calcular diferencia porcentual
-				const areaDiffPercent = (Math.abs(currArea - prevArea) / prevArea) * 100
-
-				// Si la diferencia es < 5%, considerar sin cambio significativo
-				boundsChangedSignificantly = areaDiffPercent > 5
-
-				console.log('⏱️ [TIMING] Bounds comparison:', {
-					prevArea: prevArea.toFixed(0) + 'm²',
-					currArea: currArea.toFixed(0) + 'm²',
-					diffPercent: areaDiffPercent.toFixed(2) + '%',
-					significant: boundsChangedSignificantly,
+				console.log('📐 [BOUNDS] Area comparison:', {
+					prevArea: previousBoundsAreaRef.current.toFixed(0) + 'm²',
+					currArea: currentBoundsArea.toFixed(0) + 'm²',
+					diffPercent: areaDiffPercent.toFixed(1) + '%',
+					significant: boundsAreaChangedSignificantly,
 				})
-			} catch (error) {
-				// Si hay error en el cálculo, asumir que sí cambió
-				console.warn('⚠️ [TIMING] Error comparing bounds:', error)
-				boundsChangedSignificantly = true
 			}
+		} catch (error) {
+			console.warn('⚠️ Error calculating bounds area:', error)
+			boundsAreaChangedSignificantly = true
 		}
 
-		// Si no hay cambios significativos y no es programático ni primera carga, skip
+		// Early return: Sin cambios significativos
 		if (
-			!boundsChangedSignificantly &&
-			!zoomChanged &&
-			!isProgrammaticMove &&
-			!isFirstLoad
+			!isFirstLoad &&
+			!zoomChangedSignificantly &&
+			!boundsAreaChangedSignificantly
 		) {
-			console.log('⏱️ [TIMING] No significant changes, skipping filter')
+			console.log('✅ [FILTER] No changes, skipping')
 			return
 		}
 
-		previousBoundsRef.current = stableBounds
+		// Early return: Zoom bajo + solo bounds cambiaron
+		if (
+			boundsAreaChangedSignificantly &&
+			!zoomChangedSignificantly &&
+			currentZoom < ZOOM_NO_BOUNDS_RECALC
+		) {
+			console.log('🚫 [FILTER] Zoom bajo, ignorando bounds', {
+				zoom: currentZoom,
+				threshold: ZOOM_NO_BOUNDS_RECALC,
+			})
+			return
+		}
+
+		// Determinar delay: 0ms para zoom/primera carga, 50ms para bounds
+		const delay =
+			isFirstLoad || zoomChangedSignificantly
+				? ZOOM_CHANGE_DELAY_MS
+				: BOUNDS_CHANGE_DELAY_MS
+
+		// Actualizar refs
 		previousZoomRef.current = currentZoom
+		previousBoundsAreaRef.current = currentBoundsArea
 
-		// ✅ Actualizar timestamp si es movimiento programático
-		if (isProgrammaticMove) {
-			lastProgrammaticMoveRef.current = Date.now()
-		}
-
-		// ✅ Si es movimiento programático, filtrar INMEDIATAMENTE (sin delay)
-		// Si es primera carga de datos, filtrar INMEDIATAMENTE para mejor UX
-		// Si acabamos de tener movimiento programático, usar delay alto para debounce
-		// Si hay ruta activa, usar delay mínimo para mejor fluidez
-		// Si es movimiento manual, usar delay de 50ms para performance
-		let delay = 50 // Default para movimiento manual
-		if (isProgrammaticMove) {
-			delay = 0
-		} else if (isFirstLoad) {
-			delay = 0 // ✅ OPTIMIZACIÓN: Carga inicial sin delay
-		} else if (isJustAfterProgrammaticMove) {
-			delay = 300 // ✅ OPTIMIZACIÓN: Delay alto después de animación para debounce
-		} else if (route) {
-			delay = 5 // Reducido a 5ms para máxima fluidez
-		}
+		// Log y ejecutar filtrado
+		console.log('🔄 [FILTER] Recalculating...', {
+			isFirstLoad,
+			zoomChanged: zoomChangedSignificantly,
+			boundsChanged: boundsAreaChangedSignificantly,
+			delay: delay + 'ms',
+			zoom: currentZoom,
+		})
 
 		const filterTimeoutId = setTimeout(() => {
-			console.log('⏱️ [TIMING] Filter timeout executed after:', {
-				delay: delay + 'ms',
-				actualDelay: (performance.now() - effectStartTime).toFixed(2) + 'ms',
-			})
-
 			try {
-				const validBounds = stableBounds ?? INITIAL_BOUNDS
-				const realZoom = viewport.zoom ?? MapZoomLevels.DISTRICT
-
-				console.log('🔍 [FILTER] Starting filter process:', {
-					pointsCount: points.length,
-					realZoom,
-					throttledZoom,
-					isProgrammaticMove,
-					delay,
-					hasBounds: !!stableBounds,
-					bounds: stableBounds
-						? `${stableBounds[0]} to ${stableBounds[1]}`
-						: 'INITIAL_BOUNDS',
-					hasCenter: !!stableCenter,
-					center: stableCenter
-						? `${stableCenter.lat}, ${stableCenter.lng}`
-						: 'null',
-				})
-
-				// Usar viewport.zoom REAL en lugar de throttledZoom para filtrado
-				// para evitar que muestre contenedores incorrectos en Android
 				const filtered = filterPointsForViewport(
 					points,
-					realZoom,
-					validBounds,
+					currentZoom,
+					currentBounds,
 					stableCenter,
 					route,
 				)
 
-				console.log('🔍 [FILTER] Filter result:', {
-					inputPoints: points.length,
-					outputPoints: filtered.length,
-					realZoom,
-					filteredRatio:
-						((filtered.length / points.length) * 100).toFixed(1) + '%',
+				console.log('✅ [FILTER] Filtered:', {
+					input: points.length,
+					output: filtered.length,
+					ratio: ((filtered.length / points.length) * 100).toFixed(1) + '%',
 				})
 
-				setFilteredPoints(filtered)
+				// Actualizar refs para useSupercluster
+				superclusterBoundsRef.current = currentBounds
+				superclusterZoomRef.current = currentZoom
 
-				// ✅ OPTIMIZACIÓN: Si acabamos de filtrar después de movimiento programático,
-				// resetear el timestamp para evitar más cálculos innecesarios
-				if (isJustAfterProgrammaticMove) {
-					lastProgrammaticMoveRef.current = 0
-					console.log(
-						'⏱️ [TIMING] Reset programmatic move timestamp after successful filter',
-					)
-				}
+				setFilteredPoints(filtered)
 			} catch (error) {
-				console.error(`❌ [FILTER] Error filtering points:`, error)
+				console.error(`❌ [FILTER] Error:`, error)
 				setFilteredPoints([])
-			} finally {
-				// ✅ Limpiar ref después de ejecutar
-				filterTimeoutRef.current = null
 			}
 		}, delay)
 
-		// ✅ Guardar timeout en ref
-		filterTimeoutRef.current = filterTimeoutId
-
-		return () => {
-			clearTimeout(filterTimeoutId)
-			filterTimeoutRef.current = null
-		}
+		return () => clearTimeout(filterTimeoutId)
 	}, [
 		selectedEndPoint,
 		points,
 		viewport.zoom,
 		stableBounds,
 		stableCenter,
-		isProgrammaticMove,
 		route,
 	])
 
-	// Usar realZoom para la decisión de clustering, no throttledZoom
-	// para evitar desfases que causan que se muestren clusters cuando deberían ser puntos individuales
+	// Usar realZoom para la decisión de clustering
 	const realZoom = viewport.zoom ?? MapZoomLevels.DISTRICT
 	const shouldUseSupercluster = realZoom <= CLUSTER_USE_UNTIL_ZOOM
 
@@ -435,23 +313,23 @@ export const useSuperclusterBins = () => {
 	useEffect(() => {
 		console.log('🔍 [SUPERCLUSTER] Clustering decision changed:', {
 			realZoom,
-			throttledZoom,
 			CLUSTER_USE_UNTIL_ZOOM,
 			shouldUseSupercluster,
 		})
-	}, [realZoom, throttledZoom, shouldUseSupercluster])
+	}, [realZoom, shouldUseSupercluster])
 
+	// ✅ OPTIMIZACIÓN: Usar refs estables para evitar recálculos innecesarios
 	const { clusters, supercluster } = useSupercluster({
 		points: filteredPoints,
-		bounds: stableBounds
+		bounds: superclusterBoundsRef.current
 			? [
-					stableBounds[0][0],
-					stableBounds[0][1],
-					stableBounds[1][0],
-					stableBounds[1][1],
+					superclusterBoundsRef.current[0][0],
+					superclusterBoundsRef.current[0][1],
+					superclusterBoundsRef.current[1][0],
+					superclusterBoundsRef.current[1][1],
 				]
 			: undefined,
-		zoom: throttledZoom,
+		zoom: superclusterZoomRef.current,
 		options: superclusterOptions,
 	})
 
@@ -464,19 +342,19 @@ export const useSuperclusterBins = () => {
 					coordinates: cluster.geometry.coordinates as [number, number],
 				},
 			})) as BinPoint[]
-			setClustersCache(selectedEndPoint, throttledZoom, binPointClusters)
+			setClustersCache(selectedEndPoint, realZoom, binPointClusters)
 		}
-	}, [selectedEndPoint, clusters, throttledZoom, setClustersCache])
+	}, [selectedEndPoint, clusters, realZoom, setClustersCache])
 
 	const shouldExpandCluster = useCallback(
 		(feature: any): boolean => {
 			const count = feature.properties.point_count ?? 0
 			return (
 				count > 0 &&
-				(count <= MIN_CLUSTER_SIZE || throttledZoom >= MapZoomLevels.CLUSTER)
+				(count <= MIN_CLUSTER_SIZE || realZoom >= MapZoomLevels.CLUSTER)
 			)
 		},
-		[throttledZoom],
+		[realZoom],
 	)
 
 	const displayClusters = useMemo(() => {
@@ -570,7 +448,7 @@ export const useSuperclusterBins = () => {
 		filteredPoints,
 		supercluster,
 		shouldExpandCluster,
-		throttledZoom,
+		realZoom,
 		isProgrammaticMove,
 		hasNoData,
 	])
@@ -583,14 +461,12 @@ export const useSuperclusterBins = () => {
 			shouldUseSupercluster,
 			filteredPointsCount: filteredPoints.length,
 			realZoom,
-			throttledZoom,
 		})
 	}, [
 		displayClusters.length,
 		shouldUseSupercluster,
 		filteredPoints.length,
 		realZoom,
-		throttledZoom,
 		hasNoData,
 	])
 
@@ -610,11 +486,7 @@ export const useSuperclusterBins = () => {
 		clusters: displayClusters,
 		supercluster,
 		points,
-		isLoading:
-			isLoadingPoints ||
-			isRecalculatingClusters ||
-			isDebouncing ||
-			!selectedEndPoint,
+		isLoading: isLoadingPoints || !selectedEndPoint,
 		selectedBinType: selectedEndPoint,
 		isUsingIndividualContainers: !shouldUseSupercluster,
 		shouldUseSupercluster,
