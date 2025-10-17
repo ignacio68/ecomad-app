@@ -1,8 +1,8 @@
 import FAB from '@/shared/components/ui/buttons/FAB'
 import FABExpanded from '@/shared/components/ui/buttons/FABExpanded'
 import {
-	LocationUser03Icon,
 	Layers01Icon as Layers01IconDuotone,
+	LocationUser03Icon,
 } from '@hugeicons-pro/core-duotone-rounded'
 import { Layers01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { MAP_FAB_STYLES } from '@map/constants/map'
@@ -14,7 +14,7 @@ import { memo, useState } from 'react'
 import { View } from 'react-native'
 
 const MapFABsRightContainer = memo(() => {
-	const { isUserLocationFABActivated, setIsUserLocationFABActivated } =
+	const { isUserLocationFABActivated, toggleUserLocationFAB } =
 		useUserLocationFABStore()
 	const [isMapStylesFABActivated, setIsMapStylesFABActivated] = useState(false)
 	const { requestPermissions } = useUserLocationStore()
@@ -23,15 +23,19 @@ const MapFABsRightContainer = memo(() => {
 	const userLocationFABActivated = async () => {
 		if (!isUserLocationFABActivated) {
 			const permissionStatus = await requestPermissions()
+
 			if (permissionStatus !== PermissionStatus.GRANTED) {
-				console.warn('⚠️ Permisos de ubicación denegados')
+				console.warn('⚠️ Permisos de ubicación no concedidos')
+				// TODO: Mostrar modal con opciones:
+				// - Si DENIED: Botón "Ir a Ajustes" para abrir configuración de la app
+				// - Si UNDETERMINED: Botón "Reintentar" para volver a solicitar
+				// - Botón "Cancelar" para cerrar el modal
 				return
 			}
-			// Activar FAB después de obtener permisos
-			setIsUserLocationFABActivated(true)
+
+			toggleUserLocationFAB()
 		} else {
-			// Desactivar FAB si ya estaba activado
-			setIsUserLocationFABActivated(false)
+			toggleUserLocationFAB()
 		}
 	}
 
