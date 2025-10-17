@@ -6,8 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react-native'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
-import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import { MapZoomLevels, MarkerType } from '@map/types/mapData'
+import { MarkerType } from '@map/types/mapData'
 import React, { memo, useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import Popover from 'react-native-popover-view'
@@ -15,7 +14,6 @@ import Popover from 'react-native-popover-view'
 const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 	const { setIsMapBottomSheetOpen, markerState, reset, setMarkerType } =
 		useMapBottomSheetStore()
-	const { setViewportAnimated, viewport } = useMapViewportStore()
 	const { clearChip } = useMapChipsMenuStore()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const [isDataOwnerInfoOpen, setIsDataOwnerInfoOpen] = useState(false)
@@ -26,12 +24,6 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 			clearChip()
 		} else {
 			deactivateRouteIfActive()
-			if (viewport.center) {
-				setViewportAnimated({
-					center: viewport.center,
-					zoom: MapZoomLevels.CLUSTER,
-				})
-			}
 			setMarkerType(MarkerType.GENERAL)
 			reset()
 		}
@@ -42,8 +34,6 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 		reset,
 		setIsMapBottomSheetOpen,
 		setMarkerType,
-		setViewportAnimated,
-		viewport.center,
 	])
 
 	const handleDataOwnerInfo = useCallback(() => {
