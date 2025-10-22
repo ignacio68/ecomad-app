@@ -89,7 +89,7 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 						size={16}
 						color="black"
 						strokeWidth={2}
-						accessibilidadLabel={`Cierra el bottom sheet de ${title}`}
+						accessibilityLabel={`Cierra el bottom sheet de ${title}`}
 						testID={`CloseBottomSheet`}
 					/>
 				</Pressable>

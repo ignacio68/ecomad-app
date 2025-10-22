@@ -6,6 +6,9 @@ import { useUserLocationStore } from '@map/stores/userLocationStore'
 import type { BinPoint, LngLat } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import { Pressable, Text, View } from 'react-native'
+import { HugeiconsIcon } from '@hugeicons/react-native'
+import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
+import { useCallback } from 'react'
 
 interface BinInfoProps {
 	bin: BinPoint
@@ -30,10 +33,16 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 		requestPermissions,
 		getCurrentLocation,
 	} = useUserLocationStore()
-	const { calculateRoute, setNavigationMode } = useMapNavigationStore()
+	const { calculateRoute, setNavigationMode, hasActiveRoute, clearRoute } =
+		useMapNavigationStore()
 	const { cameraRef } = useMapCameraStore()
 
 	const handleNavigate = async () => {
+		console.log('handleNavigate pressed!!')
+		if (!cameraRef || hasActiveRoute) {
+			console.warn('⚠️ Cámara no disponible')
+			return
+		}
 		let currentUserLocation = userLocation
 
 		if (!isUserLocationFABActivated) {
@@ -54,17 +63,9 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 			currentUserLocation.latitude,
 		]
 
-		if (!cameraRef) {
-			console.warn('⚠️ Cámara no disponible')
-			return
-		}
-
 		setNavigationMode(true)
 
-		await new Promise(resolve => setTimeout(resolve, 100))
-
-		fitBoundsToTwoPoints(cameraRef, userCoords, coordinates)
-
+		// 1. Primero calcular la ruta (shouldHideClusters ya se activa dentro)
 		const route = await calculateRoute(
 			userCoords,
 			coordinates,
@@ -73,7 +74,26 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 
 		if (!route) {
 			console.warn('❌ No se pudo calcular la ruta')
+			return
 		}
+
+		console.log('✅ [NAV] Route ready, fitting bounds...')
+
+		await new Promise(resolve => setTimeout(resolve, 100))
+		fitBoundsToTwoPoints(cameraRef, userCoords, coordinates)
+	}
+
+	const handleClose = () => {
+		clearRoute()
+		setNavigationMode(false)
+
+	}
+
+	const getNavigationButtonColor = () => {
+		if (hasActiveRoute) {
+			return 'bg-gray-500'
+		}
+		return 'bg-secondary'
 	}
 
 	return (
@@ -99,15 +119,32 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
-
-			<Pressable
-				className="mt-6 flex-row items-center justify-center rounded-full bg-secondary px-4 py-3"
-				onPress={handleNavigate}
-			>
-				<Text className="ml-2 font-lato-semibold text-base text-white">
-					Cómo llegar
-				</Text>
-			</Pressable>
+			<View className="flex-1 flex-row items-center justify-between gap-8 mt-4 mb-6">
+				<Pressable
+					className={`rounded-full ${getNavigationButtonColor()} px-4 py-3 w-40`}
+					onPress={handleNavigate}
+					accessibilityLabel={'botón de navegación'}
+				>
+					<Text className="ml-2 font-lato-semibold text-base text-white text-center">
+						Cómo llegar
+					</Text>
+				</Pressable>
+				{hasActiveRoute && (
+					<Pressable
+						onPress={handleClose}
+						className="rounded-full bg-secondary/20 p-2"
+					>
+						<HugeiconsIcon
+							icon={Cancel01Icon}
+							size={16}
+							color="black"
+							strokeWidth={2}
+							accessibilityLabel={`Cierra el bottom sheet de navegación`}
+							testID={`CloseBottomSheet`}
+						/>
+					</Pressable>
+				)}
+			</View>
 		</View>
 	)
 }

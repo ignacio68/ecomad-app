@@ -15,7 +15,7 @@ export const getRoute = async (
 ): Promise<RouteResponse | null> => {
 	try {
 		const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`
-		const params = `steps=true&geometries=geojson&overview=full&access_token=${MAPBOX_DOWNLOADS_TOKEN}`
+		const params = `steps=true&geometries=geojson&overview=full&alternatives=false&access_token=${MAPBOX_DOWNLOADS_TOKEN}`
 		const url = `${EXPO_PUBLIC_MAPBOX_DIRECTIONS_URL}${profile}/${coords}?${params}`
 
 		const response = await fetch(url)

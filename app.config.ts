@@ -5,22 +5,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
 	name: 'EcoMAD',
 	slug: 'ecomad-app',
-	version: process.env.APP_VERSION ?? '1.0.4',
+	version: process.env.APP_VERSION ?? '1.0.5',
 	orientation: 'portrait',
 	icon: './src/assets/images/icon.png',
 	scheme: 'com.ecomad.app',
 	userInterfaceStyle: 'light',
 	backgroundColor: '#ffffff',
 	newArchEnabled: true,
-	// splash: {
-	// 	image: './src/assets/images/splash-icon.png',
-	// 	resizeMode: 'contain',
-	// 	backgroundColor: '#3D9970',
-	// },
 	ios: {
 		supportsTablet: true,
 		bundleIdentifier: 'com.ecomad.app',
-		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.4',
+		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.5',
 		requireFullScreen: true,
 		userInterfaceStyle: 'light',
 		infoPlist: {
@@ -36,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		// },
 		edgeToEdgeEnabled: true,
 		package: 'com.ecomad.app',
-		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 104,
+		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 105,
 		userInterfaceStyle: 'light',
 		permissions: [
 			'ACCESS_FINE_LOCATION',
@@ -84,12 +79,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				launchMode: 'most-recent',
 			},
 		],
-		[
-			'expo-asset',
-			{
-				assets: ['./src/assets/images/**/*.png', './src/features/map/assets/images/**/*.png'],
-			},
-		],
+		// [
+		// 	'expo-asset',
+		// 	{
+		// 		assets: ['./src/assets/images/**/*.png', './src/features/map/assets/images/**/*.png'],
+		// 	},
+		// ],
 	],
 	owner: 'ignacio68',
 	experiments: {

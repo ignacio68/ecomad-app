@@ -1,5 +1,6 @@
 import {
 	CENTER_THRESHOLD,
+	INITIAL_BOUNDS,
 	INITIAL_CENTER,
 	ZOOM_THRESHOLD,
 } from '@map/constants/map'
@@ -15,13 +16,47 @@ interface MapViewport {
 		lng: number
 	} | null
 }
+
+interface ValidatedViewport {
+	zoom: number | null
+	bounds: LngLatBounds | null
+	center: {
+		lat: number
+		lng: number
+	} | null
+}
+
 export interface MapViewportStore {
+	// Raw values (se actualizan siempre)
+	zoom: number
+	bounds: LngLatBounds | null
+	center: {
+		lat: number
+		lng: number
+	} | null
+
+	// Validated values (solo cuando cambian significativamente)
+	lastValidatedZoom: number | null
+	lastValidatedBounds: LngLatBounds | null
+	lastValidatedCenter: {
+		lat: number
+		lng: number
+	} | null
+
+	// Legacy (mantener para compatibilidad)
 	viewport: MapViewport
 	shouldAnimate: boolean
-	isProgrammaticMove: boolean // Flag para indicar movimiento programático
+	isProgrammaticMove: boolean
+
+	// Actions
 	setZoom: (zoom: number) => void
-	setBounds: (bounds: MapViewport['bounds']) => void
-	setCenter: (center: MapViewport['center']) => void
+	setBounds: (bounds: LngLatBounds | null) => void
+	setCenter: (center: { lat: number; lng: number } | null) => void
+	updateValidatedViewport: (
+		zoom: number,
+		bounds: LngLatBounds | null,
+		center: { lat: number; lng: number },
+	) => void
 	setViewportBatch: (updates: {
 		zoom?: number
 		bounds?: LngLatBounds
@@ -33,10 +68,21 @@ export interface MapViewportStore {
 }
 
 export const useMapViewportStore = create<MapViewportStore>(set => ({
+	// Raw values
+	zoom: MapZoomLevels.DISTRICT,
+	bounds: null,
+	center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+
+	// Validated values (inicializados para que funcione desde el inicio)
+	lastValidatedZoom: MapZoomLevels.DISTRICT,
+	lastValidatedBounds: INITIAL_BOUNDS,
+	lastValidatedCenter: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+
+	// Legacy
 	viewport: {
 		zoom: MapZoomLevels.DISTRICT,
 		bounds: null,
-		center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] }, // Madrid por defecto
+		center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
 	},
 	shouldAnimate: false,
 	isProgrammaticMove: false,
@@ -184,6 +230,19 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 			return {
 				viewport: newViewport,
 				shouldAnimate: false,
+			}
+		}),
+	updateValidatedViewport: (zoom, bounds, center) =>
+		set(state => {
+			console.log('✅ [VIEWPORT] Updating validated viewport', {
+				zoom,
+				boundsUpdated: !!bounds,
+				centerUpdated: !!center,
+			})
+			return {
+				lastValidatedZoom: zoom,
+				lastValidatedBounds: bounds,
+				lastValidatedCenter: center,
 			}
 		}),
 	setViewportAnimated: viewport =>
