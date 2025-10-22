@@ -3,9 +3,11 @@ import ChipsContainer, {
 } from '@/shared/components/ui/ChipsContainer'
 import type { IconSvgElement } from '@hugeicons/react-native'
 import { ensureDataAvailable } from '@map/services/binsCacheService'
+import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
-import React, { useCallback, memo } from 'react'
+import React, { memo, useCallback } from 'react'
+import { Alert } from 'react-native'
 
 interface Chip {
 	id: string
@@ -54,6 +56,16 @@ const MapChipsContainer = memo(
 						console.log(
 							`✅ [${callId}] Data ensured for ${endPoint} (took ${duration}ms)`,
 						)
+
+						const totalCount = useBinsCountStore
+							.getState()
+							.getTotalCount(endPoint)
+						if (totalCount === 0) {
+							Alert.alert(
+								'Sin datos disponibles',
+								`No hay contenedores disponibles para "${title.toUpperCase}" en este momento.`,
+							)
+						}
 					} catch (error) {
 						console.error(`❌ Error ensuring data for ${endPoint}:`, error)
 					}
