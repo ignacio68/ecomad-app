@@ -46,7 +46,6 @@ export const useDatabaseInit = () => {
 
 				isDbInitialized = true
 				setIsInitialized(true)
-				console.log('✅ Database initialized successfully')
 			} catch (err) {
 				const errorMessage =
 					err instanceof Error ? err.message : 'Unknown error'

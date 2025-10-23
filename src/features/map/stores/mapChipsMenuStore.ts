@@ -1,5 +1,6 @@
 import type { BinType } from '@/shared/types/bins'
 import { create } from 'zustand'
+import { useMapBottomSheetStore } from './mapBottomSheetStore'
 import { useMapNavigationStore } from './mapNavigationStore'
 
 interface MapChipsMenuStore {
@@ -16,7 +17,9 @@ export const useMapChipsMenuStore = create<MapChipsMenuStore>(set => ({
 		set({ selectedChip: chipId, selectedEndPoint: endPoint }),
 	clearChip: () => {
 		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
+		const { reset } = useMapBottomSheetStore.getState()
 		deactivateRouteIfActive()
 		set({ selectedChip: '', selectedEndPoint: null })
+		reset()
 	},
 }))

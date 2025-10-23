@@ -1,25 +1,51 @@
 import {
+	MAPBOX_DOWNLOADS_TOKEN,
 	NAVIGATION_PADDING_BOTTOM,
 	NAVIGATION_PADDING_LEFT,
 	NAVIGATION_PADDING_RIGHT,
 	NAVIGATION_PADDING_TOP,
-	MAPBOX_DOWNLOADS_TOKEN,
 } from '@map/constants/map'
+
+import {
+	BOUNDS_AREA_CHANGE_PERCENT,
+	ZOOM_NO_BOUNDS_RECALC,
+	ZOOM_RECALC_THRESHOLD,
+} from '@map/constants/clustering'
 
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
 import type { Camera } from '@rnmapbox/maps'
 import Mapbox from '@rnmapbox/maps'
+import { MapViewport } from '@map/types/mapData'
+import { filterPointsForViewport } from '@map/services/binsLoader'
+import {getCurrentBoundsArea} from '@map/utils/geoUtils'
 import type React from 'react'
+import { useMapBinsStore } from '@map/stores/mapBinsStore'
+import { calculateAndStoreClusters } from './clusteringService'
 
-export const setMapboxAccessToken = () => {
+export const setMapboxAccessToken = async (): Promise<boolean> => {
 	try {
 		if (!MAPBOX_DOWNLOADS_TOKEN) {
 			console.warn('Mapbox token no encontrado')
-			return
+			return false
 		}
+
+		// Verificar si ya está configurado (solo si el método existe)
+		try {
+			const currentToken = await Mapbox.getAccessToken?.()
+			if (currentToken === MAPBOX_DOWNLOADS_TOKEN) {
+				console.log('🗺️ Mapbox token ya configurado')
+				return true
+			}
+		} catch (error) {
+			console.log('🗺️ getAccessToken no disponible, configurando token...', error)
+		}
+
 		Mapbox.setAccessToken(MAPBOX_DOWNLOADS_TOKEN)
+		console.log('🗺️ Mapbox token configurado correctamente')
+		return true
 	} catch (error) {
 		console.error('Error al configurar Mapbox token:', error)
+		return false
 	}
 }
 
@@ -175,3 +201,80 @@ export const fitBoundsToTwoPoints = (
 		console.error('❌ Error al ajustar bounds:', error)
 	}
 }
+
+export const hasViewportChanged = (
+	currentState: { zoom: number; lat: number; lng: number },
+	viewport: MapViewport,
+) => {
+	const { zoom: currentZoom, lat, lng } = currentState
+	const zoomChanged = Math.abs((viewport.zoom ?? 0) - currentZoom) >= 0.01
+	const centerChanged =
+		!viewport.center ||
+		Math.abs(viewport.center.lat - lat) >= 0.00001 ||
+		Math.abs(viewport.center.lng - lng) >= 0.00001
+
+	return zoomChanged || centerChanged
+}
+
+export const calculatePoints = (viewport: MapViewport) => {
+			try {
+				// Obtener allPoints actual del store para evitar dependencia reactiva
+				const { allPoints: currentPoints } = useMapBinsStore.getState()
+				const { zoom, bounds, center } = viewport
+
+				if (zoom <= 12) {
+					console.log('🚫 [VIEWPORT] Low zoom, skipping points calculation')
+					return
+				}
+
+				const filtered = filterPointsForViewport(
+					currentPoints,
+					zoom,
+					bounds!,
+					center,
+				)
+
+				console.log('✅ [VIEWPORT] Filtered:', {
+					input: currentPoints.length,
+					output: filtered.length,
+					ratio:
+						((filtered.length / currentPoints.length) * 100).toFixed(1) + '%',
+				})
+
+				useMapBinsStore.getState().setFilteredPoints(filtered)
+
+				// ✅ CLUSTERING IMPERATIVO: Calcular clusters y guardar en store
+				calculateAndStoreClusters(filtered, zoom, bounds)
+			} catch (error) {
+				console.error('❌ [VIEWPORT] Error filtering:', error)
+				useMapBinsStore.getState().setFilteredPoints([])
+			}
+		}
+
+// export const hasSignificantZoomChange = (previousZoom: number | null, zoom: number) => {
+// 	const zoomDiff =
+// 		previousZoom ? zoom - previousZoom : 0
+// 	return Math.abs(zoomDiff) >= ZOOM_RECALC_THRESHOLD
+// }
+
+// export const hasSignificantBoundsChange = (
+// 	currentBounds: LngLatBounds,
+// 	previousBoundsArea: number | null,
+// ) => {
+// 	const currentBoundsArea = getCurrentBoundsArea(currentBounds)
+
+// 	if (previousBoundsArea !== null) {
+// 		const areaDiffPercent =
+// 			(Math.abs(currentBoundsArea - previousBoundsArea) / previousBoundsArea) *
+// 			100
+// 		const hasSignificantBoundsChange =
+// 			areaDiffPercent > BOUNDS_AREA_CHANGE_PERCENT
+
+// 		console.log('📐 [VIEWPORT] Bounds area comparison:', {
+// 			prevArea: previousBoundsArea.toFixed(0) + 'm²',
+// 			currArea: currentBoundsArea.toFixed(0) + 'm²',
+// 			diffPercent: areaDiffPercent.toFixed(1) + '%',
+// 			significant: hasSignificantBoundsChange,
+// 		})
+// 	}
+// }

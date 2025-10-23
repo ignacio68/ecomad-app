@@ -5,7 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
 	name: 'EcoMAD',
 	slug: 'ecomad-app',
-	version: process.env.APP_VERSION ?? '1.0.5',
+	version: process.env.APP_VERSION ?? '1.0.6',
 	orientation: 'portrait',
 	icon: './src/assets/images/icon.png',
 	scheme: 'com.ecomad.app',
@@ -15,7 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	ios: {
 		supportsTablet: true,
 		bundleIdentifier: 'com.ecomad.app',
-		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.5',
+		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.6',
 		requireFullScreen: true,
 		userInterfaceStyle: 'light',
 		infoPlist: {
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		// },
 		edgeToEdgeEnabled: true,
 		package: 'com.ecomad.app',
-		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 105,
+		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 106,
 		userInterfaceStyle: 'light',
 		permissions: [
 			'ACCESS_FINE_LOCATION',
