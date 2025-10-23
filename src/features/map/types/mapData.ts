@@ -91,3 +91,12 @@ export enum MapZoomLevels {
 	CONTAINER = 16,
 	CLUSTER = 15, // Aumentado para mantener clusters durante zoom programático
 }
+
+export interface MapViewport {
+	zoom: number
+	bounds: LngLatBounds | null // [sw, ne] formato Mapbox estándar
+	center: {
+		lat: number
+		lng: number
+	} | null
+}

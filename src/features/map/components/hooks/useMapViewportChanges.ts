@@ -11,6 +11,7 @@ import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { getCurrentBoundsArea } from '@map/utils/geoUtils'
 import { useEffect, useRef } from 'react'
+import { LngLatBounds } from '@map/types/mapData'
 
 /**
  * Hook que valida si los cambios de viewport son significativos
@@ -26,47 +27,40 @@ export const useMapViewportChanges = () => {
 	const previousZoomRef = useRef<number | null>(null)
 	const previousBoundsAreaRef = useRef<number | null>(null)
 
+	const firstLoad = (center: {lat: number, lng: number}, bounds: LngLatBounds) => {
+		console.log('🎯 [VIEWPORT] First load, initializing validated values', {
+			zoom,
+			hasBounds: true,
+		})
+		previousZoomRef.current = zoom
+		const currentBoundsArea = getCurrentBoundsArea(bounds)
+		previousBoundsAreaRef.current = currentBoundsArea
+		updateValidatedViewport(zoom, bounds, center)
+	}
+
 	useEffect(() => {
-		// 🛑 HARD STOP: Si está calculando ruta, no validar cambios
+		console.log('[USEMAPVIEWPORTCHANGES] Running')
 		if (shouldHideClusters) {
 			console.log('🛑 [VIEWPORT] HARD STOP - Route calculation active')
 			return
 		}
 
-		if (!zoom || !center) {
+		if (!zoom || !center || !bounds) {
 			return
 		}
 
 		const isFirstLoad = previousZoomRef.current === null
 
-		// Primera carga: solo actualizar si hay bounds disponibles
 		if (isFirstLoad) {
-			if (!bounds) {
-				console.log('⏳ [VIEWPORT] First load but no bounds yet, waiting...')
-				return
-			}
-
-			console.log('🎯 [VIEWPORT] First load, initializing validated values', {
-				zoom,
-				hasBounds: true,
-			})
-			previousZoomRef.current = zoom
-			const currentBoundsArea = getCurrentBoundsArea(bounds)
-			previousBoundsAreaRef.current = currentBoundsArea
-			updateValidatedViewport(zoom, bounds, center)
+			firstLoad(center, bounds)
 			return
 		}
 
-		if (!bounds) {
-			return
-		}
+		console.log('🎯 [VIEWPORT] Validating viewport changes')
 
-		// Validar cambio de zoom
 		const zoomDiff =
-			previousZoomRef.current !== null ? zoom - previousZoomRef.current : 0
+			previousZoomRef?.current ? zoom - previousZoomRef.current : 0
 		const hasSignificantZoomChange = Math.abs(zoomDiff) >= ZOOM_RECALC_THRESHOLD
-
-		// Validar cambio de bounds
 		let currentBoundsArea = 0
 		let hasSignificantBoundsChange = false
 

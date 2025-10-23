@@ -136,7 +136,7 @@ export const filterPointsForViewport = (
 	zoom: number,
 	bounds: LngLatBounds,
 	center: { lng: number; lat: number } | null,
-	route: RouteData | null = null,
+	route: RouteData | null = null
 ): BinPoint[] => {
 	console.log('🔍 [FILTERPOINTS] Called with:', {
 		pointsCount: points.length,

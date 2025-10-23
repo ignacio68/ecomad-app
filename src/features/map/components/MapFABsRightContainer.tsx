@@ -32,11 +32,8 @@ const MapFABsRightContainer = memo(() => {
 				// - Botón "Cancelar" para cerrar el modal
 				return
 			}
-
-			toggleUserLocationFAB()
-		} else {
-			toggleUserLocationFAB()
 		}
+		toggleUserLocationFAB()
 	}
 
 	const mapStylesFABActivated = () => {

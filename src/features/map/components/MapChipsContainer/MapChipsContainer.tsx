@@ -31,44 +31,37 @@ const MapChipsContainer = memo(
 		const handleChipPress = useCallback(
 			async (chipId: string, title: string, originalOnPress?: () => void) => {
 				onChipPress(chipId, title)
+				clearChip()
 
 				const selectedChipData = chips.find(chip => chip.id === chipId)
 				const endPoint = selectedChipData?.endPoint
 
 				if (selectedChip === chipId) {
-					clearChip()
 					setMapBottomSheetTitle('')
-				} else if (endPoint) {
-					setSelectedChip(chipId, endPoint)
-					setMapBottomSheetTitle(title)
+					return
+				}
 
-					const callId = Math.random().toString(36).substring(2, 11)
-					console.log(
-						`🔄 [${callId}] Ensuring data availability for ${endPoint}...`,
-					)
-					console.log(`📍 [${callId}] Called from MapChipsContainer.tsx`)
-					const startTime = Date.now()
-
+				if (endPoint) {
 					try {
 						await ensureDataAvailable(endPoint)
-						const endTime = Date.now()
-						const duration = endTime - startTime
-						console.log(
-							`✅ [${callId}] Data ensured for ${endPoint} (took ${duration}ms)`,
-						)
-
-						const totalCount = useBinsCountStore
-							.getState()
-							.getTotalCount(endPoint)
-						if (totalCount === 0) {
-							Alert.alert(
-								'Sin datos disponibles',
-								`No hay contenedores disponibles para "${title.toUpperCase}" en este momento.`,
-							)
-						}
 					} catch (error) {
 						console.error(`❌ Error ensuring data for ${endPoint}:`, error)
+						showAlert(title)
+						return
 					}
+
+					const totalCount = useBinsCountStore
+						.getState()
+						.getTotalCount(endPoint)
+
+					if (totalCount === 0) {
+						showAlert(title)
+						return
+					}
+
+					// Solo abrir bottom sheet si hay datos
+					setSelectedChip(chipId, endPoint)
+					setMapBottomSheetTitle(title)
 				}
 			},
 			[
@@ -80,6 +73,13 @@ const MapChipsContainer = memo(
 				chips,
 			],
 		)
+
+		const showAlert = (title: string) => {
+			Alert.alert(
+				'Sin datos disponibles',
+				`No hay contenedores para ${title.toUpperCase()} disponibles en este momento.`,
+			)
+		}
 
 		return (
 			<ChipsContainer

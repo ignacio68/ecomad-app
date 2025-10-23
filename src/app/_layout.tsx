@@ -3,10 +3,10 @@ import './global.css'
 import { useFonts } from 'expo-font'
 import { SplashScreen, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { ActivityIndicator, Appearance, View } from 'react-native'
-import 'react-native-reanimated'
 import { useEffect, useState } from 'react'
+import { ActivityIndicator, Appearance, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import 'react-native-reanimated'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { setMapboxAccessToken } from '../features/map/services/mapService'
 import { useDatabaseInit } from '../shared/hooks/useDatabaseInit'
@@ -17,15 +17,29 @@ export default function RootLayout() {
 	const { isInitialized: dbInitialized, error: dbError } = useDatabaseInit()
 	const [mapboxInitialized, setMapboxInitialized] = useState(false)
 
-	// Inicializar Mapbox token ANTES de renderizar cualquier componente
 	useEffect(() => {
-		console.log('🗺️ Initializing Mapbox token...')
-		setMapboxAccessToken()
-		setMapboxInitialized(true)
+		const initializeMapbox = async () => {
+			console.log('🗺️ Initializing Mapbox token...')
+			const success = await setMapboxAccessToken()
+			if (success) {
+				// Pequeño delay para asegurar que Mapbox esté completamente inicializado
+				setTimeout(() => {
+					setMapboxInitialized(true)
+				}, 100)
+			} else {
+				console.error('❌ Failed to initialize Mapbox token')
+				// Intentar de nuevo después de un delay
+				setTimeout(async () => {
+					const retrySuccess = await setMapboxAccessToken()
+					setMapboxInitialized(retrySuccess)
+				}, 1000)
+			}
+		}
+
+		void initializeMapbox()
 	}, [])
 
 	useEffect(() => {
-		console.log('RootLayout')
 		Appearance.setColorScheme('light')
 	}, [])
 

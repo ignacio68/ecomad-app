@@ -7,13 +7,11 @@ import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { MapZoomLevels } from '@map/types/mapData'
-import React, { useCallback, useMemo, memo } from 'react'
+import React, { memo, useCallback, useMemo } from 'react'
 import BinMarker from './BinMarker'
 import ClusterMarker from './ClusterMarker'
 import HeroMarker from './HeroMarker'
 import { useSuperclusterBins } from './hooks/useSuperclusterBins'
-import { useWhyDidYouUpdateValues } from '@shared/hooks/useWhyDidYouUpdateValues'
-import { shallow } from 'zustand/shallow'
 
 const SuperclusterMarkers = () => {
 	const { clusters } = useSuperclusterBins()
@@ -29,8 +27,6 @@ const SuperclusterMarkers = () => {
 		setIsMapBottomSheetOpen,
 		reset,
 	} = useMapBottomSheetStore()
-
-
 
 	// Separar clusters y bins una sola vez por render
 	const { clusterItems, binItems } = useMemo(() => {
@@ -49,11 +45,13 @@ const SuperclusterMarkers = () => {
 	}, [clusters])
 
 	// Excluir el contenedor seleccionado para evitar duplicados con el HeroMarker
-	const visibleBins = useMemo(
-		() =>
-			binItems.filter(b => !isBinSelected(String(b?.properties?.containerId))),
-		[binItems, isBinSelected],
-	)
+	const visibleBins = useMemo(() => {
+		const selectedBinId = markerState.selectedBin?.properties?.containerId
+		return binItems.filter(b => {
+			const containerId = b?.properties?.containerId
+			return !selectedBinId || String(containerId) !== String(selectedBinId)
+		})
+	}, [binItems, markerState.selectedBin])
 
 	// Manejar clic en cluster
 	const handleClusterPress = useCallback(
@@ -115,8 +113,6 @@ const SuperclusterMarkers = () => {
 			allPoints,
 		],
 	)
-
-	// Manejar clic en bin
 	const handleBinPress = useCallback(
 		(point: any) => {
 			const [longitude, latitude] = point.geometry.coordinates
@@ -131,8 +127,6 @@ const SuperclusterMarkers = () => {
 				setSelectedCluster(null)
 				setSelectedBin(point)
 				setIsMapBottomSheetOpen(true)
-
-				// ✅ Usar setViewportAnimated para animación consistente
 				setViewportAnimated({
 					zoom: MapZoomLevels.CONTAINER,
 					center: { lng: longitude, lat: latitude },
@@ -149,7 +143,6 @@ const SuperclusterMarkers = () => {
 			setViewportAnimated,
 		],
 	)
-
 	return (
 		<>
 			{clusterItems.map(c => (

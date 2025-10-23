@@ -3,12 +3,13 @@ import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
+import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { MapZoomLevels } from '@map/types/mapData'
 import type { BinPoint, LngLat } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import { Pressable, Text, View } from 'react-native'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
-import { useCallback } from 'react'
 
 interface BinInfoProps {
 	bin: BinPoint
@@ -16,6 +17,9 @@ interface BinInfoProps {
 }
 
 const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
+
+	const { setViewportAnimated } = useMapViewportStore()
+
 	const {
 		properties: { direccion, distrito, barrio, binType },
 		geometry: { coordinates },
@@ -38,11 +42,10 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 	const { cameraRef } = useMapCameraStore()
 
 	const handleNavigate = async () => {
-		console.log('handleNavigate pressed!!')
 		if (!cameraRef || hasActiveRoute) {
-			console.warn('⚠️ Cámara no disponible')
 			return
 		}
+
 		let currentUserLocation = userLocation
 
 		if (!isUserLocationFABActivated) {
@@ -77,8 +80,6 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 			return
 		}
 
-		console.log('✅ [NAV] Route ready, fitting bounds...')
-
 		await new Promise(resolve => setTimeout(resolve, 100))
 		fitBoundsToTwoPoints(cameraRef, userCoords, coordinates)
 	}
@@ -86,6 +87,10 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 	const handleClose = () => {
 		clearRoute()
 		setNavigationMode(false)
+		setViewportAnimated({
+			zoom: MapZoomLevels.CONTAINER,
+			center: { lng: longitude, lat: latitude },
+		})
 
 	}
 

@@ -16,11 +16,6 @@ import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import { MapZoomLevels } from '@map/types/mapData'
 import { useEffect, useState } from 'react'
 
-/**
- * Hook simplificado que:
- * 1. Carga puntos cuando se selecciona un chip
- * 2. Lee clusters del store (ya calculados por useMapViewportChanges)
- */
 export const useSuperclusterBins = () => {
 	const { lastValidatedZoom, lastValidatedBounds, lastValidatedCenter } =
 		useMapViewportStore()
@@ -73,7 +68,7 @@ export const useSuperclusterBins = () => {
 				// ✅ FILTRADO IMPERATIVO: Primera carga del chip (siempre)
 				console.log('🎯 [CHIP_SELECT] Filtering with validated values', {
 					zoom: lastValidatedZoom,
-					hasBounds: !!lastValidatedBounds,
+					hasBounds: lastValidatedBounds,
 				})
 
 				const filtered = filterPointsForViewport(

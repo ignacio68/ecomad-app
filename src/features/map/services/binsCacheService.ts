@@ -29,32 +29,35 @@ export const downloadAndCacheData = async (binType: BinType): Promise<void> => {
 		}
 
 		console.log(`📥 Downloading data for ${binType}...`)
-		const [allBinsResponse, hierarchyResponse] = await Promise.all([
+		const [allBinsResponse ] = await Promise.all([
 			getAllBins(binType),
-			getBinsCountsHierarchy(binType),
+			// getBinsCountsHierarchy(binType),
 		])
 
 		if (!allBinsResponse.success) {
 			throw new Error(`Failed to download bins: ${allBinsResponse.message}`)
 		}
 
-		if (!hierarchyResponse.success) {
-			throw new Error(
-				`Failed to download hierarchy data: ${hierarchyResponse.message}`,
-			)
-		}
+		// if (!hierarchyResponse.success) {
+		// 	throw new Error(
+		// 		`Failed to download hierarchy data: ${hierarchyResponse.message}`,
+		// 	)
+		// }
 
 		const allBins = allBinsResponse.data
-		const hierarchyData = hierarchyResponse.data
+		// const hierarchyData = hierarchyResponse.data
 
+		// console.log(
+		// 	`✅ Downloaded ${allBins.length} bins and ${hierarchyData.length} hierarchy records`,
+		// )
 		console.log(
-			`✅ Downloaded ${allBins.length} bins and ${hierarchyData.length} hierarchy records`,
+			`✅ Downloaded ${allBins.length} bins records`,
 		)
 
 		console.log(`💾 Saving data to database...`)
 		await Promise.all([
 			BinsService.saveContainersData(binType, allBins),
-			BinsService.saveHierarchyData(binType, hierarchyData),
+			// BinsService.saveHierarchyData(binType, hierarchyData),
 			BinsService.saveTotalCount(binType, allBins.length),
 		])
 

@@ -5,26 +5,8 @@ import {
 	ZOOM_THRESHOLD,
 } from '@map/constants/map'
 import { expandBoundsWithBuffer } from '@map/services/mapService'
-import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
+import { LngLatBounds, MapZoomLevels, MapViewport } from '@map/types/mapData'
 import { create } from 'zustand'
-
-interface MapViewport {
-	zoom: number
-	bounds: LngLatBounds | null // [sw, ne] formato Mapbox estándar
-	center: {
-		lat: number
-		lng: number
-	} | null
-}
-
-interface ValidatedViewport {
-	zoom: number | null
-	bounds: LngLatBounds | null
-	center: {
-		lat: number
-		lng: number
-	} | null
-}
 
 export interface MapViewportStore {
 	// Raw values (se actualizan siempre)
