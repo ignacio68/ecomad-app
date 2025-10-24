@@ -13,9 +13,7 @@ const MapContainer = memo(() => {
 
 	const chipsList = useMemo(() => createChipsList(), [])
 
-	const handleChipPress = useCallback((chipId: string, title: string) => {
-		setIsMapBottomSheetOpen(true)
-	}, [])
+	const handleChipPress = () => setIsMapBottomSheetOpen(true)
 
 	return (
 		<View className="flex-1">

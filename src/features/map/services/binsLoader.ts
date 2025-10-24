@@ -11,6 +11,7 @@ import {
 	createRouteCorridor,
 	filterPointsByRouteCorridor,
 } from '@map/utils/routeUtils'
+import { useMapBinsStore } from '@map/stores/mapBinsStore'
 
 export interface BinsCache {
 	get: (key: BinType) => BinPoint[] | null
@@ -136,7 +137,7 @@ export const filterPointsForViewport = (
 	zoom: number,
 	bounds: LngLatBounds,
 	center: { lng: number; lat: number } | null,
-	route: RouteData | null = null
+	route: RouteData | null = null,
 ): BinPoint[] => {
 	console.log('🔍 [FILTERPOINTS] Called with:', {
 		pointsCount: points.length,
@@ -207,4 +208,25 @@ export const filterPointsForViewport = (
 		filteredPoints.length,
 	)
 	return filteredPoints
+}
+
+export const filteredPointsByNearby = async (
+	points: BinPoint[],
+	center: { lng: number; lat: number },
+	maxDistance: number,
+) => {
+	const filteredPoints = points.filter(point => {
+		return (
+			calculateDistance(
+				{
+					lat: point.geometry.coordinates[1],
+					lng: point.geometry.coordinates[0],
+				},
+				center,
+			) <= maxDistance
+		)
+	})
+
+	console.log('🔍 [FILTEREDPOINTSBYNEARBY] Filtered points:', filteredPoints)
+	useMapBinsStore.getState().setFilteredPoints(filteredPoints)
 }

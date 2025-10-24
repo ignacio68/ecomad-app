@@ -77,3 +77,6 @@ export const HERO_MARKER_SHADOW_RADIUS = 8 // Radio de sombra del marcador hero
 export const HERO_MARKER_SHADOW_OPACITY = 0.25 // Opacidad de sombra del marcador hero
 export const HERO_MARKER_TRIANGLE_MARGIN_TOP = -6 // Margen superior del triángulo
 export const HERO_MARKER_TRIANGLE_MARGIN_BOTTOM = -10 // Margen inferior del triángulo
+
+
+export const MAX_DISTANCE_M = 500

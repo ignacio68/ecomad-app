@@ -1,6 +1,6 @@
 import { BinPoint, LngLatBounds } from '@map/types/mapData'
 import { RouteData } from '@map/types/navigation'
-import { booleanPointInPolygon } from '@turf/boolean-point-in-polygon'
+import { booleanPointInPolygon } from '@turf/turf'
 import { buffer } from '@turf/buffer'
 import * as turf from '@turf/turf'
 

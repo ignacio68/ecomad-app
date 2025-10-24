@@ -1,3 +1,4 @@
+import { useSuperclusterBins } from '@map/components/markers/hooks/useSuperclusterBins'
 import { LARGE_CLUSTER_ZOOM } from '@map/constants/clustering'
 import { filterPointsForViewport } from '@map/services/binsLoader'
 import { calculateAndStoreClusters } from '@map/services/clusteringService'
@@ -7,18 +8,16 @@ import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { MapZoomLevels } from '@map/types/mapData'
-import React, { memo, useCallback, useMemo } from 'react'
-import BinMarker from './BinMarker'
-import ClusterMarker from './ClusterMarker'
-import HeroMarker from './HeroMarker'
-import { useSuperclusterBins } from './hooks/useSuperclusterBins'
+import React, { useCallback, useMemo } from 'react'
+import MapBinMarker from './markers/MapBinMarker'
+import MapClusterMarker from './markers/MapClusterMarker'
+import HeroMarker from './markers/HeroMarker'
 
-const SuperclusterMarkers = () => {
+const MapBinsLayer = () => {
 	const { clusters } = useSuperclusterBins()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setViewportAnimated } = useMapViewportStore()
 	const { allPoints } = useMapBinsStore()
-
 	const {
 		markerState,
 		isBinSelected,
@@ -28,6 +27,7 @@ const SuperclusterMarkers = () => {
 		reset,
 	} = useMapBottomSheetStore()
 
+	// Separar clusters y bins individuales
 	const { clusterItems, binItems } = useMemo(() => {
 		const clusterItems: any[] = []
 		const binItems: any[] = []
@@ -43,6 +43,7 @@ const SuperclusterMarkers = () => {
 		return { clusterItems, binItems }
 	}, [clusters])
 
+	// Filtrar bins visibles (excluir el seleccionado)
 	const visibleBins = useMemo(() => {
 		const selectedBinId = markerState.selectedBin?.properties?.containerId
 		return binItems.filter(b => {
@@ -53,7 +54,6 @@ const SuperclusterMarkers = () => {
 
 	const handleClusterPress = useCallback(
 		(cluster: any) => {
-			const startTime = performance.now()
 			console.log('⏱️ [TIMING] Cluster press START')
 
 			setSelectedCluster(cluster)
@@ -68,18 +68,10 @@ const SuperclusterMarkers = () => {
 					LARGE_CLUSTER_ZOOM,
 				)
 
-				console.log('⏱️ [TIMING] Before setViewportAnimated:', {
-					elapsed: (performance.now() - startTime).toFixed(2) + 'ms',
-				})
-
 				setViewportAnimated({
 					zoom: LARGE_CLUSTER_ZOOM,
 					center: { lng: longitude, lat: latitude },
 					bounds: newBounds,
-				})
-
-				console.log('⏱️ [TIMING] After setViewportAnimated:', {
-					elapsed: (performance.now() - startTime).toFixed(2) + 'ms',
 				})
 
 				setTimeout(() => {
@@ -95,7 +87,7 @@ const SuperclusterMarkers = () => {
 
 					useMapBinsStore.getState().setFilteredPoints(filtered)
 					calculateAndStoreClusters(filtered, LARGE_CLUSTER_ZOOM, newBounds)
-				}, 100) // Pequeño delay para que la animación se complete
+				}, 100)
 			} catch (error) {
 				console.error('❌ Error al expandir cluster:', error)
 			}
@@ -107,6 +99,7 @@ const SuperclusterMarkers = () => {
 			allPoints,
 		],
 	)
+
 	const handleBinPress = useCallback(
 		(point: any) => {
 			const [longitude, latitude] = point.geometry.coordinates
@@ -137,34 +130,35 @@ const SuperclusterMarkers = () => {
 			setViewportAnimated,
 		],
 	)
+
 	return (
 		<>
 			{clusterItems.map(c => (
-				<ClusterMarker
+				<MapClusterMarker
 					key={`cluster-${c.id}`}
 					cluster={c}
-					onPress={() => handleClusterPress(c)}
+					onPress={handleClusterPress}
 				/>
 			))}
-
 			{visibleBins.map(b => (
-				<BinMarker
+				<MapBinMarker
 					key={b.properties.containerId}
 					point={b}
-					onPress={() => handleBinPress(b)}
+					onPress={handleBinPress}
 					isActive={isBinSelected(String(b.properties.containerId))}
 				/>
 			))}
-
-			{markerState.selectedBin && (
-				<HeroMarker
-					coordinate={markerState.selectedBin.geometry.coordinates}
-					binType={markerState.selectedBin.properties.binType}
-					onPress={() => handleBinPress(markerState.selectedBin)}
-				/>
-			)}
+			{
+				markerState?.selectedBin &&
+        (
+					<HeroMarker
+						coordinate={markerState.selectedBin.geometry.coordinates}
+						binType={markerState.selectedBin.properties.binType}
+						onPress={() => handleBinPress(markerState.selectedBin)}
+					/>
+				)}
 		</>
 	)
 }
 
-export default memo(SuperclusterMarkers)
+export default MapBinsLayer

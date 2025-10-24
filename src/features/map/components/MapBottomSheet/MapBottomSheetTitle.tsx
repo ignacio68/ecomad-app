@@ -1,5 +1,4 @@
 import {
-	Cancel01Icon,
 	InformationCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
@@ -42,7 +41,7 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 	}, [deactivateRouteIfActive])
 
 	return (
-		<View className="w-full px-8">
+		<View className="w-full">
 			{/* <View className="flex-">
 				<Image
 					source={require('../../assets/images/clothes_bin_small_02.png')}
@@ -82,16 +81,11 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 				</View>
 				<Pressable
 					onPress={handleClose}
-					className="rounded-full bg-gray-100 p-2"
+					className="p-2"
 				>
-					<HugeiconsIcon
-						icon={Cancel01Icon}
-						size={16}
-						color="black"
-						strokeWidth={2}
-						accessibilityLabel={`Cierra el bottom sheet de ${title}`}
-						testID={`CloseBottomSheet`}
-					/>
+					<Text className="text-secondary font-lato-semibold text-base text-center">
+						Cancelar
+					</Text>
 				</Pressable>
 			</View>
 		</View>

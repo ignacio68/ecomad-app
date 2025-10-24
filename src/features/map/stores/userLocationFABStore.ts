@@ -4,7 +4,9 @@ import { useMapNavigationStore } from './mapNavigationStore'
 interface UserLocationFABStore {
 	isUserLocationFABActivated: boolean
 	isManuallyActivated: boolean
-	setIsUserLocationFABActivated: (activated: boolean) => void
+	isMapStylesFABActivated: boolean,
+	setIsMapStylesFABActivate: (isMapStylesActivated: boolean) => void
+	setIsUserLocationFABActivated: (isUserLocationctivated: boolean) => void
 	toggleUserLocationFAB: () => void
 	setIsManuallyActivated: (manual: boolean) => void
 }
@@ -12,15 +14,22 @@ interface UserLocationFABStore {
 export const useUserLocationFABStore = create<UserLocationFABStore>(set => ({
 	isUserLocationFABActivated: false,
 	isManuallyActivated: false,
-	setIsUserLocationFABActivated: activated => {
-		if (!activated) {
+	isMapStylesFABActivated: false,
+	setIsMapStylesFABActivate: isMapStylesActivated => {
+		set({ isMapStylesFABActivated: isMapStylesActivated })
+	},
+	setIsUserLocationFABActivated: isUserLocationActivated => {
+		if (!isUserLocationActivated) {
 			const { deactivateRouteIfActive } = useMapNavigationStore.getState()
 			deactivateRouteIfActive()
 			// Limpiar el flag manual al desactivar
-			set({ isUserLocationFABActivated: activated, isManuallyActivated: false })
-		} else {
-			set({ isUserLocationFABActivated: activated })
+			set({
+				isUserLocationFABActivated: isUserLocationActivated,
+				isManuallyActivated: false,
+			})
+			return
 		}
+		set({ isUserLocationFABActivated: isUserLocationActivated })
 	},
 	toggleUserLocationFAB: () => {
 		const currentState = useUserLocationFABStore.getState()

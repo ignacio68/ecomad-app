@@ -10,6 +10,8 @@ import BinInfo from './BinInfo'
 import ClusterInfo from './ClusterInfo'
 import GeneralInfo from './GeneralInfo'
 import MapBottomSheetTitle from './MapBottomSheetTitle'
+// import NearbyButton from './NearbyButton'
+import MapAutocomplete from './MapAutocomplete/MapAutocomplete'
 
 interface MapBottomSheetProps {
 	isOpen: boolean
@@ -73,10 +75,12 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 			enableOverDrag={false}
 		>
 			<BottomSheetView>
-				<View className="mb-8 flex-1 items-center justify-center">
+				<View className="mb-8 mx-4 flex-1 items-center justify-center">
+					<MapAutocomplete />
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>
+					{/* <NearbyButton /> */}
 					{renderContent()}
 				</View>
 			</BottomSheetView>

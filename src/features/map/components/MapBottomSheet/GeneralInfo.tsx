@@ -17,7 +17,7 @@ const GeneralInfo = ({
 	}
 	return (
 		<View className="flex-1 items-center justify-center">
-			<Text className="font-regular text-center text-lg">
+			<Text className="font-lato-regular text-center text-lg">
 				{getTotalCountText(totalBins)}
 			</Text>
 		</View>
