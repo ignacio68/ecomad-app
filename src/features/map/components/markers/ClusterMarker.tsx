@@ -12,7 +12,6 @@ interface ClusterMarkerProps {
 	onPress?: (cluster: any) => void
 }
 
-// Funciones helper definidas primero
 const getClusterClassName = (count: number, binType: BinType) => {
 	if (count < CLUSTER_SIZE_THRESHOLD_SMALL) {
 		return `w-12 h-12 rounded-full bg-clothing_bins-600 border-2 border-white flex items-center justify-center`
@@ -38,7 +37,6 @@ const ClusterMarker: React.FC<ClusterMarkerProps> = React.memo(
 		const { point_count, binType } = cluster.properties
 		const [longitude, latitude] = cluster.geometry.coordinates
 
-		// Manejar el clic del PointAnnotation
 		const handleClusterMarkerPress = () => onPress?.(cluster)
 
 		return (

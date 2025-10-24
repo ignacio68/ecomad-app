@@ -6,20 +6,13 @@ import {
 	NAVIGATION_PADDING_TOP,
 } from '@map/constants/map'
 
-import {
-	BOUNDS_AREA_CHANGE_PERCENT,
-	ZOOM_NO_BOUNDS_RECALC,
-	ZOOM_RECALC_THRESHOLD,
-} from '@map/constants/clustering'
-
+import { filterPointsForViewport } from '@map/services/binsLoader'
+import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
+import { MapViewport } from '@map/types/mapData'
 import type { Camera } from '@rnmapbox/maps'
 import Mapbox from '@rnmapbox/maps'
-import { MapViewport } from '@map/types/mapData'
-import { filterPointsForViewport } from '@map/services/binsLoader'
-import {getCurrentBoundsArea} from '@map/utils/geoUtils'
 import type React from 'react'
-import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import { calculateAndStoreClusters } from './clusteringService'
 
 export const setMapboxAccessToken = async (): Promise<boolean> => {
@@ -37,7 +30,10 @@ export const setMapboxAccessToken = async (): Promise<boolean> => {
 				return true
 			}
 		} catch (error) {
-			console.log('🗺️ getAccessToken no disponible, configurando token...', error)
+			console.log(
+				'🗺️ getAccessToken no disponible, configurando token...',
+				error,
+			)
 		}
 
 		Mapbox.setAccessToken(MAPBOX_DOWNLOADS_TOKEN)
@@ -217,64 +213,35 @@ export const hasViewportChanged = (
 }
 
 export const calculatePoints = (viewport: MapViewport) => {
-			try {
-				// Obtener allPoints actual del store para evitar dependencia reactiva
-				const { allPoints: currentPoints } = useMapBinsStore.getState()
-				const { zoom, bounds, center } = viewport
+	try {
+		// Obtener allPoints actual del store para evitar dependencia reactiva
+		const { allPoints: currentPoints } = useMapBinsStore.getState()
+		const { zoom, bounds, center } = viewport
 
-				if (zoom <= 12) {
-					console.log('🚫 [VIEWPORT] Low zoom, skipping points calculation')
-					return
-				}
-
-				const filtered = filterPointsForViewport(
-					currentPoints,
-					zoom,
-					bounds!,
-					center,
-				)
-
-				console.log('✅ [VIEWPORT] Filtered:', {
-					input: currentPoints.length,
-					output: filtered.length,
-					ratio:
-						((filtered.length / currentPoints.length) * 100).toFixed(1) + '%',
-				})
-
-				useMapBinsStore.getState().setFilteredPoints(filtered)
-
-				// ✅ CLUSTERING IMPERATIVO: Calcular clusters y guardar en store
-				calculateAndStoreClusters(filtered, zoom, bounds)
-			} catch (error) {
-				console.error('❌ [VIEWPORT] Error filtering:', error)
-				useMapBinsStore.getState().setFilteredPoints([])
-			}
+		if (zoom <= 12) {
+			console.log('🚫 [VIEWPORT] Low zoom, skipping points calculation')
+			return
 		}
 
-// export const hasSignificantZoomChange = (previousZoom: number | null, zoom: number) => {
-// 	const zoomDiff =
-// 		previousZoom ? zoom - previousZoom : 0
-// 	return Math.abs(zoomDiff) >= ZOOM_RECALC_THRESHOLD
-// }
+		const filtered = filterPointsForViewport(
+			currentPoints,
+			zoom,
+			bounds!,
+			center,
+		)
 
-// export const hasSignificantBoundsChange = (
-// 	currentBounds: LngLatBounds,
-// 	previousBoundsArea: number | null,
-// ) => {
-// 	const currentBoundsArea = getCurrentBoundsArea(currentBounds)
+		console.log('✅ [VIEWPORT] Filtered:', {
+			input: currentPoints.length,
+			output: filtered.length,
+			ratio: ((filtered.length / currentPoints.length) * 100).toFixed(1) + '%',
+		})
 
-// 	if (previousBoundsArea !== null) {
-// 		const areaDiffPercent =
-// 			(Math.abs(currentBoundsArea - previousBoundsArea) / previousBoundsArea) *
-// 			100
-// 		const hasSignificantBoundsChange =
-// 			areaDiffPercent > BOUNDS_AREA_CHANGE_PERCENT
+		useMapBinsStore.getState().setFilteredPoints(filtered)
 
-// 		console.log('📐 [VIEWPORT] Bounds area comparison:', {
-// 			prevArea: previousBoundsArea.toFixed(0) + 'm²',
-// 			currArea: currentBoundsArea.toFixed(0) + 'm²',
-// 			diffPercent: areaDiffPercent.toFixed(1) + '%',
-// 			significant: hasSignificantBoundsChange,
-// 		})
-// 	}
-// }
+		// ✅ CLUSTERING IMPERATIVO: Calcular clusters y guardar en store
+		calculateAndStoreClusters(filtered, zoom, bounds)
+	} catch (error) {
+		console.error('❌ [VIEWPORT] Error filtering:', error)
+		useMapBinsStore.getState().setFilteredPoints([])
+	}
+}

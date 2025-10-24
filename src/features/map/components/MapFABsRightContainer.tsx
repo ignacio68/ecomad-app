@@ -9,14 +9,14 @@ import { MAP_FAB_STYLES } from '@map/constants/map'
 import { useMapStyleStore } from '@map/stores/mapStyleStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
+import { StyleURL } from '@rnmapbox/maps'
 import { PermissionStatus } from 'expo-location'
-import { memo, useState } from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 
-const MapFABsRightContainer = memo(() => {
-	const { isUserLocationFABActivated, toggleUserLocationFAB } =
+const MapFABsRightContainer = () => {
+	const { isUserLocationFABActivated, toggleUserLocationFAB, isMapStylesFABActivated, setIsMapStylesFABActivate } =
 		useUserLocationFABStore()
-	const [isMapStylesFABActivated, setIsMapStylesFABActivated] = useState(false)
 	const { requestPermissions } = useUserLocationStore()
 	const { setMapStyle } = useMapStyleStore()
 
@@ -37,7 +37,12 @@ const MapFABsRightContainer = memo(() => {
 	}
 
 	const mapStylesFABActivated = () => {
-		setIsMapStylesFABActivated(!isMapStylesFABActivated)
+		setIsMapStylesFABActivate(!isMapStylesFABActivated)
+	}
+
+	const handleChildrenFABActivated = (mapStyle: StyleURL) => {
+		setMapStyle(mapStyle)
+		setIsMapStylesFABActivate(!isMapStylesFABActivated)
 	}
 
 	return (
@@ -52,9 +57,7 @@ const MapFABsRightContainer = memo(() => {
 				fabChildren={MAP_FAB_STYLES.map(style => ({
 					name: style.name,
 					childrenAsset: { source: style.image },
-					onPress: () => {
-						setMapStyle(style.styleURL)
-					},
+					onPress: () => handleChildrenFABActivated(style.styleURL)
 				}))}
 			/>
 			<FAB
@@ -67,6 +70,6 @@ const MapFABsRightContainer = memo(() => {
 			/>
 		</View>
 	)
-})
+}
 
 export default MapFABsRightContainer

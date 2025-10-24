@@ -3,11 +3,9 @@ import { Image, ImageProps } from 'expo-image'
 import { Pressable } from 'react-native'
 import Animated, {
 	useAnimatedStyle,
-	useSharedValue,
 	withDelay,
 	withSpring,
 	withTiming,
-	type SharedValue,
 } from 'react-native-reanimated'
 import FAB, { FABProps } from './FAB'
 
@@ -23,24 +21,24 @@ const OFFSET = 60
 type ChildrenAsset = IconSvgElement | ImageProps
 
 interface FABChildrenProps {
-	isExpanded: SharedValue<boolean>
+	isExpanded: boolean
 	index: number
 	childrenAsset: ChildrenAsset
 	onPress?: () => void
 }
 
 const FABChildren = ({
-	isExpanded = useSharedValue(false),
+	isExpanded = false,
 	index,
 	childrenAsset,
 	onPress,
 }: FABChildrenProps) => {
 	const animatedStyles = useAnimatedStyle(() => {
-		const moveValue = isExpanded.value ? OFFSET * (index + 1) : 0
+		const moveValue = isExpanded ? OFFSET * (index + 1) : 0
 		const translateValue = withSpring(-moveValue, SPRING_CONFIG)
 		const delay = index * 100
 
-		const scaleValue = isExpanded.value ? 1 : 0
+		const scaleValue = isExpanded ? 1 : 0
 
 		return {
 			transform: [
@@ -73,7 +71,7 @@ const FABChildren = ({
 			accessibilityLabel={`FAB ${index}`}
 			accessibilityHint={`FAB ${index}`}
 			accessibilityState={{
-				selected: isExpanded.value,
+				selected: isExpanded,
 			}}
 			onPress={onChildPress}
 		>
@@ -119,10 +117,10 @@ const FABExpanded = ({
 	fabChildren,
 	onPress,
 }: FABExpandedProps) => {
-	const isExpanded = useSharedValue(false)
+	// const isExpanded = useSharedValue(false)
 
 	const handlePress = () => {
-		isExpanded.value = !isExpanded.value
+		// isExpanded.value = !isExpanded.value
 		onPress?.() // Llamar al onPress del padre para actualizar isSelected
 	}
 
@@ -139,7 +137,7 @@ const FABExpanded = ({
 			{fabChildren?.map((child, index) => (
 				<FABChildren
 					key={`${child.name}-${index}`}
-					isExpanded={isExpanded}
+					isExpanded={isSelected}
 					index={index}
 					childrenAsset={child.childrenAsset}
 					onPress={child.onPress}

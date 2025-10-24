@@ -1,5 +1,5 @@
 import { BinType } from '@/shared/types/bins'
-import { area, bboxPolygon, distance, point } from '@turf/turf'
+import { area, bboxPolygon, distance, point, type Units } from '@turf/turf'
 import { BinsContainersCacheRecord } from '@/db/bins/schema'
 import {
 	COORDINATE_PRECISION,
@@ -23,10 +23,10 @@ export interface Point {
  * @param point2 - Segundo punto {lat, lng}
  * @returns Distancia en metros
  */
-export const calculateDistance = (point1: Point, point2: Point): number => {
+export const calculateDistance = (point1: Point, point2: Point, units: Units = 'meters'): number => {
 	const from = point([point1.lng, point1.lat])
 	const to = point([point2.lng, point2.lat])
-	return distance(from, to, { units: 'meters' })
+	return distance(from, to, { units })
 }
 
 /**
@@ -101,7 +101,7 @@ export const convertContainersToGeoJSON = (
 		const lat = Number(container.latitud)
 		const lng = Number(container.longitud)
 
-		if (isNaN(lat) || isNaN(lng)) {
+		if (Number.isNaN(lat) || Number.isNaN(lng)) {
 			console.warn(
 				'⚠️ Contenedor con coordenadas inválidas omitido',
 				container.containerId,
@@ -142,3 +142,6 @@ export const getCurrentBoundsArea = (currentBounds: LngLatBounds): number => {
 	])
 	return area(poly)
 }
+
+// export const getBinsNearby = (targetPoint: Point, points: BinPoint[]): BinPoint[] =>
+// 	nearestPoint(targetPoint, points)

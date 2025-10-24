@@ -1,5 +1,5 @@
 import {
-	EXPO_PUBLIC_MAPBOX_DIRECTIONS_URL,
+	MAPBOX_DIRECTIONS_URL,
 	MAPBOX_DOWNLOADS_TOKEN,
 } from '@map/constants/map'
 import { LngLat } from '@map/types/mapData'
@@ -16,7 +16,7 @@ export const getRoute = async (
 	try {
 		const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`
 		const params = `steps=true&geometries=geojson&overview=full&alternatives=false&access_token=${MAPBOX_DOWNLOADS_TOKEN}`
-		const url = `${EXPO_PUBLIC_MAPBOX_DIRECTIONS_URL}${profile}/${coords}?${params}`
+		const url = `${MAPBOX_DIRECTIONS_URL}${profile}/${coords}?${params}`
 
 		const response = await fetch(url)
 

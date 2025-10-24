@@ -7,9 +7,6 @@ interface MapStyleState {
 }
 
 export const useMapStyleStore = create<MapStyleState>(set => ({
-	currentStyle: StyleURL.Light,
-	setMapStyle: (style: StyleURL) => {
-		set({ currentStyle: style })
-	},
+	currentStyle: StyleURL.Outdoors,
+	setMapStyle: (style: StyleURL) => set({ currentStyle: style }),
 }))
-

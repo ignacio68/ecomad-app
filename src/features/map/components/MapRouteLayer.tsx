@@ -7,7 +7,10 @@ interface RouteLayerProps {
 	visible?: boolean
 }
 
-const RouteLayer: React.FC<RouteLayerProps> = ({ route, visible = true }) => {
+const MapRouteLayer = ({
+	route,
+	visible = true,
+}: RouteLayerProps) => {
 	if (!route || !visible) {
 		console.log('🗺️ RouteLayer: No route to display', { route, visible })
 		return null
@@ -36,4 +39,4 @@ const RouteLayer: React.FC<RouteLayerProps> = ({ route, visible = true }) => {
 	)
 }
 
-export default RouteLayer
+export default MapRouteLayer

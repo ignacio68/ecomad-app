@@ -102,7 +102,7 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 	}
 
 	return (
-		<View className="w-full px-8 py-6">
+		<View className="w-full px-2 py-6">
 			<Text className="font-lato-mediumsemibold text-sm uppercase text-gray-500">
 				Contenedor seleccionado
 			</Text>
