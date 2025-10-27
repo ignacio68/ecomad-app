@@ -1,31 +1,21 @@
 import { RouteData } from '@map/types/navigation'
 import { LineLayer, ShapeSource } from '@rnmapbox/maps'
-import React from 'react'
 
 interface RouteLayerProps {
 	route: RouteData | null
 	visible?: boolean
 }
 
-const MapRouteLayer = ({
-	route,
-	visible = true,
-}: RouteLayerProps) => {
+const MapRouteLayer = ({ route, visible = true }: RouteLayerProps) => {
 	if (!route || !visible) {
 		console.log('🗺️ RouteLayer: No route to display', { route, visible })
 		return null
 	}
 
-	console.log('🗺️ RouteLayer: Rendering route', {
-		distance: route.distance,
-		duration: route.duration,
-		geometryType: route.geometry.geometry.type,
-		coordinates: route.geometry.geometry.coordinates.length,
-	})
 
 	return (
-		<ShapeSource id="route-source" shape={route.geometry}>
-			<LineLayer
+			<ShapeSource id="route-source" shape={route.geometry} lineMetrics={true}>
+				<LineLayer
 				id="route-line"
 				style={{
 					lineColor: '#0074d9',
@@ -35,7 +25,7 @@ const MapRouteLayer = ({
 					lineJoin: 'round',
 				}}
 			/>
-		</ShapeSource>
+			</ShapeSource>
 	)
 }
 

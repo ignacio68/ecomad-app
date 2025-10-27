@@ -75,6 +75,8 @@ export const MAP_FAB_STYLES: MapFABStyle[] = [
 	},
 ]
 
+export const NAVIGATION_DOT = { image: require('@map/assets/icons/navigation-dot.png') }
+
 // Constantes para paddings de navegación (fitBounds)
 export const NAVIGATION_PADDING_TOP = 140 // Padding superior para dejar espacio al chips container
 export const NAVIGATION_PADDING_BOTTOM = 360

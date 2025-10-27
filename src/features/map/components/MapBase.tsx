@@ -2,9 +2,9 @@ import PerformanceOverlay from '@/shared/components/perf/PerformanceOverlay' //}
 import { ANIMATION_DURATION_MS } from '@map/constants/clustering'
 import {
 	COMPASS_POSITION,
+	IDLE_THROTTLE_MS,
 	INITIAL_BOUNDS,
 	INITIAL_CENTER,
-	IDLE_THROTTLE_MS,
 } from '@map/constants/map'
 import {
 	calculatePoints,
@@ -18,18 +18,16 @@ import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapStyleStore } from '@map/stores/mapStyleStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
-import { useUserLocationStore } from '@map/stores/userLocationStore'
 import { mapStyles } from '@map/styles/mapStyles'
 import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { Camera, MapView } from '@rnmapbox/maps'
-import { PermissionStatus } from 'expo-location'
-import { memo, Profiler, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, Profiler, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { useMapBinsStore } from '../stores/mapBinsStore'
 // import SuperclusterMarkers from './markers/SuperclusterMarkers'
-import UserLocationMarker from './markers/UserLocationMarker'
-import MapRouteLayer from './MapRouteLayer'
 import MapBinsLayer from './MapBinsLayer'
+import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
+import UserLocationMarker from './markers/UserLocationMarker'
 
 const onRenderProfiler: React.ProfilerOnRenderCallback = (
 	id,
@@ -64,12 +62,7 @@ const MapBase = () => {
 
 	const { isUserLocationFABActivated, isManuallyActivated } =
 		useUserLocationFABStore()
-	const {
-		requestPermissions,
-		startTracking,
-		stopTracking,
-		getCurrentLocation,
-	} = useUserLocationStore()
+	// ✅ Eliminado: ya no se usa aquí, se maneja en el FAB
 	const { route, hasActiveRoute } = useMapNavigationStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
 	const {
@@ -106,8 +99,13 @@ const MapBase = () => {
 
 		if (bounds?.length === 2) {
 			setBounds(bounds as LngLatBounds)
+			return // ✅ Salir si los bounds son válidos
 		}
-		console.warn('⚠️ Invalid bounds, using fallback')
+
+		// Solo usar fallback si realmente no hay bounds válidos
+		if (__DEV__) {
+			console.warn('⚠️ Invalid bounds, using fallback')
+		}
 		const fallbackBounds = createFallbackBounds(
 			currentLng,
 			currentLat,
@@ -133,11 +131,18 @@ const MapBase = () => {
 	const shouldThrottle = () => {
 		const now = Date.now()
 		const timeSinceLastUpdate = now - lastIdleUpdateRef.current
-		if (timeSinceLastUpdate < IDLE_THROTTLE_MS) {
-			if (__DEV__) {
+
+		// ✅ Throttling más agresivo durante seguimiento de usuario
+		const isFollowingUser =
+			isUserLocationFABActivated && isManuallyActivated && !isProgrammaticMove
+		const throttleMs = isFollowingUser ? IDLE_THROTTLE_MS * 5 : IDLE_THROTTLE_MS // 1 segundo durante seguimiento
+
+		if (timeSinceLastUpdate < throttleMs) {
+			if (__DEV__ && Math.random() < 0.1) {
 				console.log(
 					'⏱️ [MAPIDLE] Skipping (throttled, only',
-					timeSinceLastUpdate + 'ms since last update)',
+					timeSinceLastUpdate + 'ms since last update, following:',
+					isFollowingUser,
 				)
 			}
 			return true
@@ -151,6 +156,7 @@ const MapBase = () => {
 
 		const currentZoom = await mapRef.current.getZoom()
 		const currentCenter = await mapRef.current.getCenter()
+
 		console.log('[GETMAPSTATE] currentCenter', currentCenter)
 
 		if (!currentCenter) return null
@@ -166,13 +172,17 @@ const MapBase = () => {
 	}) => {
 		const { zoom: currentZoom, lat, lng } = currentState
 
+		// ✅ Log todos los cambios para debug
+		const zoomChanged = Math.abs((viewport.zoom ?? 0) - currentZoom) >= 0.01
+		const centerChanged =
+			!viewport.center ||
+			Math.abs(viewport.center.lat - lat) >= 0.00001 ||
+			Math.abs(viewport.center.lng - lng) >= 0.00001
+
 		if (__DEV__) {
 			console.log('⏱️ [UPDATEVIEWPORT] Changes detected, updating viewport:', {
-				zoomChanged: Math.abs((viewport.zoom ?? 0) - currentZoom) >= 0.01,
-				centerChanged:
-					!viewport.center ||
-					Math.abs(viewport.center.lat - lat) >= 0.00001 ||
-					Math.abs(viewport.center.lng - lng) >= 0.00001,
+				zoomChanged,
+				centerChanged,
 			})
 		}
 
@@ -210,7 +220,6 @@ const MapBase = () => {
 			if (!hasViewportChanged(currentState, viewport)) {
 				if (__DEV__) {
 					console.log('⏱️ [HANDLEMAPIDLE] No changes detected, skipping update')
-					// console.log('📐 [HANDLEMAPIDLE] newStyleLoaded', newStyleLoaded)
 				}
 				return
 			}
@@ -221,23 +230,8 @@ const MapBase = () => {
 			console.warn(`⚠️ Error getting map state:`, error)
 		}
 	}
-
-	const handleUserLocationToggle = async () => {
-		if (!isUserLocationFABActivated) {
-			await stopTracking()
-			return
-		}
-
-		const permissionStatus = await requestPermissions()
-		if (permissionStatus === PermissionStatus.GRANTED) {
-			await getCurrentLocation()
-			await startTracking()
-		}
-	}
-
-	useEffect(() => {
-		handleUserLocationToggle()
-	}, [isUserLocationFABActivated])
+	// ✅ Eliminado: useEffect innecesario
+	// La lógica de tracking se maneja directamente en el evento del FAB
 
 	useEffect(() => {
 		if (!viewport.center || !cameraRef.current || !shouldAnimate) {
@@ -341,12 +335,13 @@ const MapBase = () => {
 						isManuallyActivated &&
 						!isProgrammaticMove
 					}
+					followUserMode="compass"
 					followZoomLevel={
 						hasActiveRoute || markerState.selectedBin ? undefined : 15
 					}
 				/>
 
-				{route && <MapRouteLayer route={route} />}
+				{route && <MapWalkingRouteLayer route={route} />}
 
 				{selectedEndPoint && (
 					<Profiler id="SuperclusterMarkers" onRender={onRenderProfiler}>
@@ -371,4 +366,4 @@ const MapBase = () => {
 	)
 }
 
-export default MapBase
+export default memo(MapBase)

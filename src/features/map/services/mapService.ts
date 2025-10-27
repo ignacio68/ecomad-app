@@ -203,9 +203,14 @@ export const hasViewportChanged = (
 	viewport: MapViewport,
 ) => {
 	const { zoom: currentZoom, lat, lng } = currentState
-	const zoomChanged = Math.abs((viewport.zoom ?? 0) - currentZoom) >= 0.01
+
+	// ✅ Si no hay viewport inicial, no considerar como cambio
+	if (!viewport.center || viewport.zoom === undefined) {
+		return false
+	}
+
+	const zoomChanged = Math.abs(viewport.zoom - currentZoom) >= 0.01
 	const centerChanged =
-		!viewport.center ||
 		Math.abs(viewport.center.lat - lat) >= 0.00001 ||
 		Math.abs(viewport.center.lng - lng) >= 0.00001
 
