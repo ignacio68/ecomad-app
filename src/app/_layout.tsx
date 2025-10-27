@@ -1,25 +1,45 @@
-import '../../global.css'
+import './global.css'
 
 import { useFonts } from 'expo-font'
 import { SplashScreen, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { useEffect, useState } from 'react'
 import { ActivityIndicator, Appearance, View } from 'react-native'
-import 'react-native-reanimated'
-
-import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import 'react-native-reanimated'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { useDatabaseInit } from '../features/map/hooks/useDatabaseInit'
+import { setMapboxAccessToken } from '../features/map/services/mapService'
+import { useDatabaseInit } from '../shared/hooks/useDatabaseInit'
 
 SplashScreen.preventAutoHideAsync().catch(console.warn)
 
 export default function RootLayout() {
-	// Inicializar base de datos
 	const { isInitialized: dbInitialized, error: dbError } = useDatabaseInit()
+	const [mapboxInitialized, setMapboxInitialized] = useState(false)
 
 	useEffect(() => {
-		console.log('RootLayout')
-		// Forzar modo claro
+		const initializeMapbox = async () => {
+			console.log('🗺️ Initializing Mapbox token...')
+			const success = await setMapboxAccessToken()
+			if (success) {
+				// Pequeño delay para asegurar que Mapbox esté completamente inicializado
+				setTimeout(() => {
+					setMapboxInitialized(true)
+				}, 100)
+			} else {
+				console.error('❌ Failed to initialize Mapbox token')
+				// Intentar de nuevo después de un delay
+				setTimeout(async () => {
+					const retrySuccess = await setMapboxAccessToken()
+					setMapboxInitialized(retrySuccess)
+				}, 1000)
+			}
+		}
+
+		void initializeMapbox()
+	}, [])
+
+	useEffect(() => {
 		Appearance.setColorScheme('light')
 	}, [])
 
@@ -46,9 +66,12 @@ export default function RootLayout() {
 		}
 	}, [loaded])
 
-	if (!loaded || !dbInitialized) {
-		// Esperar a que se carguen las fuentes y se inicialice la base de datos
-		console.log('Loading:', { fonts: loaded, database: dbInitialized })
+	if (!loaded || !dbInitialized || !mapboxInitialized) {
+		console.log('Loading:', {
+			fonts: loaded,
+			database: dbInitialized,
+			mapbox: mapboxInitialized,
+		})
 		return (
 			<View className="flex-1 items-center justify-center">
 				<ActivityIndicator size="large" color="#7251BC" />
@@ -68,7 +91,7 @@ export default function RootLayout() {
 					<Stack.Screen name="index" options={{ headerShown: false }} />
 					<Stack.Screen name="(app)/map" options={{ headerShown: false }} />
 				</Stack>
-				<StatusBar translucent={true} style="light" />
+				<StatusBar translucent={true} style="dark" />
 			</SafeAreaProvider>
 		</GestureHandlerRootView>
 	)

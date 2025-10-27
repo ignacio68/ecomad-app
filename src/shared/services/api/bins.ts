@@ -10,7 +10,7 @@ import { httpClient } from './httpClient'
 
 // URL base para la API de bins desde variables de entorno
 const BINS_BASE_URL =
-	process.env.EXPO_PUBLIC_API_BINS_BASE_URL || '/api/v1/bins'
+	process.env.EXPO_PUBLIC_API_BINS_BASE_URL as string
 
 // Schema para conteos jerárquicos
 const hierarchyCountSchema = z.object({
@@ -29,12 +29,29 @@ const hierarchyCountsApiResponseSchema = z.object({
 	responseObject: z.array(hierarchyCountSchema),
 })
 
-
-
 export const getAllBins = async (binType: BinType) => {
+	console.log(`🔍 getAllBins called for ${binType}`)
 	const response = await httpClient.get(`${BINS_BASE_URL}/${binType}`)
-	const parsed = binsResponseSchema.safeParse(response.data)
-	return { ...response, data: parsed.success ? parsed.data : [] }
+
+	// // Debug: ver la estructura exacta de la respuesta
+	// console.log(
+	// 	`🔍 getAllBins raw response.data:`,
+	// 	JSON.stringify(response.data, null, 2),
+	// )
+
+	// Usar la misma lógica que getBinsByNearby - el backend devuelve ServiceResponse
+	const parsed = binsNearbyApiResponseSchema.safeParse(response.data)
+
+	if (parsed.success) {
+		console.log(`✅ getAllBins parsed successfully for ${binType}:`, {
+			dataLength: parsed.data.responseObject.length,
+			firstItem: parsed.data.responseObject[0] || null,
+		})
+		return { ...response, data: parsed.data.responseObject }
+	} else {
+		console.error(`❌ getAllBins failed to parse for ${binType}:`, parsed.error)
+		return { ...response, data: [] }
+	}
 }
 
 export const getBinsByLocation = async (

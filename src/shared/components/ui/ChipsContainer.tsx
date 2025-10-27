@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { FlatList, View } from 'react-native'
 import Chip, { type ChipProps } from './buttons/Chip'
 
@@ -10,7 +10,7 @@ export interface ChipsContainerProps {
 	selectedChipId?: string | null
 }
 
-const ChipsContainer = React.memo(
+const ChipsContainer = memo(
 	({
 		chips,
 		containerClassName = '',
@@ -47,16 +47,27 @@ const ChipsContainer = React.memo(
 		const keyExtractor = useCallback((item: ChipProps) => item.id, [])
 
 		return (
-			<View className={containerClassName}>
+			<View
+				className={containerClassName}
+				style={{ backgroundColor: 'transparent' }}
+			>
 				<FlatList
 					horizontal
 					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{ gap: 8, paddingRight: 24 }}
+					contentContainerStyle={{
+						gap: 8,
+						paddingRight: 24,
+						backgroundColor: 'transparent',
+					}}
+					style={{ backgroundColor: 'transparent' }}
 					className={scrollViewClassName}
 					data={chips}
 					renderItem={renderItem}
 					keyExtractor={keyExtractor}
 					extraData={selectedChipId}
+					removeClippedSubviews={false}
+					fadingEdgeLength={0}
+					overScrollMode="never"
 				/>
 			</View>
 		)

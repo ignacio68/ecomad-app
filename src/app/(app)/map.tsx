@@ -1,7 +1,6 @@
-import MapContainer from '@/features/map/screens/MapContainer'
-import React from 'react'
+import MapContainer from '@map/screens/MapContainer'
+import {memo} from 'react'
 
-const MapScreen = React.memo(() => <MapContainer />)
+const MapScreen = () => <MapContainer />
 
-export default MapScreen
-
+export default memo(MapScreen)
