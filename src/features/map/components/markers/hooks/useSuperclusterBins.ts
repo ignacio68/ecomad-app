@@ -66,10 +66,12 @@ export const useSuperclusterBins = () => {
 				setAllPoints(loadedPoints)
 
 				// ✅ FILTRADO IMPERATIVO: Primera carga del chip (siempre)
-				console.log('🎯 [CHIP_SELECT] Filtering with validated values', {
-					zoom: lastValidatedZoom,
-					hasBounds: lastValidatedBounds,
-				})
+				if (__DEV__) {
+					console.log('🎯 [CHIP_SELECT] Filtering with validated values', {
+						zoom: lastValidatedZoom,
+						hasBounds: lastValidatedBounds,
+					})
+				}
 
 				const filtered = filterPointsForViewport(
 					loadedPoints,

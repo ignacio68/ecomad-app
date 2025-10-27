@@ -68,7 +68,6 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 
 		setNavigationMode(true)
 
-		// 1. Primero calcular la ruta (shouldHideClusters ya se activa dentro)
 		const route = await calculateRoute(
 			userCoords,
 			coordinates,

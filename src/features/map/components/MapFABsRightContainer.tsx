@@ -11,17 +11,26 @@ import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import { StyleURL } from '@rnmapbox/maps'
 import { PermissionStatus } from 'expo-location'
-import { useState } from 'react'
 import { View } from 'react-native'
 
 const MapFABsRightContainer = () => {
-	const { isUserLocationFABActivated, toggleUserLocationFAB, isMapStylesFABActivated, setIsMapStylesFABActivate } =
-		useUserLocationFABStore()
-	const { requestPermissions } = useUserLocationStore()
+	const {
+		isUserLocationFABActivated,
+		toggleUserLocationFAB,
+		isMapStylesFABActivated,
+		setIsMapStylesFABActivate,
+	} = useUserLocationFABStore()
+	const {
+		requestPermissions,
+		startTracking,
+		stopTracking,
+		getCurrentLocation,
+	} = useUserLocationStore()
 	const { setMapStyle } = useMapStyleStore()
 
-	const userLocationFABActivated = async () => {
-		if (!isUserLocationFABActivated) {
+	const handleUserLocation = async () => {
+
+		if (isUserLocationFABActivated) {
 			const permissionStatus = await requestPermissions()
 
 			if (permissionStatus !== PermissionStatus.GRANTED) {
@@ -32,6 +41,11 @@ const MapFABsRightContainer = () => {
 				// - Botón "Cancelar" para cerrar el modal
 				return
 			}
+
+			await getCurrentLocation()
+			await startTracking()
+		} else {
+			await stopTracking()
 		}
 		toggleUserLocationFAB()
 	}
@@ -57,7 +71,7 @@ const MapFABsRightContainer = () => {
 				fabChildren={MAP_FAB_STYLES.map(style => ({
 					name: style.name,
 					childrenAsset: { source: style.image },
-					onPress: () => handleChildrenFABActivated(style.styleURL)
+					onPress: () => handleChildrenFABActivated(style.styleURL),
 				}))}
 			/>
 			<FAB
@@ -66,7 +80,7 @@ const MapFABsRightContainer = () => {
 				iconSelected={LocationUser03Icon}
 				colorSelected="red"
 				isSelected={isUserLocationFABActivated}
-				onPress={userLocationFABActivated}
+				onPress={handleUserLocation}
 			/>
 		</View>
 	)
