@@ -1,144 +1,113 @@
-// src/stores/location.ts
-import type { LocationSubscription } from 'expo-location'
-import * as Location from 'expo-location'
+
+import {
+	LocationOptions,
+	UserLocation,
+	userLocationService,
+} from '@map/services/userLocationService'
+import { PermissionStatus } from 'expo-location'
 import { create } from 'zustand'
 
-interface Coords {
-	longitude: number
-	latitude: number
+interface UserLocationStore {
+	location: UserLocation | null
+	isTracking: boolean
+	permissionStatus: PermissionStatus
+	isLoading: boolean
+	isError: boolean
+	requestPermissions: () => Promise<PermissionStatus>
+	getCurrentLocation: (
+		options?: LocationOptions,
+	) => Promise<UserLocation | null>
+	startTracking: (options?: LocationOptions) => Promise<boolean>
+	stopTracking: () => Promise<void>
 }
 
-type LocationState = {
-	// estado
-	granted: boolean | null
-	error: string | null
-	location: Coords | null
-	isRunning: boolean
-
-	// opciones
-	accuracy: Location.LocationAccuracy
-	timeInterval: number // ms
-	distanceInterval: number // metros
-
-	// control interno
-	_sub: LocationSubscription | null
-
-	// acciones
-	setPermissions: (mayPrompt?: boolean) => Promise<boolean>
-	getCurrentPosition: (
-		accuracyOverride?: Location.LocationAccuracy,
-	) => Promise<Location.LocationObject | null>
-	startWatching: (
-		opts?: Partial<
-			Pick<LocationState, 'accuracy' | 'timeInterval' | 'distanceInterval'>
-		>,
-	) => Promise<void>
-	stopWatching: () => void
-
-	setOptions: (
-		opts: Partial<
-			Pick<LocationState, 'accuracy' | 'timeInterval' | 'distanceInterval'>
-		>,
-	) => void
-	resetError: () => void
-}
-
-export const useLocationStore = create<LocationState>((set, get) => ({
-	granted: null,
-	error: null,
+export const useUserLocationStore = create<UserLocationStore>((set, get) => ({
 	location: null,
-	isRunning: false,
+	isTracking: false,
+	permissionStatus: PermissionStatus.UNDETERMINED,
+	isLoading: false,
+	isError: false,
 
-	accuracy: Location.Accuracy.Balanced,
-	timeInterval: 1000,
-	distanceInterval: 5,
-
-	_sub: null,
-
-	setPermissions: async (mayPrompt = true) => {
+	requestPermissions: async () => {
 		try {
-			const { status } = await Location.getForegroundPermissionsAsync()
-			if (status === 'granted') {
-				set({ granted: true })
-				return true
-			}
-			if (!mayPrompt) {
-				set({ granted: false, error: 'Permiso de ubicación no concedido.' })
-				return false
-			}
-			const req = await Location.requestForegroundPermissionsAsync()
-			const ok = req.status === 'granted'
-			set({ granted: ok, error: ok ? null : 'Permiso de ubicación denegado.' })
-			return ok
-		} catch (e: any) {
-			set({
-				granted: false,
-				error: e?.message ?? 'Error al comprobar permisos.',
-			})
-			return false
+			set({ isError: false })
+			const status = await userLocationService.requestPermissions()
+			set({ permissionStatus: status })
+			return status
+		} catch (err) {
+			set({ isError: true })
+			console.error('❌ Error requesting permissions:', err)
+			return PermissionStatus.DENIED
 		}
 	},
 
-	// Útil para “buscar cerca de mí” sin watch
-	getCurrentPosition: async accuracyOverride => {
-		const ok = await get().setPermissions(true)
-		if (!ok) return null
+	getCurrentLocation: async (options?: LocationOptions) => {
 		try {
-			const acc = accuracyOverride ?? get().accuracy
-			const loc = await Location.getCurrentPositionAsync({ accuracy: acc })
-			set({
-				location: {
-					longitude: loc.coords.longitude,
-					latitude: loc.coords.latitude,
-				},
-			})
-			console.log('Ubicación actual:', location)
-			return loc
-		} catch (e: any) {
-			set({ error: e?.message ?? 'No se pudo obtener la ubicación actual.' })
+			set({ isError: false, isLoading: true })
+			const currentLocation =
+				await userLocationService.getCurrentLocation(options)
+			if (currentLocation) {
+				set({ location: currentLocation, isLoading: false })
+			} else {
+				set({ isLoading: false })
+			}
+			return currentLocation
+		} catch (err) {
+			set({ isError: true, isLoading: false })
+			console.error('❌ Error getting location:', err)
 			return null
 		}
 	},
 
-	startWatching: async opts => {
-		const { _sub, isRunning, setPermissions } = get()
-		if (isRunning && _sub) return
-
-		if (opts) get().setOptions(opts)
-
-		const ok = await setPermissions(true)
-		if (!ok) return
-
-		const { accuracy, timeInterval, distanceInterval } = get()
-
+	startTracking: async (options?: LocationOptions) => {
 		try {
-			const sub = await Location.watchPositionAsync(
-				{ accuracy, timeInterval, distanceInterval },
-				loc => {
-					set({
-						location: {
-							longitude: loc.coords.longitude,
-							latitude: loc.coords.latitude,
-						},
-					})
+			set({ isError: false })
+
+			if (get().isTracking) {
+				return true
+			}
+
+			const success = await userLocationService.startLocationTracking(
+				options,
+				newLocation => {
+					set({ location: newLocation })
 				},
 			)
 
-			set({ _sub: sub, isRunning: true, error: null })
-		} catch (e: any) {
-			set({
-				error: e?.message ?? 'No se pudo iniciar el seguimiento.',
-				isRunning: false,
-			})
+			if (success) {
+				set({ isTracking: true })
+			}
+
+			return success
+		} catch (err) {
+			set({ isError: true })
+			console.error('❌ Error starting tracking:', err)
+			return false
 		}
 	},
 
-	stopWatching: () => {
-		const { _sub } = get()
-		_sub?.remove()
-		set({ _sub: null, isRunning: false })
+	stopTracking: async () => {
+		try {
+			set({ isError: false })
+			await userLocationService.stopLocationTracking()
+			set({ isTracking: false })
+		} catch (err) {
+			set({ isError: true })
+			console.error('❌ Error stopping tracking:', err)
+		}
 	},
-
-	setOptions: opts => set(s => ({ ...s, ...opts })),
-	resetError: () => set({ error: null }),
 }))
+
+userLocationService
+	.checkPermissions()
+	.then(status => {
+		useUserLocationStore.setState({ permissionStatus: status })
+	})
+	.catch(err => {
+		console.error('❌ Error checking initial permissions:', err)
+	})
+
+const lastLocation = userLocationService.getLastKnownLocation()
+if (lastLocation) {
+	useUserLocationStore.setState({ location: lastLocation })
+}

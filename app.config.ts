@@ -1,27 +1,21 @@
 import { ConfigContext, ExpoConfig } from '@expo/config'
-import { isAndroid } from '@rnmapbox/maps/lib/typescript/src/utils'
 import 'dotenv/config'
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
-	name: 'ecomad-app',
+	name: 'EcoMAD',
 	slug: 'ecomad-app',
-	version: process.env.APP_VERSION ?? '1.0.3',
+	version: process.env.APP_VERSION ?? '1.0.6',
 	orientation: 'portrait',
 	icon: './src/assets/images/icon.png',
 	scheme: 'com.ecomad.app',
 	userInterfaceStyle: 'light',
 	backgroundColor: '#ffffff',
 	newArchEnabled: true,
-	// splash: {
-	// 	image: './src/assets/images/splash-icon.png',
-	// 	resizeMode: 'contain',
-	// 	backgroundColor: '#3D9970',
-	// },
 	ios: {
 		supportsTablet: true,
 		bundleIdentifier: 'com.ecomad.app',
-		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.3',
+		buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.6',
 		requireFullScreen: true,
 		userInterfaceStyle: 'light',
 		infoPlist: {
@@ -37,9 +31,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		// },
 		edgeToEdgeEnabled: true,
 		package: 'com.ecomad.app',
-		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 103,
+		versionCode: Number(process.env.ANDROID_VERSION_CODE) || 106,
 		userInterfaceStyle: 'light',
-		permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+		permissions: [
+			'ACCESS_FINE_LOCATION',
+			'ACCESS_COARSE_LOCATION',
+			'ACCESS_BACKGROUND_LOCATION',
+		],
 	},
 	web: {
 		bundler: 'metro',
@@ -61,7 +59,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			'@rnmapbox/maps',
 			{
-				RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN as string,
+				RNMapboxMapsDownloadToken: process.env
+					.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN as string,
 				RNMapboxMapsVersion: '11.14.4',
 			},
 		],
@@ -80,6 +79,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				launchMode: 'most-recent',
 			},
 		],
+		// [
+		// 	'expo-asset',
+		// 	{
+		// 		assets: ['./src/assets/images/**/*.png', './src/features/map/assets/images/**/*.png'],
+		// 	},
+		// ],
 	],
 	owner: 'ignacio68',
 	experiments: {
@@ -100,6 +105,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		eas: {
 			projectId: 'eeb844bb-6337-4cfd-890a-c3414df1da68',
 		},
-		MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN as string,
+		MAPBOX_DOWNLOADS_TOKEN: process.env
+			.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN as string,
 	},
 })

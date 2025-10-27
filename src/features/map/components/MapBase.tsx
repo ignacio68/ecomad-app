@@ -1,208 +1,369 @@
-import { Bounds } from '@/shared/types/search'
-import Mapbox, {
-	Camera,
-	LocationPuck,
-	MapView,
-	UserLocation,
-} from '@rnmapbox/maps'
-import React, { useCallback, useEffect, useRef } from 'react'
-import { useMapDataByZoom } from '../hooks/useMapDataByZoom'
-import { useMapStore } from '../stores/mapStore'
-import { useMapViewportStore } from '../stores/mapViewportStore'
-import { useLocationStore } from '../stores/userLocationStore'
-import { mapStyles } from '../styles/mapStyles'
-import MapMarkers from './MapMarkers'
+import PerformanceOverlay from '@/shared/components/perf/PerformanceOverlay' //}from 'react'
+import { ANIMATION_DURATION_MS } from '@map/constants/clustering'
+import {
+	COMPASS_POSITION,
+	IDLE_THROTTLE_MS,
+	INITIAL_BOUNDS,
+	INITIAL_CENTER,
+} from '@map/constants/map'
+import {
+	calculatePoints,
+	createFallbackBounds,
+	hasViewportChanged,
+} from '@map/services/mapService'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
+import { useMapCameraStore } from '@map/stores/mapCameraStore'
+import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
+import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
+import { useMapStyleStore } from '@map/stores/mapStyleStore'
+import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
+import { mapStyles } from '@map/styles/mapStyles'
+import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
+import { Camera, MapView } from '@rnmapbox/maps'
+import { memo, Profiler, useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, Pressable, Text, View } from 'react-native'
+import { useMapBinsStore } from '../stores/mapBinsStore'
+// import SuperclusterMarkers from './markers/SuperclusterMarkers'
+import MapBinsLayer from './MapBinsLayer'
+import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
+import UserLocationMarker from './markers/UserLocationMarker'
 
-const MapBase = React.memo(() => {
+const onRenderProfiler: React.ProfilerOnRenderCallback = (
+	id,
+	phase,
+	actualDuration,
+	baseDuration,
+	startTime,
+	commitTime,
+) => {
+	if (!__DEV__) return
+	const thresholdMs = 8 // ajusta umbral si quieres
+	if (actualDuration > thresholdMs) {
+		// Log compacto
+		console.log(
+			`[Profiler][${id}] phase=${phase} actual=${actualDuration.toFixed(
+				2,
+			)}ms base=${baseDuration.toFixed(2)}ms start=${startTime.toFixed(
+				1,
+			)} commit=${commitTime.toFixed(1)}`,
+		)
+	}
+}
+
+const MapBase = () => {
 	const mapRef = useRef<MapView | null>(null)
 	const cameraRef = useRef<Camera | null>(null)
-	// Eliminado lastLocationRef por no utilizarse
-	const userLocationRef = useRef<UserLocation | null>(null)
+	const mapInitializedRef = useRef<boolean>(false)
+	const lastIdleUpdateRef = useRef<number>(0)
+	const isAnimatingRef = useRef(false)
+	const [isMapLoaded, setIsMapLoaded] = useState(false)
+	const [mapLoadError, setMapLoadError] = useState<string | null>(null)
 
-	const { isUserLocationFABActivated } = useMapStore()
-	const { setPermissions, startWatching, stopWatching } = useLocationStore()
-	const { setZoom, setBounds, setCenter, viewport } = useMapViewportStore()
+	const { isUserLocationFABActivated, isManuallyActivated } =
+		useUserLocationFABStore()
+	// ✅ Eliminado: ya no se usa aquí, se maneja en el FAB
+	const { route, hasActiveRoute } = useMapNavigationStore()
+	const { selectedEndPoint } = useMapChipsMenuStore()
+	const {
+		setZoom,
+		setBounds,
+		setCenter,
+		viewport,
+		shouldAnimate,
+		isProgrammaticMove,
+		resetAnimation,
+		resetProgrammaticMove,
+	} = useMapViewportStore()
+	const { setCameraRef } = useMapCameraStore()
+	const { currentStyle } = useMapStyleStore()
+	const { markerState } = useMapBottomSheetStore()
 
-	// Hook para manejar datos del mapa según zoom
-	const { mapData } = useMapDataByZoom()
+	const handleMapLoadingError = (error: any) => {
+		console.error('Error al cargar mapa:', error)
+		setMapLoadError('Error al cargar el mapa. Intenta de nuevo.')
+	}
 
-	// Debug temporal para mapData del store (comentado)
-	// console.log(`🗺️ MAPBASE: mapData from store - type=${mapData.type}, items=${mapData.data.length}`)
+	const handleMapDidFinishLoading = () => {
+		console.log('🗺️ Map loaded successfully')
+		setIsMapLoaded(true)
+		setMapLoadError(null)
+	}
 
-	// Ref para controlar si ya se ejecutó handleMapIdle
-	const mapIdleExecutedRef = useRef<boolean>(false)
+	const updateMapBounds = async (
+		currentZoom: number,
+		currentLat: number,
+		currentLng: number,
+	) => {
+		const bounds = await mapRef?.current?.getVisibleBounds()
 
-	// Memoizar los callbacks para evitar re-renderizados
-	const handleMapIdle = useCallback(() => {
-		// Solo ejecutar una vez al cargar el mapa
-		if (mapIdleExecutedRef.current) {
-			console.log('🗺️ Map idle - already executed, skipping')
+		if (bounds?.length === 2) {
+			setBounds(bounds as LngLatBounds)
+			return // ✅ Salir si los bounds son válidos
+		}
+
+		// Solo usar fallback si realmente no hay bounds válidos
+		if (__DEV__) {
+			console.warn('⚠️ Invalid bounds, using fallback')
+		}
+		const fallbackBounds = createFallbackBounds(
+			currentLng,
+			currentLat,
+			currentZoom,
+		)
+		setBounds(fallbackBounds)
+	}
+
+	const shouldSkipUpdate = () => isAnimatingRef.current || !mapRef.current
+
+	const initializeMap = () => {
+		mapInitializedRef.current = true
+		if (!viewport.bounds) {
+			setBounds(INITIAL_BOUNDS)
+		}
+		if (__DEV__) {
+			console.log('⏱️ [MAPIDLE] Map initialized')
+		}
+		lastIdleUpdateRef.current = Date.now()
+		setCameraRef(cameraRef)
+	}
+
+	const shouldThrottle = () => {
+		const now = Date.now()
+		const timeSinceLastUpdate = now - lastIdleUpdateRef.current
+
+		// ✅ Throttling más agresivo durante seguimiento de usuario
+		const isFollowingUser =
+			isUserLocationFABActivated && isManuallyActivated && !isProgrammaticMove
+		const throttleMs = isFollowingUser ? IDLE_THROTTLE_MS * 5 : IDLE_THROTTLE_MS // 1 segundo durante seguimiento
+
+		if (timeSinceLastUpdate < throttleMs) {
+			if (__DEV__ && Math.random() < 0.1) {
+				console.log(
+					'⏱️ [MAPIDLE] Skipping (throttled, only',
+					timeSinceLastUpdate + 'ms since last update, following:',
+					isFollowingUser,
+				)
+			}
+			return true
+		}
+		lastIdleUpdateRef.current = now
+		return false
+	}
+
+	const getMapState = async () => {
+		if (!mapRef.current) return null
+
+		const currentZoom = await mapRef.current.getZoom()
+		const currentCenter = await mapRef.current.getCenter()
+
+		console.log('[GETMAPSTATE] currentCenter', currentCenter)
+
+		if (!currentCenter) return null
+
+		const [lng, lat] = currentCenter
+		return { zoom: currentZoom, lat, lng }
+	}
+
+	const updateViewport = async (currentState: {
+		zoom: number
+		lat: number
+		lng: number
+	}) => {
+		const { zoom: currentZoom, lat, lng } = currentState
+
+		// ✅ Log todos los cambios para debug
+		const zoomChanged = Math.abs((viewport.zoom ?? 0) - currentZoom) >= 0.01
+		const centerChanged =
+			!viewport.center ||
+			Math.abs(viewport.center.lat - lat) >= 0.00001 ||
+			Math.abs(viewport.center.lng - lng) >= 0.00001
+
+		if (__DEV__) {
+			console.log('⏱️ [UPDATEVIEWPORT] Changes detected, updating viewport:', {
+				zoomChanged,
+				centerChanged,
+			})
+		}
+
+		setZoom(currentZoom)
+		setCenter({ lat, lng })
+		await updateMapBounds(currentZoom, lat, lng)
+
+		if (__DEV__) {
+			console.log('⏱️ [MAPIDLE] Viewport updated:', {
+				zoom: currentZoom,
+				lat,
+				lng,
+			})
+		}
+	}
+
+	const handleMapIdle = async () => {
+		if (shouldSkipUpdate()) return
+
+		if (!mapInitializedRef.current) {
+			initializeMap()
 			return
 		}
 
-		console.log('🗺️ Mapa cargado correctamente - first time only')
-		mapIdleExecutedRef.current = true
+		if (shouldThrottle()) return
 
-		// Solo establecer bounds y centro inicial si no existen
-		if (!viewport.bounds) {
-			const initialBounds: Bounds = {
-				minLat: 40.35,
-				maxLat: 40.5,
-				minLng: -3.8,
-				maxLng: -3.6,
-			}
-			console.log('📍 Setting initial bounds (first time only):', initialBounds)
-			setBounds(initialBounds)
+		if (__DEV__) {
+			console.log('⏱️ [HANDLEMAPIDLE] Map idle - checking for changes')
 		}
 
-		if (!viewport.center) {
-			const initialCenter = { lat: 40.4168, lng: -3.7038 } // Centro de Madrid
-			console.log('📍 Setting initial center (first time only):', initialCenter)
-			setCenter(initialCenter)
-		}
-	}, [setBounds, setCenter, viewport.bounds, viewport.center])
+		try {
+			const currentState = await getMapState()
+			if (!currentState) return
 
-	const handleMapLoadingError = useCallback(() => {
-		console.error('Error al cargar mapa')
-	}, [])
-
-	// Ref para throttling de eventos de cámara (solo para bounds)
-	const lastBoundsUpdateRef = useRef<number>(0)
-	const BOUNDS_THROTTLE_MS = 100 // Actualizar bounds máximo cada 100ms
-
-	const handleCameraChanged = useCallback(
-		(state: any) => {
-			// Actualizar zoom y centro inmediatamente (sin throttling)
-			if (state?.properties?.zoom) {
-				setZoom(state.properties.zoom)
-			}
-
-			// Actualizar centro inmediatamente cuando la cámara cambia
-			if (state.properties.center) {
-				const [lng, lat] = state.properties.center
-				const zoom = state.properties.zoom ?? 10
-
-				// Guardar el centro del mapa inmediatamente
-				setCenter({ lat, lng })
-				console.log(`📍 MapBase: Updating center to ${lat}, ${lng}`)
-
-				// Throttling solo para bounds (cálculos más pesados)
-				const now = Date.now()
-				const shouldUpdateBounds =
-					now - lastBoundsUpdateRef.current > BOUNDS_THROTTLE_MS
-
-				if (shouldUpdateBounds) {
-					lastBoundsUpdateRef.current = now
-
-					// Solo calcular bounds si el zoom cambió significativamente
-					const zoomChanged = Math.abs(zoom - (viewport.zoom || 10)) > 0.5
-					if (zoomChanged) {
-						const latDelta = 180 / Math.pow(2, zoom)
-						const lngDelta = 360 / Math.pow(2, zoom)
-
-						const newBounds: Bounds = {
-							minLat: lat - latDelta / 2,
-							maxLat: lat + latDelta / 2,
-							minLng: lng - lngDelta / 2,
-							maxLng: lng + lngDelta / 2,
-						}
-
-						// Validar que los bounds sean válidos
-						if (
-							newBounds.minLat < newBounds.maxLat &&
-							newBounds.minLng < newBounds.maxLng
-						) {
-							setBounds(newBounds)
-						}
-					}
-				}
-			}
-		},
-		[setZoom, setBounds, setCenter, viewport.zoom],
-	)
-
-	useEffect(() => {
-		let isMounted = true
-		const run = async () => {
-			if (!isUserLocationFABActivated) {
-				stopWatching()
-				if (userLocationRef.current) {
-					await userLocationRef.current.setLocationManager({ running: false })
+			if (!hasViewportChanged(currentState, viewport)) {
+				if (__DEV__) {
+					console.log('⏱️ [HANDLEMAPIDLE] No changes detected, skipping update')
 				}
 				return
 			}
-			const ok = await setPermissions(true)
-			if (!ok || !isMounted) return
-			if (userLocationRef.current) {
-				await userLocationRef.current.setLocationManager({ running: true })
-			}
-			await startWatching()
-			console.log('UserLocation activado')
+			await updateViewport(currentState)
+			const { allPoints } = useMapBinsStore.getState()
+			if (selectedEndPoint && allPoints.length > 0) calculatePoints(viewport)
+		} catch (error) {
+			console.warn(`⚠️ Error getting map state:`, error)
 		}
-		run()
-		return () => {
-			isMounted = false
-		}
-	}, [isUserLocationFABActivated, setPermissions, startWatching, stopWatching])
-
-	// Las coordenadas ya las gestiona userLocationStore con startWatching
+	}
+	// ✅ Eliminado: useEffect innecesario
+	// La lógica de tracking se maneja directamente en el evento del FAB
 
 	useEffect(() => {
-		// Limpiar cualquier referencia residual al desmontar
-		return () => {
-			// Cleanup si es necesario
+		if (!viewport.center || !cameraRef.current || !shouldAnimate) {
+			return
 		}
-	}, [])
+
+		isAnimatingRef.current = true
+		cameraRef.current.setCamera({
+			centerCoordinate: [viewport.center.lng, viewport.center.lat],
+			zoomLevel: viewport.zoom,
+			animationMode: 'flyTo',
+			animationDuration: ANIMATION_DURATION_MS,
+		})
+
+		// Actualizar bounds después de la animación usando timeout
+		const timeout = setTimeout(async () => {
+			isAnimatingRef.current = false
+			resetAnimation()
+			resetProgrammaticMove() // ✅ Reactivar followUserLocation después de la animación
+
+			// Actualizar bounds al finalizar animación
+			if (mapRef.current) {
+				try {
+					const currentZoom = await mapRef.current.getZoom()
+					const currentCenter = await mapRef.current.getCenter()
+					if (currentCenter) {
+						const [lng, lat] = currentCenter
+						setCenter({ lat, lng })
+						setZoom(currentZoom)
+
+						// Obtener bounds actualizados y pasarlos al store para que los procese
+						const bounds = await mapRef.current.getVisibleBounds()
+						if (bounds?.length === 2) {
+							// Pasar bounds raw al store para que los procese
+							setBounds(bounds as LngLatBounds)
+						}
+					}
+				} catch (error) {
+					console.warn(`⚠️ Error updating bounds after animation:`, error)
+				}
+			}
+		}, ANIMATION_DURATION_MS + 100) // Tiempo de animación + buffer
+
+		return () => clearTimeout(timeout)
+	}, [
+		viewport.center,
+		viewport.zoom,
+		shouldAnimate,
+		resetAnimation,
+		resetProgrammaticMove,
+	])
 
 	return (
-		<MapView
-			ref={mapRef}
-			styleURL={Mapbox.StyleURL.Light}
-			style={mapStyles.map}
-			scaleBarEnabled={false}
-			compassEnabled
-			compassPosition={{ top: 240, right: 14 }}
-			onMapIdle={handleMapIdle}
-			onMapLoadingError={handleMapLoadingError}
-			onCameraChanged={handleCameraChanged}
-			zoomEnabled
-			rotateEnabled
-		>
-			<Camera
-				ref={cameraRef}
-				defaultSettings={{
-					centerCoordinate: [-3.7038, 40.4168],
-					zoomLevel: 10,
-					animationDuration: 1000,
-					animationMode: 'flyTo',
-				}}
-				// bounds={{ ne: [40.35, -3.8], sw: [40.5, -3.6] }}
-				followUserLocation={isUserLocationFABActivated}
-				followZoomLevel={15}
-			/>
-			{isUserLocationFABActivated && (
-				<>
-					<UserLocation
-						ref={userLocationRef}
-						showsUserHeadingIndicator
-						animated
-						androidRenderMode="compass"
-						visible
-						minDisplacement={0}
-					/>
-					<LocationPuck
-						visible
-						puckBearingEnabled
-						puckBearing="heading"
-						pulsing={{ isEnabled: true }}
-					/>
-				</>
+		<View className="flex-1">
+			{!isMapLoaded && !mapLoadError && (
+				<View className="absolute inset-0 z-10 items-center justify-center bg-gray-100">
+					<ActivityIndicator size="large" color="#7251BC" />
+					<Text className="mt-2 text-gray-600">Cargando mapa...</Text>
+				</View>
 			)}
-			{/* Markers de contenedores */}
-			<MapMarkers />
-		</MapView>
-	)
-})
-MapBase.displayName = 'MapBase'
 
-export default MapBase
+			{mapLoadError && (
+				<View className="absolute inset-0 z-10 items-center justify-center bg-gray-100">
+					<Text className="px-4 text-center text-red-600">{mapLoadError}</Text>
+					<Pressable
+						className="mt-4 rounded bg-blue-500 px-4 py-2"
+						onPress={() => {
+							setMapLoadError(null)
+							setIsMapLoaded(false)
+						}}
+					>
+						<Text className="text-white">Reintentar</Text>
+					</Pressable>
+				</View>
+			)}
+
+			<MapView
+				ref={mapRef}
+				styleURL={currentStyle}
+				style={mapStyles.map}
+				scaleBarEnabled={false}
+				compassEnabled
+				compassPosition={COMPASS_POSITION}
+				onMapIdle={handleMapIdle}
+				onMapLoadingError={() => handleMapLoadingError('Map loading failed')}
+				onDidFinishLoadingMap={handleMapDidFinishLoading}
+				zoomEnabled
+				rotateEnabled
+			>
+				<Camera
+					ref={cameraRef}
+					defaultSettings={{
+						centerCoordinate: INITIAL_CENTER,
+						zoomLevel: MapZoomLevels.DISTRICT,
+						animationDuration: 1000,
+						animationMode: 'flyTo',
+					}}
+					// bounds={{ ne: [40.35, -3.8], sw: [40.5, -3.6] }}
+					followUserLocation={
+						isUserLocationFABActivated &&
+						isManuallyActivated &&
+						!isProgrammaticMove
+					}
+					followUserMode="compass"
+					followZoomLevel={
+						hasActiveRoute || markerState.selectedBin ? undefined : 15
+					}
+				/>
+
+				{route && <MapWalkingRouteLayer route={route} />}
+
+				{selectedEndPoint && (
+					<Profiler id="SuperclusterMarkers" onRender={onRenderProfiler}>
+						{/* <SuperclusterMarkers /> */}
+						<MapBinsLayer />
+					</Profiler>
+				)}
+
+				{isUserLocationFABActivated && <UserLocationMarker />}
+			</MapView>
+
+			{/* 📊 Overlay FPS/RPS SOLO en desarrollo */}
+			{__DEV__ && (
+				<PerformanceOverlay
+					visible
+					position="top-right"
+					logEveryMs={5000} // logs cada 5s en consola; pon 0 para silenciar
+					bufferSize={300} // ~5s a 60 fps
+				/>
+			)}
+		</View>
+	)
+}
+
+export default memo(MapBase)

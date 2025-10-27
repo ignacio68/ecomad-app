@@ -29,7 +29,12 @@
 			"env": {
 				"GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token_v2}"
 			}
+		},
+		"context7": {
+			"url": "https://mcp.context7.com/mcp",
+			"headers": {
+				"CONTEXT7_API_KEY": "ctx7sk-5b972516-0e43-409d-83db-941d5b04c26b"
+			}
 		}
-
 	}
 }

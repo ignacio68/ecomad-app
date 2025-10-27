@@ -1,43 +1,29 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
+import MapBase from '@map/components/MapBase'
+import MapBottomSheet from '@map/components/MapBottomSheet/MapBottomSheet'
+import MapChipsContainer from '@map/components/MapChipsContainer/MapChipsContainer'
+import MapFABsRightContainer from '@map/components/MapFABsRightContainer'
+import { createChipsList } from '@map/constants/chips'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
+import { memo, useCallback, useMemo } from 'react'
 import { View } from 'react-native'
-import MapBase from '../components/MapBase'
-import MapBottomSheet from '../components/MapBottomSheet/MapBottomSheet'
-import MapChipsContainer from '../components/MapChipsContainer'
-import MapFABsRightContainer from '../components/MapFABsRightContainer'
-import { createChipsList } from '../constants/chips'
-import { setMapboxAccessToken } from '../services/mapService'
-import { useMapBottomSheetStore } from '../stores/mapBottomSheetStore'
 
-const MapContainer = React.memo(() => {
+const MapContainer = memo(() => {
 	const { isMapBottomSheetOpen, setIsMapBottomSheetOpen } =
 		useMapBottomSheetStore()
 
-	useEffect(() => {
-		setMapboxAccessToken()
-	}, [])
-
 	const chipsList = useMemo(() => createChipsList(), [])
 
-	const handleChipPress = useCallback((chipId: string, title: string) => {
-		setIsMapBottomSheetOpen(true)
-	}, [])
-
-	const chipsContent = useMemo(
-		() => (
-			<MapChipsContainer
-				chips={chipsList}
-				containerClassName="absolute left-0 right-0 top-16"
-				scrollViewClassName="px-4 py-2"
-				onChipPress={handleChipPress}
-			/>
-		),
-		[chipsList, handleChipPress],
-	)
+	const handleChipPress = () => setIsMapBottomSheetOpen(true)
 
 	return (
 		<View className="flex-1">
 			<MapBase />
-			{chipsContent}
+			<MapChipsContainer
+				chips={chipsList}
+				containerClassName="absolute left-0 right-0 top-16" // TODO: Convertir a constante
+				scrollViewClassName="px-4 py-2"
+				onChipPress={handleChipPress}
+			/>
 			<MapFABsRightContainer />
 			<MapBottomSheet isOpen={isMapBottomSheetOpen} />
 		</View>
