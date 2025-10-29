@@ -41,7 +41,7 @@ export const COMPASS_POSITION = { top: 360, right: 14 }
 
 export const BOTTOM_SHEET_SNAP_POINTS = ['25%', '80%']
 
-export const IDLE_THROTTLE_MS = 200
+export const IDLE_THROTTLE_MS = 300
 
 // Thresholds para comparaciones de viewport (optimizados para performance)
 export const CENTER_THRESHOLD = 0.0001 // ~10 metros de diferencia - evita recálculos innecesarios

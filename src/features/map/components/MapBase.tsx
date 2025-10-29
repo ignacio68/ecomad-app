@@ -62,7 +62,7 @@ const MapBase = () => {
 
 	const { isUserLocationFABActivated, isManuallyActivated } =
 		useUserLocationFABStore()
-	// ✅ Eliminado: ya no se usa aquí, se maneja en el FAB
+
 	const { route, hasActiveRoute } = useMapNavigationStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
 	const {
@@ -131,18 +131,11 @@ const MapBase = () => {
 	const shouldThrottle = () => {
 		const now = Date.now()
 		const timeSinceLastUpdate = now - lastIdleUpdateRef.current
-
-		// ✅ Throttling más agresivo durante seguimiento de usuario
-		const isFollowingUser =
-			isUserLocationFABActivated && isManuallyActivated && !isProgrammaticMove
-		const throttleMs = isFollowingUser ? IDLE_THROTTLE_MS * 5 : IDLE_THROTTLE_MS // 1 segundo durante seguimiento
-
-		if (timeSinceLastUpdate < throttleMs) {
-			if (__DEV__ && Math.random() < 0.1) {
+		if (timeSinceLastUpdate < IDLE_THROTTLE_MS) {
+			if (__DEV__) {
 				console.log(
 					'⏱️ [MAPIDLE] Skipping (throttled, only',
-					timeSinceLastUpdate + 'ms since last update, following:',
-					isFollowingUser,
+					timeSinceLastUpdate + 'ms since last update)',
 				)
 			}
 			return true
@@ -284,6 +277,18 @@ const MapBase = () => {
 		resetProgrammaticMove,
 	])
 
+	const handleCameraChanged = (e: any) => {
+		const zoom = e.properties?.zoomLevel
+		const center = e.properties?.centerCoordinate
+		if (zoom == null || !center) return
+
+		useMapViewportStore.getState().setViewportBatch({
+			zoom,
+			center: { lat: center[1], lng: center[0] },
+			// 👈 bounds fuera para no pelear con follow; si los necesitas, calcúlalos en el sync
+		})
+	}
+
 	return (
 		<View className="flex-1">
 			{!isMapLoaded && !mapLoadError && (
@@ -318,6 +323,7 @@ const MapBase = () => {
 				onMapIdle={handleMapIdle}
 				onMapLoadingError={() => handleMapLoadingError('Map loading failed')}
 				onDidFinishLoadingMap={handleMapDidFinishLoading}
+				onCameraChanged={handleCameraChanged}
 				zoomEnabled
 				rotateEnabled
 			>
@@ -335,7 +341,7 @@ const MapBase = () => {
 						isManuallyActivated &&
 						!isProgrammaticMove
 					}
-					followUserMode="compass"
+					// followUserMode="normal"
 					followZoomLevel={
 						hasActiveRoute || markerState.selectedBin ? undefined : 15
 					}

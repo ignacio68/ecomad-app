@@ -1,23 +1,23 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
+import { HugeiconsIcon } from '@hugeicons/react-native'
 import { fitBoundsToTwoPoints } from '@map/services/mapService'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
+import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
-import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import { MapZoomLevels } from '@map/types/mapData'
 import type { BinPoint, LngLat } from '@map/types/mapData'
+import { MapZoomLevels } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import { Pressable, Text, View } from 'react-native'
-import { HugeiconsIcon } from '@hugeicons/react-native'
-import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
 
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
 }
 
-const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
-
+const BinInfo  = ({ bin, onNavigate }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
 
 	const {
@@ -51,7 +51,6 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 		if (!isUserLocationFABActivated) {
 			await requestPermissions()
 			setIsUserLocationFABActivated(true)
-			// NO activar isManuallyActivated porque es activación automática
 			setIsManuallyActivated(false)
 			currentUserLocation = await getCurrentLocation()
 		}
@@ -90,7 +89,6 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 			zoom: MapZoomLevels.CONTAINER,
 			center: { lng: longitude, lat: latitude },
 		})
-
 	}
 
 	const getNavigationButtonColor = () => {
@@ -101,7 +99,7 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 	}
 
 	return (
-		<View className="w-full px-2 py-6">
+		<BottomSheetScrollView className="w-full px-2 py-6">
 			<Text className="font-lato-mediumsemibold text-sm uppercase text-gray-500">
 				Contenedor seleccionado
 			</Text>
@@ -123,13 +121,13 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
-			<View className="flex-1 flex-row items-center justify-between gap-8 mt-4 mb-6">
+			<View className="mb-6 mt-4 flex-1 flex-row items-center justify-between gap-8">
 				<Pressable
-					className={`rounded-full ${getNavigationButtonColor()} px-4 py-3 w-40`}
+					className={`rounded-full ${getNavigationButtonColor()} w-40 px-4 py-3`}
 					onPress={handleNavigate}
 					accessibilityLabel={'botón de navegación'}
 				>
-					<Text className="ml-2 font-lato-semibold text-base text-white text-center">
+					<Text className="ml-2 text-center font-lato-semibold text-base text-white">
 						Cómo llegar
 					</Text>
 				</Pressable>
@@ -149,7 +147,7 @@ const BinInfo: React.FC<BinInfoProps> = ({ bin, onNavigate }) => {
 					</Pressable>
 				)}
 			</View>
-		</View>
+		</BottomSheetScrollView>
 	)
 }
 

@@ -71,11 +71,13 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 			ref={bottomSheetRef}
 			index={isAnyChipSelected ? 1 : -1}
 			enablePanDownToClose={false}
+			enableDynamicSizing={true}
 			snapPoints={snapPoints}
 			enableOverDrag={false}
+			keyboardBehavior="interactive"
 		>
 			<BottomSheetView>
-				<View className="mb-8 mx-4 flex-1 items-center justify-center">
+				<View className="mx-4 mb-8 flex-1 items-center justify-center">
 					<MapAutocomplete />
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
