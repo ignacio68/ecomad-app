@@ -16,9 +16,10 @@ import { View } from 'react-native'
 const MapFABsRightContainer = () => {
 	const {
 		isUserLocationFABActivated,
-		toggleUserLocationFAB,
 		isMapStylesFABActivated,
-		setIsMapStylesFABActivate,
+		setIsMapStylesFABActivated,
+		activateUserLocation,
+		deactivateUserLocation,
 	} = useUserLocationFABStore()
 	const {
 		requestPermissions,
@@ -30,33 +31,32 @@ const MapFABsRightContainer = () => {
 
 	const handleUserLocation = async () => {
 
-		if (isUserLocationFABActivated) {
+		if (!isUserLocationFABActivated) {
+			// 1️⃣ Activar localización
 			const permissionStatus = await requestPermissions()
-
 			if (permissionStatus !== PermissionStatus.GRANTED) {
 				console.warn('⚠️ Permisos de ubicación no concedidos')
-				// TODO: Mostrar modal con opciones:
-				// - Si DENIED: Botón "Ir a Ajustes" para abrir configuración de la app
-				// - Si UNDETERMINED: Botón "Reintentar" para volver a solicitar
-				// - Botón "Cancelar" para cerrar el modal
+				// TODO: Mostrar modal con opciones para el usuario
 				return
 			}
 
 			await getCurrentLocation()
 			await startTracking()
+			activateUserLocation({ manual: true }) // <-- marca que fue activado desde el FAB
 		} else {
+			// 2️⃣ Desactivar localización
 			await stopTracking()
+			deactivateUserLocation()
 		}
-		toggleUserLocationFAB()
 	}
 
-	const mapStylesFABActivated = () => {
-		setIsMapStylesFABActivate(!isMapStylesFABActivated)
+	const handleToggleMapStyles = () => {
+		setIsMapStylesFABActivated(!isMapStylesFABActivated)
 	}
 
-	const handleChildrenFABActivated = (mapStyle: StyleURL) => {
+	const handleSelectMapStyle = (mapStyle: StyleURL) => {
 		setMapStyle(mapStyle)
-		setIsMapStylesFABActivate(!isMapStylesFABActivated)
+		setIsMapStylesFABActivated(!isMapStylesFABActivated)
 	}
 
 	return (
@@ -67,11 +67,11 @@ const MapFABsRightContainer = () => {
 				iconSelected={Layers01IconDuotone}
 				colorSelected="#0074d9"
 				isSelected={isMapStylesFABActivated}
-				onPress={mapStylesFABActivated}
+				onPress={handleToggleMapStyles}
 				fabChildren={MAP_FAB_STYLES.map(style => ({
 					name: style.name,
 					childrenAsset: { source: style.image },
-					onPress: () => handleChildrenFABActivated(style.styleURL),
+					onPress: () => handleSelectMapStyle(style.styleURL),
 				}))}
 			/>
 			<FAB

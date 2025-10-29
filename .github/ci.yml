@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+    branches: [ developer, main ]
+  pull_request:
+
+jobs:
+  checks:
+    name: Lint, Typecheck y Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:ci
+
+  build:
+    name: EAS Builds (Android/iOS en cloud)
+    if: github.ref == 'refs/heads/developer'
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Expo/EAS + auth
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # Canal de staging en pushes, puedes cambiarlo por dev/prod según rama
+      - name: Build Android (staging)
+        run: APP_ENV=staging eas build --profile staging --platform android --non-interactive
+
+      - name: Build iOS (staging)
+        run: APP_ENV=staging eas build --profile staging --platform ios --non-interactive
+
+      # OTA opcional tras build (si ya tienes apps instaladas)
+      - name: Publish OTA to staging
+        run: APP_ENV=staging eas update --channel staging --message "CI update"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

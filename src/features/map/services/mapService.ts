@@ -228,10 +228,14 @@ export const calculatePoints = (viewport: MapViewport) => {
 			return
 		}
 
+		// ✅ bounds seguros (si vienen nulos, generamos fallback con buffer)
+		const safeBounds: LngLatBounds =
+			bounds ?? createFallbackBounds(center!.lng, center!.lat, zoom)
+
 		const filtered = filterPointsForViewport(
 			currentPoints,
 			zoom,
-			bounds!,
+			safeBounds,
 			center,
 		)
 

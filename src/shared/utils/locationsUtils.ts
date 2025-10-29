@@ -1,4 +1,4 @@
-import { DISTRICTS } from '@/shared/constant/districts'
+import { DISTRICTS } from '@/shared/constants/districts'
 
 /**
  * Utilidades para trabajar con distritos y barrios de Madrid

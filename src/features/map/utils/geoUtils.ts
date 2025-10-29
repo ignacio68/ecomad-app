@@ -23,7 +23,11 @@ export interface Point {
  * @param point2 - Segundo punto {lat, lng}
  * @returns Distancia en metros
  */
-export const calculateDistance = (point1: Point, point2: Point, units: Units = 'meters'): number => {
+export const calculateDistance = (
+	point1: Point,
+	point2: Point,
+	units: Units = 'meters',
+): number => {
 	const from = point([point1.lng, point1.lat])
 	const to = point([point2.lng, point2.lat])
 	return distance(from, to, { units })
@@ -145,3 +149,14 @@ export const getCurrentBoundsArea = (currentBounds: LngLatBounds): number => {
 
 // export const getBinsNearby = (targetPoint: Point, points: BinPoint[]): BinPoint[] =>
 // 	nearestPoint(targetPoint, points)
+
+const toRad = (deg: number) => (deg * Math.PI) / 180
+export const haversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const EARTH_RADIUS = 6371000
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(a))
+}
