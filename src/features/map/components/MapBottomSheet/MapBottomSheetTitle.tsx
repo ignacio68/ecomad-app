@@ -79,7 +79,7 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 						</View>
 					</Popover>
 				</View>
-				<Pressable
+			<Pressable
 					onPress={handleClose}
 					className="p-2"
 				>

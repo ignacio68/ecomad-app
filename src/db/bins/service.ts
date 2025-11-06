@@ -155,32 +155,6 @@ export class BinsService {
 				`🔍 BinsService.saveContainersData called for ${binType} with ${containers.length} containers`,
 			)
 
-			// Debug: Verificar si hay duplicados en los datos de entrada
-			const inputIds = containers.map(c => c.id.toString())
-			const uniqueInputIds = new Set(inputIds)
-			if (inputIds.length !== uniqueInputIds.size) {
-				console.warn(
-					`⚠️ Input data has duplicates: ${inputIds.length} → ${uniqueInputIds.size} unique IDs`,
-				)
-				const duplicates = inputIds.filter(
-					(id, index) => inputIds.indexOf(id) !== index,
-				)
-				console.warn(`🔍 Duplicate IDs in input:`, [...new Set(duplicates)])
-
-				// Filtrar duplicados manteniendo el primer registro de cada ID
-				const seenIds = new Set()
-				containers = containers.filter(container => {
-					const id = container.id.toString()
-					if (seenIds.has(id)) {
-						return false
-					}
-					seenIds.add(id)
-					return true
-				})
-				console.log(
-					`🧹 Filtered duplicates: ${inputIds.length} → ${containers.length} containers`,
-				)
-			}
 
 			// Eliminar datos existentes para este binType
 			await db
@@ -195,18 +169,39 @@ export class BinsService {
 
 			const records = containers.map(container => ({
 				binType,
-				containerId: container.id.toString(), // Usar el ID único de la base de datos
-				distrito: container.distrito || 'Sin distrito',
-				barrio: container.barrio || 'Sin barrio',
-				direccion: container.direccion_completa || 'Dirección no disponible',
-				latitud: container.latitud,
-				longitud: container.longitud,
+				containerId: container.id.toString(), // ID único del backend
+				category_group_id: container.category_group_id,
+				category_id: container.category_id,
+				district_id: container.district_id,
+				neighborhood_id: container.neighborhood_id,
+				address: container.address || 'Dirección no disponible',
+				lat: container.lat,
+				lng: container.lng,
+				load_type: container.load_type,
+				direction: container.direction,
+				subtype: container.subtype,
+				placement_type: container.placement_type,
+				notes: container.notes,
+				bus_stop: container.bus_stop,
+				interurban_node: container.interurban_node,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			}))
 
-			await db.insert(binsContainersCache).values(records)
-			console.log(`✅ Saved ${records.length} container records for ${binType}`)
+			// Insertar en lotes para evitar stack overflow con grandes datasets
+			const BATCH_SIZE = 500
+			let insertedCount = 0
+
+			for (let i = 0; i < records.length; i += BATCH_SIZE) {
+				const batch = records.slice(i, i + BATCH_SIZE)
+				await db.insert(binsContainersCache).values(batch)
+				insertedCount += batch.length
+				console.log(
+					`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
+				)
+			}
+
+			console.log(`✅ Saved ${insertedCount} container records for ${binType}`)
 		} catch (error) {
 			console.error(`❌ Error saving containers data for ${binType}:`, error)
 			throw error
@@ -237,45 +232,7 @@ export class BinsService {
 				console.log(`⚠️ No records found in database for ${binType}`)
 				return null
 			}
-
-			// Verificar duplicados por containerId
-			const containerIds = records.map(r => r.containerId)
-			const uniqueIds = new Set(containerIds)
-
-			if (containerIds.length !== uniqueIds.size) {
-				console.warn(
-					`⚠️ Found ${containerIds.length - uniqueIds.size} duplicate containerIds in database for ${binType}`,
-				)
-
-				// Encontrar duplicados específicos
-				const duplicates = containerIds.filter(
-					(id, index) => containerIds.indexOf(id) !== index,
-				)
-				console.warn(`🔍 Duplicate containerIds:`, [...new Set(duplicates)])
-
-				// Limpiar duplicados - mantener solo el primero de cada grupo
-				const seen = new Set()
-				const cleanedRecords = records.filter(record => {
-					if (seen.has(record.containerId)) {
-						console.log(
-							`🗑️ Removing duplicate: ${record.containerId} (id: ${record.id})`,
-						)
-						return false
-					}
-					seen.add(record.containerId)
-					return true
-				})
-
-				console.log(
-					`✅ Cleaned ${records.length} → ${cleanedRecords.length} records for ${binType}`,
-				)
-
-				// Limpiar cache para forzar recarga con datos limpios
-				console.log(`🧹 Clearing cache for ${binType} due to duplicates`)
-
-				return cleanedRecords
-			}
-
+			
 			// Devolver los records directamente sin mapear
 			return records
 		} catch (error) {
@@ -308,123 +265,6 @@ export class BinsService {
 		}
 	}
 
-	/**
-	 * Verificar duplicados en la base de datos local
-	 */
-	static async checkDuplicates(binType: BinType): Promise<void> {
-		try {
-			console.log(`🔍 Checking for duplicates in ${binType}...`)
-
-			const records = await db
-				.select()
-				.from(binsContainersCache)
-				.where(eq(binsContainersCache.binType, binType))
-
-			console.log(`📊 Total records: ${records.length}`)
-
-			// Agrupar por containerId para encontrar duplicados
-			const groupedById = records.reduce(
-				(acc, record) => {
-					const id = record.containerId
-					if (!acc[id]) {
-						acc[id] = []
-					}
-					acc[id].push(record)
-					return acc
-				},
-				{} as Record<string, any[]>,
-			)
-
-			// Encontrar duplicados
-			const duplicates = Object.entries(groupedById).filter(
-				([id, records]) => records.length > 1,
-			)
-
-			if (duplicates.length > 0) {
-				console.log(`⚠️ Found ${duplicates.length} duplicate container IDs:`)
-				duplicates.forEach(([id, records]) => {
-					console.log(`  - ${id}: ${records.length} duplicates`)
-					console.log(
-						`    Records:`,
-						records.map(r => ({
-							id: r.id,
-							distrito: r.distrito,
-							barrio: r.barrio,
-							latitud: r.latitud,
-							longitud: r.longitud,
-						})),
-					)
-				})
-			} else {
-				console.log(`✅ No duplicates found in ${binType}`)
-			}
-
-			return
-		} catch (error) {
-			console.error(`❌ Error checking duplicates for ${binType}:`, error)
-			throw error
-		}
-	}
-
-	/**
-	 * Eliminar duplicados de la base de datos local
-	 */
-	static async removeDuplicates(binType: BinType): Promise<void> {
-		try {
-			console.log(`🔍 Removing duplicates from ${binType}...`)
-
-			const records = await db
-				.select()
-				.from(binsContainersCache)
-				.where(eq(binsContainersCache.binType, binType))
-
-			// Agrupar por containerId
-			const groupedById = records.reduce(
-				(acc, record) => {
-					const id = record.containerId
-					if (!acc[id]) {
-						acc[id] = []
-					}
-					acc[id].push(record)
-					return acc
-				},
-				{} as Record<string, any[]>,
-			)
-
-			// Encontrar duplicados y eliminar los extras
-			const duplicates = Object.entries(groupedById).filter(
-				([id, records]) => records.length > 1,
-			)
-
-			if (duplicates.length > 0) {
-				console.log(`⚠️ Removing ${duplicates.length} duplicate groups...`)
-
-				for (const [containerId, duplicateRecords] of duplicates) {
-					// Mantener solo el primer registro, eliminar el resto
-					const toKeep = duplicateRecords[0]
-					const toDelete = duplicateRecords.slice(1)
-
-					console.log(`  - Keeping record ${toKeep.id} for ${containerId}`)
-
-					for (const record of toDelete) {
-						await db
-							.delete(binsContainersCache)
-							.where(eq(binsContainersCache.id, record.id))
-						console.log(`    - Deleted duplicate record ${record.id}`)
-					}
-				}
-
-				console.log(`✅ Removed duplicates from ${binType}`)
-			} else {
-				console.log(`✅ No duplicates found in ${binType}`)
-			}
-
-			return
-		} catch (error) {
-			console.error(`❌ Error removing duplicates for ${binType}:`, error)
-			throw error
-		}
-	}
 
 	/**
 	 * Limpiar todo el cache de bins

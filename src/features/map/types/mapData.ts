@@ -7,11 +7,21 @@ export interface BinPoint {
 		point_count?: number
 		binType: BinType
 		containerId: string
-		distrito: string
-		barrio: string
-		direccion: string
-		latitud: number
-		longitud: number
+		category_group_id: number
+		category_id: number
+		district_id: number
+		neighborhood_id: number | null
+		address: string
+		lat: number
+		lng: number
+		// Campos opcionales adicionales del backend
+		load_type?: string | null
+		direction?: string | null
+		subtype?: string | null
+		placement_type?: string | null
+		notes?: string | null
+		bus_stop?: string | null
+		interurban_node?: string | null
 	}
 	geometry: {
 		type: 'Point'
@@ -86,10 +96,11 @@ export interface MapDataCache {
 }
 
 export enum MapZoomLevels {
+	GENERAL = 8,
 	DISTRICT = 11, // Zoom inicial para ver toda Madrid
 	NEIGHBORHOOD = 14,
 	CONTAINER = 16,
-	CLUSTER = 15, // Aumentado para mantener clusters durante zoom programático
+	CLUSTER = 15,
 }
 
 export interface MapViewport {

@@ -11,6 +11,7 @@ export const binsHierarchyCache = sqliteTable('bins_hierarchy_cache', {
 			'paper_bins',
 			'plastic_bins',
 			'organic_bins',
+			'battery_bins',
 			'other_bins',
 		],
 	}).notNull(),
@@ -36,6 +37,7 @@ export const binsTotalCountCache = sqliteTable('bins_total_count_cache', {
 			'paper_bins',
 			'plastic_bins',
 			'organic_bins',
+			'battery_bins',
 			'other_bins',
 		],
 	})
@@ -61,15 +63,25 @@ export const binsContainersCache = sqliteTable('bins_containers_cache', {
 			'paper_bins',
 			'plastic_bins',
 			'organic_bins',
+			'battery_bins',
 			'other_bins',
 		],
 	}).notNull(),
-	containerId: text('container_id').notNull(),
-	distrito: text('distrito').notNull(),
-	barrio: text('barrio').notNull(),
-	direccion: text('direccion').notNull(),
-	latitud: real('latitud').notNull(),
-	longitud: real('longitud').notNull(),
+	containerId: text('container_id').notNull(), // ID del backend
+	category_group_id: integer('category_group_id').notNull(),
+	category_id: integer('category_id').notNull(),
+	district_id: integer('district_id').notNull(),
+	neighborhood_id: integer('neighborhood_id'),
+	address: text('address').notNull(),
+	lat: real('lat').notNull(),
+	lng: real('lng').notNull(),
+	load_type: text('load_type'), // Tipo de carga
+	direction: text('direction'), // Dirección adicional
+	subtype: text('subtype'), // Subtipo de contenedor
+	placement_type: text('placement_type'), // Tipo de emplazamiento
+	notes: text('notes'), // Notas adicionales
+	bus_stop: text('bus_stop'), // Parada de bus (battery_bins)
+	interurban_node: text('interurban_node'), // Nodo interurbano (battery_bins)
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()
 		.$defaultFn(() => new Date()),

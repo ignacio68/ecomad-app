@@ -1,11 +1,11 @@
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet'
-import { useEffect, useMemo, useRef } from 'react'
-import { View } from 'react-native'
 import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { MarkerType } from '@map/types/mapData'
+import { useEffect, useMemo, useRef } from 'react'
+import { View } from 'react-native'
 import BinInfo from './BinInfo'
 import ClusterInfo from './ClusterInfo'
 import GeneralInfo from './GeneralInfo'
@@ -17,7 +17,7 @@ interface MapBottomSheetProps {
 	isOpen: boolean
 }
 
-const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
+const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 	const snapPoints = useMemo(() => BOTTOM_SHEET_SNAP_POINTS, [])
 	const bottomSheetRef = useRef<BottomSheet>(null)
 	const { mapBottomSheetTitle, markerState } = useMapBottomSheetStore()
@@ -71,15 +71,20 @@ const MapBottomSheet = ({ isOpen }: MapBottomSheetProps) => {
 			ref={bottomSheetRef}
 			index={isAnyChipSelected ? 1 : -1}
 			enablePanDownToClose={false}
+			enableDynamicSizing={true}
 			snapPoints={snapPoints}
 			enableOverDrag={false}
+			keyboardBehavior="extend"
 		>
 			<BottomSheetView>
-				<View className="mb-8 mx-4 flex-1 items-center justify-center">
-					<MapAutocomplete />
+				<View className="mx-4 mb-8 flex-1 items-center justify-center">
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>
+					{markerState.markerType === MarkerType.GENERAL ||
+					markerState.markerType === MarkerType.CLUSTER ? (
+						<MapAutocomplete />
+					) : null}
 					{/* <NearbyButton /> */}
 					{renderContent()}
 				</View>

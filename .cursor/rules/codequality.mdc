@@ -1,11 +1,11 @@
 ---
-description: 
-globs: 
+description: Code Quality Guidelines
+globs: src/**/*.*
 alwaysApply: true
 ---
 ---
 description: Code Quality Guidelines
-globs: 
+globs:
 ---
 # Code Quality Guidelines
 

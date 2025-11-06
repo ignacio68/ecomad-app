@@ -1,27 +1,37 @@
 {
-  "cli": {
-    "version": ">= 16.13.3",
-    "appVersionSource": "remote"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
-    },
-    "preview": {
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
-    },
-    "production": {
-      "autoIncrement": true
-    }
-  },
-  "submit": {
-    "production": {}
-  }
+	"cli": {
+		"version": ">= 16.13.3",
+		"appVersionSource": "remote"
+	},
+	"build": {
+		"dev": {
+			"developmentClient": true,
+			"distribution": "internal",
+			"channel": "dev",
+			"android": { "gradleCommand": ":app:assembleDebug" },
+			"ios": { "simulator": true },
+			"bun": "1.1.33"
+		},
+		"staging": {
+			"autoIncrement": true,
+			"distribution": "internal",
+			"channel": "staging",
+			"bun": "1.1.33"
+		},
+		"production": {
+			"autoIncrement": true,
+			"channel": "prod",
+			"bun": "1.1.33"
+		}
+	},
+	"submit": {
+		"production": {
+			"android": { "track": "internal" },
+			"ios": { "releaseType": "MANUAL" }
+		}
+	},
+	"deploy": {
+		"staging": { "channel": "staging" },
+		"production": { "channel": "prod" }
+	}
 }

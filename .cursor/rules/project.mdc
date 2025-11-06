@@ -1,6 +1,6 @@
 ---
 description: Frontend development rules using backend API reference
-globs:
+globs: src/**/*.*
 alwaysApply: true
 ---
 

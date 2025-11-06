@@ -1,4 +1,4 @@
-import { DISTRICTS } from '@/shared/constant/districts'
+import { DISTRICTS } from '@/shared/constants/districts'
 
 /**
  * Utilidades para trabajar con distritos y barrios de Madrid
@@ -125,4 +125,37 @@ export const getDistrictByNeighborhood = (
 		d.barrios.some(barrio => barrio.nom_bar === neighborhoodName),
 	)
 	return district ? district.nom_dis : null
+}
+
+/**
+ * Obtiene el nombre de un distrito por su ID (1-35)
+ */
+export const getDistrictNameById = (districtId: number): string => {
+	const district = DISTRICTS.find(d => d.cod_dis === districtId.toString())
+	return district ? district.nom_dis : `Distrito ${districtId}`
+}
+
+/**
+ * Obtiene el nombre de un barrio por su código de barrio
+ * El código de barrio es único en toda la ciudad (ej: 11, 12, 21, 101, etc.)
+ */
+export const getNeighborhoodNameByCode = (
+	neighborhoodCode: string | number,
+): string => {
+	const code = neighborhoodCode.toString()
+	for (const district of DISTRICTS) {
+		const neighborhood = district.barrios.find(b => b.cod_barrio === code)
+		if (neighborhood) {
+			return neighborhood.nom_bar
+		}
+	}
+	return `Barrio ${code}`
+}
+
+/**
+ * Obtiene el ID del distrito por su nombre
+ */
+export const getDistrictIdByName = (districtName: string): number | null => {
+	const district = DISTRICTS.find(d => d.nom_dis === districtName)
+	return district ? Number.parseInt(district.cod_dis) : null
 }
