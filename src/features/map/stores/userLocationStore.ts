@@ -1,11 +1,8 @@
-
-import {
-	LocationOptions,
-	UserLocation,
-	userLocationService,
-} from '@map/services/userLocationService'
-import { PermissionStatus } from 'expo-location'
 import { create } from 'zustand'
+import { userLocationService } from '@map/services/userLocationService'
+import { LocationOptions, UserLocation } from '@map/types/userLocation'
+import { DEFAULT_STRATEGY } from '@map/constants/userLocation'
+import { PermissionStatus } from 'expo-location'
 
 interface UserLocationStore {
 	location: UserLocation | null

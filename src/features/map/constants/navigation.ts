@@ -1,0 +1,2 @@
+export const STEP_WALKING_METERS = 30
+export const MAX_POINTS_TO_SHOW_IN_ROOT = 2000

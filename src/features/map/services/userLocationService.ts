@@ -1,24 +1,8 @@
 import * as Location from 'expo-location'
 import { PermissionStatus } from 'expo-location'
+import { UserLocation, LocationOptions } from '@map/types/userLocation'
 
-export interface UserLocation {
-	latitude: number
-	longitude: number
-	accuracy?: number
-	heading?: number
-	speed?: number
-	timestamp: number
-}
 
-export interface LocationOptions {
-	accuracy?: Location.Accuracy
-	timeInterval?: number
-	distanceInterval?: number
-}
-
-/**
- * Servicio centralizado para gestión de geolocalización del usuario
- */
 export class UserLocationService {
 	private static instance: UserLocationService
 	private watchSubscription: Location.LocationSubscription | null = null
@@ -43,7 +27,7 @@ export class UserLocationService {
 
 			if (status === PermissionStatus.GRANTED) {
 				// También solicitar permisos de ubicación en segundo plano para mejor precisión
-				await Location.requestBackgroundPermissionsAsync()
+				// await Location.requestBackgroundPermissionsAsync()
 				return PermissionStatus.GRANTED
 			}
 
@@ -73,7 +57,7 @@ export class UserLocationService {
 	 * Obtener ubicación actual una sola vez
 	 */
 	async getCurrentLocation(
-		options?: LocationOptions,
+		options: LocationOptions = {},
 	): Promise<UserLocation | null> {
 		try {
 			const permissionStatus = await this.checkPermissions()

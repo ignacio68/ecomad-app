@@ -1,6 +1,6 @@
 import { BinType } from '@/shared/types/bins'
 import { HugeiconsIcon } from '@hugeicons/react-native'
-import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons copy'
+import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import {
 	HERO_MARKER_ELEVATION,
 	HERO_MARKER_SHADOW_OPACITY,
