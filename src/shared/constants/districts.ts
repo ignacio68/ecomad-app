@@ -1,10 +1,12 @@
+interface LatLng {
+	lat: number
+	lng: number
+}
+
 interface District {
 	cod_dis: string
 	nom_dis: string
-	centroid: {
-		lat: number
-		lng: number
-	}
+	centroid: LatLng
 	barrios: Neighborhood[]
 }
 
@@ -12,10 +14,7 @@ interface Neighborhood {
 	cod_barrio: string
 	num_bar: string
 	nom_bar: string
-	centroid: {
-		lat: number
-		lng: number
-	}
+	centroid: LatLng
 }
 
 export const DISTRICTS: District[] = [

@@ -3,6 +3,7 @@ import { LngLat } from '@map/types/mapData'
 import { RouteData, RouteProfile } from '@map/types/navigation'
 import { clearRouteCorridorCache } from '@map/utils/routeUtils'
 import { create } from 'zustand'
+import { randomUUID } from 'expo-crypto'
 
 interface MapNavigationStore {
 	route: RouteData | null
@@ -48,11 +49,16 @@ export const useMapNavigationStore = create<MapNavigationStore>(set => ({
 				return null
 			}
 
+			const id = randomUUID()
+
 			const routeData: RouteData = {
+				id,
+				profile,
 				geometry: routeGeometry.geometry,
 				distance: routeGeometry.distance,
 				duration: routeGeometry.duration,
 				steps: routeGeometry.steps,
+				legs: routeGeometry.legs,
 			}
 
 			console.log('✅ [ROUTE] Route calculated successfully', {

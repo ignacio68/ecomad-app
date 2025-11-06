@@ -9,16 +9,19 @@
 			"distribution": "internal",
 			"channel": "dev",
 			"android": { "gradleCommand": ":app:assembleDebug" },
-			"ios": { "simulator": true }
+			"ios": { "simulator": true },
+			"bun": "1.1.33"
 		},
 		"staging": {
 			"autoIncrement": true,
 			"distribution": "internal",
-			"channel": "staging"
+			"channel": "staging",
+			"bun": "1.1.33"
 		},
 		"production": {
 			"autoIncrement": true,
-			"channel": "prod"
+			"channel": "prod",
+			"bun": "1.1.33"
 		}
 	},
 	"submit": {

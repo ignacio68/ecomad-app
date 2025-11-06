@@ -1,6 +1,5 @@
-import { BinType } from '@/shared/types/bins'
-import { area, bboxPolygon, distance, point, type Units } from '@turf/turf'
 import { BinsContainersCacheRecord } from '@/db/bins/schema'
+import { BinType } from '@/shared/types/bins'
 import {
 	COORDINATE_PRECISION,
 	MOVEMENT_THRESHOLD_ZOOM_10,
@@ -11,6 +10,7 @@ import {
 	MOVEMENT_THRESHOLD_ZOOM_EXTREME,
 } from '@map/constants/clustering'
 import { BinPoint, LngLatBounds } from '@map/types/mapData'
+import { area, bboxPolygon, distance, point, type Units } from '@turf/turf'
 
 export interface Point {
 	lat: number
@@ -102,8 +102,8 @@ export const convertContainersToGeoJSON = (
 
 	for (const container of containers) {
 		// Convertir coordenadas a números decimales
-		const lat = Number(container.latitud)
-		const lng = Number(container.longitud)
+		const lat = Number(container.lat)
+		const lng = Number(container.lng)
 
 		if (Number.isNaN(lat) || Number.isNaN(lng)) {
 			console.warn(
@@ -121,11 +121,20 @@ export const convertContainersToGeoJSON = (
 				cluster: false,
 				binType,
 				containerId,
-				distrito: container.distrito,
-				barrio: container.barrio,
-				direccion: container.direccion,
-				latitud: lat,
-				longitud: lng,
+				category_group_id: container.category_group_id,
+				category_id: container.category_id,
+				district_id: container.district_id,
+				neighborhood_id: container.neighborhood_id,
+				address: container.address,
+				lat,
+				lng,
+				load_type: container.load_type,
+				direction: container.direction,
+				subtype: container.subtype,
+				placement_type: container.placement_type,
+				notes: container.notes,
+				bus_stop: container.bus_stop,
+				interurban_node: container.interurban_node,
 			},
 			geometry: {
 				type: 'Point',
@@ -151,12 +160,17 @@ export const getCurrentBoundsArea = (currentBounds: LngLatBounds): number => {
 // 	nearestPoint(targetPoint, points)
 
 const toRad = (deg: number) => (deg * Math.PI) / 180
-export const haversineMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const EARTH_RADIUS = 6371000
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
-  return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(a))
+export const haversineMeters = (
+	lat1: number,
+	lon1: number,
+	lat2: number,
+	lon2: number,
+) => {
+	const EARTH_RADIUS = 6371000
+	const dLat = toRad(lat2 - lat1)
+	const dLon = toRad(lon2 - lon1)
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+	return 2 * EARTH_RADIUS * Math.asin(Math.sqrt(a))
 }

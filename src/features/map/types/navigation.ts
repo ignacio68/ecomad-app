@@ -1,4 +1,4 @@
-import { Feature, LineString } from 'geojson'
+import { Feature, GeoJsonProperties, LineString, MultiLineString } from 'geojson'
 import { LngLat } from './mapData'
 
 export interface RouteStep {
@@ -12,23 +12,13 @@ export interface RouteStep {
 	}
 }
 
-export interface RouteGeometry extends Feature<LineString> {
+export interface RouteGeometryFeature extends Feature<LineString |  MultiLineString, GeoJsonProperties> {
 	properties: {
 		distance: number
 		duration: number
 	}
 }
 
-export interface RouteData {
-	geometry: RouteGeometry
-	distance: number
-	duration: number
-	steps: RouteStep[]
-}
-
-export interface RouteResponse extends RouteData {
-	legs: any[]
-}
 
 export enum RouteProfile {
 	WALKING = 'walking',
@@ -36,3 +26,20 @@ export enum RouteProfile {
 	DRIVING = 'driving',
 	DRIVING_TRAFFIC = 'driving-traffic',
 }
+
+export interface BasicRouteData {
+		geometry: RouteGeometryFeature
+		distance: number
+		duration: number
+		steps: RouteStep[]
+}
+
+export interface RouteResponse extends BasicRouteData {
+	legs: any[]
+}
+export interface RouteData extends RouteResponse {
+	id: string
+	profile: RouteProfile
+}
+
+

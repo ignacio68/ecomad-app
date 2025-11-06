@@ -21,18 +21,10 @@ const Chip = React.memo(
 		loading = false,
 		onPress,
 	}: ChipProps) => {
-		const getSize = () => {
-			return `h-10 pl-2 pr-4`
-		}
-
-		const getRounded = () => {
-			return `rounded-full`
-		}
-
 		const getColor = () => {
 			switch (mode) {
 				case 'primary':
-					return isSelected ? 'bg-primary' : 'bg-white'
+					return isSelected ? 'bg-primary' : 'bg-surface'
 				case 'secondary':
 					return isSelected ? 'bg-secondary' : 'bg-secondary-light'
 				case 'tertiary':
@@ -40,22 +32,16 @@ const Chip = React.memo(
 			}
 		}
 
-		const getIcon = () => (isSelected ? iconSelected : icon)
-
-		const getIconStyle = () => {
-			return `mr-2`
-		}
-
-		const getIconColor = () => (isSelected ? 'white' : '#3d9970')
+		const getIconColor = () => (isSelected ? 'white' : '#1D1B20')
 
 		const getTextSize = () => {
-			return 'text-sm ml-2'
+			return 'text-sm ml-2 capitalize'
 		}
 
 		const getTextColor = () => {
 			switch (mode) {
 				case 'primary':
-					return isSelected ? 'text-white' : 'text-primary'
+					return isSelected ? 'text-white' : 'text-neutral'
 				case 'secondary':
 					return isSelected ? 'text-white' : 'text-secondary'
 				case 'tertiary':
@@ -66,16 +52,16 @@ const Chip = React.memo(
 		const getFontFamily = () =>
 			isSelected ? 'font-lato-bold' : 'font-lato-semibold'
 
-		const getSpinnerColor = () => {
-			switch (mode) {
-				case 'primary':
-					return isSelected ? '#ffffff' : '#3d9970'
-				case 'secondary':
-					return isSelected ? '#ffffff' : '#0074d9'
-				case 'tertiary':
-					return isSelected ? '#ffffff' : '#111111'
-			}
-		}
+		// const getSpinnerColor = () => {
+		// 	switch (mode) {
+		// 		case 'primary':
+		// 			return isSelected ? '#ffffff' : '#3d9970'
+		// 		case 'secondary':
+		// 			return isSelected ? '#ffffff' : '#0074d9'
+		// 		case 'tertiary':
+		// 			return isSelected ? '#ffffff' : '#111111'
+		// 	}
+		// }
 
 		const getAccessibilityLabel = () => {
 			if (loading) {
@@ -104,7 +90,7 @@ const Chip = React.memo(
 			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`flex-1 flex-row items-center justify-center shadow-xl ${getSize()} ${getRounded()} ${getColor()}`}
+				className={`ios:shadow android:shadow-lg h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
 				accessibilityRole="button"
 				accessibilityLabel={getAccessibilityLabel()}
 				accessibilityHint={getAccessibilityHint()}
@@ -117,15 +103,17 @@ const Chip = React.memo(
 			>
 				{icon && (
 					<HugeiconsIcon
-						icon={getIcon()}
-						className={`${getIconStyle()}`}
-						size={20}
+						icon={icon}
+						altIcon={iconSelected}
+						showAlt={isSelected}
+						className="mr-2"
+						size={18}
 						color={getIconColor()}
 						accessibilityLabel={`Icono de ${title}`}
 					/>
 				)}
 				<Text
-					className={`${getTextColor()} ${getTextSize()} ${getFontFamily()}`}
+					className={`${getTextColor()} ${getTextSize()} ${getFontFamily()} leading-5`}
 					accessibilityRole="text"
 				>
 					{title}

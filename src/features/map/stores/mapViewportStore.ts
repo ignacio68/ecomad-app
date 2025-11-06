@@ -5,32 +5,34 @@ import {
 	ZOOM_THRESHOLD,
 } from '@map/constants/map'
 import { expandBoundsWithBuffer } from '@map/services/mapService'
-import { LngLatBounds, MapZoomLevels, MapViewport } from '@map/types/mapData'
+import { LngLatBounds, MapViewport, MapZoomLevels } from '@map/types/mapData'
+import {
+	hasSignificantCenterChange,
+	hasSignificantZoomChange,
+} from '@map/utils/mapUtils'
 import { create } from 'zustand'
 
-export interface MapViewportStore {
-	// Raw values (se actualizan siempre)
+interface State {
 	zoom: number
 	bounds: LngLatBounds | null
 	center: {
 		lat: number
 		lng: number
-	} | null
-
+	}
 	// Validated values (solo cuando cambian significativamente)
 	lastValidatedZoom: number | null
 	lastValidatedBounds: LngLatBounds | null
 	lastValidatedCenter: {
 		lat: number
 		lng: number
-	} | null
+	}
 
-	// Legacy (mantener para compatibilidad)
 	viewport: MapViewport
 	shouldAnimate: boolean
 	isProgrammaticMove: boolean
+}
 
-	// Actions
+interface Action {
 	setZoom: (zoom: number) => void
 	setBounds: (bounds: LngLatBounds | null) => void
 	setCenter: (center: { lat: number; lng: number } | null) => void
@@ -49,7 +51,7 @@ export interface MapViewportStore {
 	resetProgrammaticMove: () => void
 }
 
-export const useMapViewportStore = create<MapViewportStore>(set => ({
+export const useMapViewportStore = create<State & Action>(set => ({
 	// Raw values
 	zoom: MapZoomLevels.DISTRICT,
 	bounds: null,
@@ -68,27 +70,32 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 	},
 	shouldAnimate: false,
 	isProgrammaticMove: false,
-	setZoom: zoom => {
+	setZoom: zoom =>
 		set(state => {
-			if (Math.abs((state.viewport.zoom ?? 0) - zoom) < ZOOM_THRESHOLD) {
-				return state
+			if (hasSignificantZoomChange(state?.viewport?.zoom, zoom)) {
+				return {
+					viewport: { ...state.viewport, zoom },
+					zoom,
+					shouldAnimate: false,
+				}
 			}
-			return {
-				viewport: { ...state.viewport, zoom },
-				shouldAnimate: false,
-			}
-		})
-	},
+			return state
+		}),
+
 	setBounds: rawBounds =>
 		set(state => {
-			const current = state.viewport.bounds
-			const currentZoom = state.viewport.zoom
-
 			if (!rawBounds) {
 				return state
 			}
 
+			const current = state.viewport.bounds
+			const currentZoom = state.viewport.zoom
+
 			const processedBounds = expandBoundsWithBuffer(rawBounds, currentZoom)
+
+			if (!current && !processedBounds) {
+				return state
+			}
 
 			if (current && processedBounds) {
 				const [currentSW, currentNE] = current
@@ -102,9 +109,7 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 					return state
 				}
 			}
-			if (!current && !processedBounds) {
-				return state
-			}
+
 			if (__DEV__) {
 				console.log(
 					`🔍 setBounds: Updating bounds from`,
@@ -115,6 +120,7 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 			}
 			return {
 				viewport: { ...state.viewport, bounds: processedBounds },
+				bounds: processedBounds,
 				shouldAnimate: false,
 			}
 		}),
@@ -126,18 +132,14 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 				return state
 			}
 
-			if (
-				current &&
-				Math.abs(current.lat - center.lat) < CENTER_THRESHOLD &&
-				Math.abs(current.lng - center.lng) < CENTER_THRESHOLD
-			) {
-				return state
+			if (hasSignificantCenterChange(current, center)) {
+				return {
+					viewport: { ...state.viewport, center },
+					center,
+					shouldAnimate: false,
+				}
 			}
-
-			return {
-				viewport: { ...state.viewport, center },
-				shouldAnimate: false,
-			}
+			return state
 		}),
 	setViewportBatch: updates =>
 		set(state => {
@@ -211,6 +213,9 @@ export const useMapViewportStore = create<MapViewportStore>(set => ({
 
 			return {
 				viewport: newViewport,
+				zoom: newViewport.zoom,
+				center: newViewport.center ?? state.center,
+				bounds: newViewport.bounds ?? null,
 				shouldAnimate: false,
 			}
 		}),

@@ -9,9 +9,9 @@ import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { MapZoomLevels } from '@map/types/mapData'
 import React, { useCallback, useMemo } from 'react'
+import HeroMarker from './markers/HeroMarker'
 import MapBinMarker from './markers/MapBinMarker'
 import MapClusterMarker from './markers/MapClusterMarker'
-import HeroMarker from './markers/HeroMarker'
 
 const MapBinsLayer = () => {
 	const { clusters } = useSuperclusterBins()
@@ -133,13 +133,18 @@ const MapBinsLayer = () => {
 
 	return (
 		<>
-			{clusterItems.map(c => (
-				<MapClusterMarker
-					key={`cluster-${c.id}`}
-					cluster={c}
-					onPress={handleClusterPress}
-				/>
-			))}
+			{clusterItems.map(c => {
+				const coords = c?.geometry?.coordinates as [number, number]
+				const clusterId = c?.properties?.cluster_id
+				const stableKey = `cluster-${clusterId ?? `${coords?.[0]}-${coords?.[1]}`}`
+				return (
+					<MapClusterMarker
+						key={stableKey}
+						cluster={c}
+						onPress={handleClusterPress}
+					/>
+				)
+			})}
 			{visibleBins.map(b => (
 				<MapBinMarker
 					key={b.properties.containerId}
@@ -148,15 +153,13 @@ const MapBinsLayer = () => {
 					isActive={isBinSelected(String(b.properties.containerId))}
 				/>
 			))}
-			{
-				markerState?.selectedBin &&
-        (
-					<HeroMarker
-						coordinate={markerState.selectedBin.geometry.coordinates}
-						binType={markerState.selectedBin.properties.binType}
-						onPress={() => handleBinPress(markerState.selectedBin)}
-					/>
-				)}
+			{markerState?.selectedBin && (
+				<HeroMarker
+					coordinate={markerState.selectedBin.geometry.coordinates}
+					binType={markerState.selectedBin.properties.binType}
+					onPress={() => handleBinPress(markerState.selectedBin)}
+				/>
+			)}
 		</>
 	)
 }

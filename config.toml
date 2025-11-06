@@ -1,0 +1,63 @@
+[core]
+default_model = "gpt-5-codex"
+project_root  = "/Users/ignaciolopez-amorpinillos/proyectos/EcoMAD"
+
+[policy]
+require_confirmation = true
+allow_network        = "ask"
+allow_shell          = "ask"
+max_run_minutes      = 20
+
+[editor]
+apply_patch.confirm = true
+diff.unified = 3
+
+# Filesystem server
+[[mcp.servers]]
+id      = "fs"
+command = "node"
+args    = ["~/.codex/mcp/fs/index.js"]
+cwd     = "${project_root}"
+
+# Shell controlado (Bun)
+[[mcp.servers]]
+id      = "shell"
+command = "/bin/zsh"
+args    = ["-lc", "exec $SHELL -l"]
+cwd     = "${project_root}"
+env     = { BUN_INSTALL = "/Users/ignaciolopez-amorpinillos/.bun" }
+
+# Git
+[[mcp.servers]]
+id      = "git"
+command = "git"
+args    = ["--version"]
+cwd     = "${project_root}"
+
+
+# Workspaces (solo Bun)
+[[workspaces]]
+name      = "app-mobile-expo"
+path      = "${project_root}/apps/mobile"
+install   = "bun install"
+dev       = "bunx expo start"
+test      = "bun test"
+lint      = "bunx eslint ."
+build     = "bunx expo export" # o proceso EAS manual
+
+[[workspaces]]
+name      = "app-nativescript"
+path      = "${project_root}/apps/nativescript"
+install   = "bun install"
+dev       = "bunx ns run ios"   # o android
+test      = "bun test"
+lint      = "bunx eslint ."
+build     = "bunx ns build ios" # o android
+
+[[workspaces]]
+name      = "backend-ktor"
+path      = "${project_root}/services/ktor-api"
+install   = "./gradlew dependencies"
+dev       = "./gradlew run"
+test      = "./gradlew test"
+build     = "./gradlew build"

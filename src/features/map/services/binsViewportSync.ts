@@ -1,19 +1,12 @@
-// binsViewportSync.ts
-import { CENTER_THRESHOLD, ZOOM_THRESHOLD } from '@map/constants/map'
-import { calculatePoints } from '@map/services/mapService'
+import { calculatePoints, createFallbackBounds } from '@map/services/mapService'
+import { isViewportSyncPaused } from '@map/services/viewportSyncController'
+import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import type { MapViewport } from '@map/types/mapData'
-
-const isSignificantZoom = (prev: number | null, next: number) =>
-	prev == null || Math.abs((prev ?? 0) - next) >= ZOOM_THRESHOLD
-
-const isSignificantCenter = (
-	prev: { lat: number; lng: number } | null,
-	next: { lat: number; lng: number },
-) =>
-	!prev ||
-	Math.abs((prev?.lat ?? 0) - next.lat) >= CENTER_THRESHOLD ||
-	Math.abs((prev?.lng ?? 0) - next.lng) >= CENTER_THRESHOLD
+import type { LngLatBounds, MapViewport } from '@map/types/mapData'
+import {
+	hasSignificantCenterChange,
+	hasSignificantZoomChange,
+} from '@map/utils/mapUtils'
 
 let started = false
 
@@ -21,25 +14,100 @@ export const startBinsViewportSync = () => {
 	if (started) return
 	started = true
 
-	useMapViewportStore.subscribe(
-		s => s.viewport, // observamos zoom/center/bounds "raw"
-		(vp, prevVp) => {
-			const zoomChanged = isSignificantZoom(prevVp?.zoom ?? null, vp.zoom)
-			const centerChanged = isSignificantCenter(
-				prevVp?.center ?? null,
-				vp.center,
+	if (__DEV__) {
+		console.log('🟢 [SYNC] startBinsViewportSync called')
+	}
+
+	useMapViewportStore.subscribe((state, prevState) => {
+		if (__DEV__) {
+			console.log('🪝 [SYNC] subscribe tick')
+		}
+
+		if (isViewportSyncPaused()) {
+			if (__DEV__) {
+				console.log('⏸️ [SYNC] Paused by controller')
+			}
+			return
+		}
+
+		const { shouldAnimate, isProgrammaticMove, updateValidatedViewport } =
+			useMapViewportStore.getState()
+		if (shouldAnimate || isProgrammaticMove) {
+			if (__DEV__) {
+				console.log('⏭️ [SYNC] Skipping due to animation/programmatic move', {
+					shouldAnimate,
+					isProgrammaticMove,
+				})
+			}
+			return
+		}
+
+		const viewport: MapViewport = state.viewport
+		const prevViewport: MapViewport | null = prevState?.viewport ?? null
+
+		const zoomChanged = hasSignificantZoomChange(
+			prevViewport?.zoom ?? null,
+			viewport.zoom,
+		)
+
+		const centerChanged = hasSignificantCenterChange(
+			prevViewport?.center ?? null,
+			viewport.center!,
+		)
+
+		if (__DEV__) {
+			console.log('🔍 [SYNC] Checking viewport changes:', {
+				zoomChanged,
+				centerChanged,
+				prevZoom: prevViewport?.zoom,
+				currZoom: viewport.zoom,
+				prevCenter: prevViewport?.center,
+				currCenter: viewport.center,
+			})
+		}
+
+		if (!zoomChanged && !centerChanged) {
+			if (__DEV__) {
+				console.log('⏭️ [SYNC] No significant changes, skipping', {
+					prevViewport,
+					currViewport: state.viewport,
+				})
+			}
+			return
+		}
+
+		// ✅ Bounds seguros: prioriza los reales; si no hay, usa fallback determinista
+		const safeBounds: LngLatBounds =
+			viewport.bounds ??
+			createFallbackBounds(
+				viewport.center!.lng,
+				viewport.center!.lat,
+				viewport.zoom,
 			)
 
-			if (!zoomChanged && !centerChanged) return
+		// ✅ Actualiza SIEMPRE los valores validados, incluso sin chip seleccionado
+		updateValidatedViewport(viewport.zoom, safeBounds, viewport.center!)
 
-			// 1) registra "validated" (bounds los podemos dejar en null)
-			useMapViewportStore
-				.getState()
-				.updateValidatedViewport(vp.zoom, null, vp.center!)
+		// Si no hay chip, no calculamos puntos, pero dejamos los validados al día
+		const { selectedEndPoint } = useMapChipsMenuStore.getState()
+		if (!selectedEndPoint) {
+			if (__DEV__) {
+				console.log('⏭️ [SYNC] No endpoint selected')
+			}
+			return
+		}
 
-			// 2) dispara cálculo (bounds se autogeneran dentro de calculatePoints)
-			calculatePoints(vp as MapViewport)
-		},
-		{ fireImmediately: false },
-	)
+		// ✅ Asegura bounds no nulos al negocio
+		const viewportWithBounds: MapViewport = { ...viewport, bounds: safeBounds }
+
+		if (__DEV__) {
+			console.log('✅ [SYNC] Calculating points', {
+				zoom: viewport.zoom,
+				hasBounds: !!viewport.bounds,
+				center: viewport.center,
+			})
+		}
+
+		calculatePoints(viewportWithBounds)
+	})
 }

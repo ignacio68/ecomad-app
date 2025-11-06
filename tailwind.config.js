@@ -18,6 +18,8 @@ module.exports = {
 				secondary: '#0074d9',
 				tertiary: '#111111',
 				quaternary: '#f4f4f4',
+				surface: '#F7F2FA',
+				neutral: '#1D1B20',
 				clothing_bins: {
 					50: '#ffecee',
 					100: '#ffcfd2',

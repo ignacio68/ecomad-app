@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description: Tailwind CSS and UI component best practices for modern web applications
+globs: src/**/*.*, tailwind.config.js, tailwind.config.ts
 alwaysApply: true
 ---
 ---
@@ -80,4 +80,4 @@ globs: **/*.css, **/*.tsx, tailwind.config.js, tailwind.config.ts
 - Use proper documentation
 - Implement proper testing
 - Follow accessibility guidelines
-- Use proper version control 
+- Use proper version control

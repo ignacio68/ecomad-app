@@ -1,7 +1,7 @@
 ---
 description: Enforces best practices for React Native Expo development within the src directory, promoting maintainable and efficient code.
 globs: src/**/*.*
-alwaysApply: false
+alwaysApply: true
 ---
 ---
 description: Enforces best practices for React Native Expo development within the src directory, promoting maintainable and efficient code.

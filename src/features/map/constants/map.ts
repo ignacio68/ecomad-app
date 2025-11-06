@@ -37,15 +37,17 @@ export const DEFAULT_MAP_VIEW_PROPS: MapViewProps = {
 	styleURL: StyleURL.Outdoors,
 }
 
-export const COMPASS_POSITION = { top: 360, right: 14 }
+export const COMPASS_POSITION = { top: 80, right: 18 }
 
-export const BOTTOM_SHEET_SNAP_POINTS = ['25%', '80%']
+export const BOTTOM_SHEET_SNAP_POINTS = ['35%', '60%', '90%']
 
 export const IDLE_THROTTLE_MS = 300
 
+export const ANIMATION_PAUSE_BUFFER_MS = 150
+
 // Thresholds para comparaciones de viewport (optimizados para performance)
-export const CENTER_THRESHOLD = 0.0001 // ~10 metros de diferencia - evita recálculos innecesarios
-export const ZOOM_THRESHOLD = 2 // 2 niveles de zoom de diferencia - reduce renders significativamente
+export const CENTER_THRESHOLD = 0.0005 // ~10 metros de diferencia - evita recálculos innecesarios
+export const ZOOM_THRESHOLD = 1 // 1 nivel de zoom de diferencia - mejora la reactividad del zoom
 
 export interface MapFABStyle {
 	name: string
@@ -75,11 +77,12 @@ export const MAP_FAB_STYLES: MapFABStyle[] = [
 	},
 ]
 
-export const NAVIGATION_DOT = { image: require('@map/assets/icons/navigation-dot.png') }
-
 // Constantes para paddings de navegación (fitBounds)
 export const NAVIGATION_PADDING_TOP = 140 // Padding superior para dejar espacio al chips container
-export const NAVIGATION_PADDING_BOTTOM = 360
+export const NAVIGATION_PADDING_BOTTOM = 360 // TODO: hacerlo programáticamente con la altura del bottom sheet
 // Padding inferior para bottom sheet (~25% snap point en pantallas típicas)
 export const NAVIGATION_PADDING_LEFT = 60 // Padding lateral izquierdo
 export const NAVIGATION_PADDING_RIGHT = 60 // Padding lateral derecho
+
+export const ANIMATION_DURATION_MS = 800 // Duración de animaciones del mapa
+export const ANIMATION_TIMEOUT_MS = 820 // Timeout para animaciones
