@@ -37,6 +37,35 @@ export const binsMigrations = [
 		updated_at INTEGER NOT NULL
 	);
 	`,
+	// Migración 2: Actualizar estructura de bins_containers_cache
+	`
+	-- Eliminar tabla antigua si existe (empezar desde cero)
+	DROP TABLE IF EXISTS bins_containers_cache;
+	`,
+	`
+	-- Crear nueva tabla con estructura actualizada (todos los campos del backend)
+	CREATE TABLE IF NOT EXISTS bins_containers_cache (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		bin_type TEXT NOT NULL,
+		container_id TEXT NOT NULL,
+		category_group_id INTEGER NOT NULL,
+		category_id INTEGER NOT NULL,
+		district_id INTEGER NOT NULL,
+		neighborhood_id INTEGER,
+		address TEXT NOT NULL,
+		lat REAL NOT NULL,
+		lng REAL NOT NULL,
+		load_type TEXT,
+		direction TEXT,
+		subtype TEXT,
+		placement_type TEXT,
+		notes TEXT,
+		bus_stop TEXT,
+		interurban_node TEXT,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	);
+	`,
 ]
 
 /**

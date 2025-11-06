@@ -27,19 +27,17 @@ const ChipsContainer = memo(
 
 		const renderItem = useCallback(
 			({ item }: { item: ChipProps }) => (
-				<View key={item.id}>
-					<Chip
-						id={item.id}
-						title={item.title}
-						mode={item.mode}
-						icon={item.icon}
-						iconSelected={item.iconSelected}
-						isSelected={selectedChipId === item.id}
-						onPress={() => handleChipPress(item.id, item.title)}
-						testID={`chip-${item.id}`}
-						endPoint={item.endPoint}
-					/>
-				</View>
+				<Chip
+					id={item.id}
+					title={item.title}
+					mode={item.mode}
+					icon={item.icon}
+					iconSelected={item.iconSelected}
+					isSelected={selectedChipId === item.id}
+					onPress={() => handleChipPress(item.id, item.title)}
+					testID={`chip-${item.id}`}
+					endPoint={item.endPoint}
+				/>
 			),
 			[selectedChipId, handleChipPress],
 		)

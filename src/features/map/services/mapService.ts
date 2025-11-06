@@ -1,4 +1,5 @@
 import {
+	ANIMATION_DURATION_MS,
 	MAPBOX_DOWNLOADS_TOKEN,
 	NAVIGATION_PADDING_BOTTOM,
 	NAVIGATION_PADDING_LEFT,
@@ -6,14 +7,18 @@ import {
 	NAVIGATION_PADDING_TOP,
 } from '@map/constants/map'
 
+import { CLUSTER_MAX_ZOOM } from '@map/constants/clustering'
 import { filterPointsForViewport } from '@map/services/binsLoader'
+import { calculateAndStoreClusters } from '@map/services/clusteringService'
+import { pauseViewportSync } from '@map/services/viewportSyncController'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
+import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
+import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
-import { MapViewport } from '@map/types/mapData'
+import { MapViewport, MapZoomLevels } from '@map/types/mapData'
 import type { Camera } from '@rnmapbox/maps'
 import Mapbox from '@rnmapbox/maps'
 import type React from 'react'
-import { calculateAndStoreClusters } from './clusteringService'
 
 export const setMapboxAccessToken = async (): Promise<boolean> => {
 	try {
@@ -46,7 +51,7 @@ export const setMapboxAccessToken = async (): Promise<boolean> => {
 }
 
 // Función auxiliar para obtener buffer dinámico según zoom
-export const getDynamicBuffer = (zoom: number): number => {
+const getDynamicBuffer = (zoom: number): number => {
 	if (zoom >= 16) return 0.003 // Buffer pequeño para zoom alto
 	if (zoom >= 14) return 0.008 // Buffer mediano para zoom medio
 	if (zoom >= 12) return 0.012 // Buffer grande para zoom bajo-medio
@@ -85,26 +90,7 @@ export const createFallbackBounds = (
 	]
 }
 
-// Función auxiliar para verificar throttling de bounds
-export const createThrottle = (throttleMs: number) => {
-	let lastUpdateTime = 0
-
-	return (): boolean => {
-		const now = Date.now()
-		const timeSinceLastUpdate = now - lastUpdateTime
-
-		if (timeSinceLastUpdate > throttleMs) {
-			lastUpdateTime = now
-			return true
-		}
-		return false
-	}
-}
-
-/**
- * Calcula los bounds que contienen dos puntos (origen y destino)
- */
-export const calculateBoundsForTwoPoints = (
+const calculateBoundsForTwoPoints = (
 	origin: LngLat,
 	destination: LngLat,
 ): LngLatBounds => {
@@ -130,7 +116,7 @@ export const flyToPoint = (
 	cameraRef: React.RefObject<Camera | null>,
 	center: LngLat,
 	zoom: number,
-	duration: number = 800,
+	duration: number = ANIMATION_DURATION_MS,
 ): void => {
 	if (!cameraRef.current) {
 		console.warn('⚠️ Camera ref no disponible')
@@ -138,6 +124,7 @@ export const flyToPoint = (
 	}
 
 	try {
+		pauseViewportSync(duration + 150)
 		cameraRef.current.setCamera({
 			centerCoordinate: center,
 			zoomLevel: zoom,
@@ -175,7 +162,7 @@ export const fitBoundsToTwoPoints = (
 		paddingBottom = NAVIGATION_PADDING_BOTTOM,
 		paddingLeft = NAVIGATION_PADDING_LEFT,
 		paddingRight = NAVIGATION_PADDING_RIGHT,
-		duration = 1000,
+		duration = ANIMATION_DURATION_MS,
 	} = options
 
 	if (!cameraRef.current) {
@@ -187,6 +174,7 @@ export const fitBoundsToTwoPoints = (
 	const [sw, ne] = bounds
 
 	try {
+		pauseViewportSync(duration + 200)
 		cameraRef.current.fitBounds(
 			ne,
 			sw,
@@ -198,37 +186,34 @@ export const fitBoundsToTwoPoints = (
 	}
 }
 
-export const hasViewportChanged = (
-	currentState: { zoom: number; lat: number; lng: number },
-	viewport: MapViewport,
-) => {
-	const { zoom: currentZoom, lat, lng } = currentState
-
-	// ✅ Si no hay viewport inicial, no considerar como cambio
-	if (!viewport.center || viewport.zoom === undefined) {
-		return false
-	}
-
-	const zoomChanged = Math.abs(viewport.zoom - currentZoom) >= 0.01
-	const centerChanged =
-		Math.abs(viewport.center.lat - lat) >= 0.00001 ||
-		Math.abs(viewport.center.lng - lng) >= 0.00001
-
-	return zoomChanged || centerChanged
-}
-
 export const calculatePoints = (viewport: MapViewport) => {
 	try {
-		// Obtener allPoints actual del store para evitar dependencia reactiva
 		const { allPoints: currentPoints } = useMapBinsStore.getState()
+		const { selectedEndPoint } = useMapChipsMenuStore.getState()
+		const { setDisplayClusters, setSuperclusterInstance } =
+			require('@map/stores/mapClustersStore').useMapClustersStore.getState()
 		const { zoom, bounds, center } = viewport
 
-		if (zoom <= 12) {
-			console.log('🚫 [VIEWPORT] Low zoom, skipping points calculation')
+		// Modo mega-cluster: ignorar bounds y filtrar, usar todos los puntos
+		if (zoom <= MapZoomLevels.GENERAL) {
+			useMapBinsStore.getState().setFilteredPoints(currentPoints)
+			calculateAndStoreClusters(currentPoints, zoom, null)
 			return
 		}
 
-		// ✅ bounds seguros (si vienen nulos, generamos fallback con buffer)
+		// Congelar clusters entre DISTRICT (11) y CLUSTER_MAX_ZOOM (13): reutilizar cache si existe
+		if (selectedEndPoint && zoom <= CLUSTER_MAX_ZOOM) {
+			const cached = useSuperclusterCacheStore
+				.getState()
+				.getClustersCache(selectedEndPoint, Math.floor(zoom))
+			if (cached && cached.length > 0) {
+				// Usar clusters cacheados tal cual (ya resueltos), sin reclustering
+				setDisplayClusters(cached)
+				setSuperclusterInstance(null)
+				return
+			}
+		}
+
 		const safeBounds: LngLatBounds =
 			bounds ?? createFallbackBounds(center!.lng, center!.lat, zoom)
 

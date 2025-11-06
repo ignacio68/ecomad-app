@@ -27,15 +27,13 @@ const FAB =
 		onPress,
 	}: FABProps) => {
 
-		const getIcon = () => (isSelected ? iconSelected : icon)
-
-		const getIconColor = () => (isSelected ? colorSelected : '#111111')
+		const getIconColor = () => (isSelected ? colorSelected : '#1D1B20')
 
 		return (
-			<AnimatedPressable
+			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl bg-white shadow-2xl border-[0.5px] border-gray-300`}
+				className={`h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl border-[0.5px] border-gray-300 bg-surface ios:shadow android:shadow-lg`}
 				accessibilityRole="button"
 				accessibilityLabel="Fab"
 				accessibilityHint="Presiona para abrir la pantalla de mapa"
@@ -47,12 +45,14 @@ const FAB =
 				accessibilityLiveRegion={loading ? 'polite' : undefined}
 			>
 				<HugeiconsIcon
-					icon={getIcon()}
+					icon={icon}
+					altIcon={iconSelected}
+					showAlt={isSelected}
 					size={24}
 					color={getIconColor()}
 					accessibilityLabel={`Icono de FAB ${name}`}
 				/>
-			</AnimatedPressable>
+			</Pressable>
 		)
 	}
 

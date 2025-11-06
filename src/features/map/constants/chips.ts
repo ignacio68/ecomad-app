@@ -3,12 +3,12 @@ import { ChipProps } from '@/shared/components/ui/buttons/Chip'
 import {
 	Apple01Icon,
 	Book02Icon,
-
 	CardiganIcon,
 	MilkBottleIcon,
 	MilkCartonIcon,
 	OilBarrelIcon,
-	WasteRestoreIcon
+	WasteRestoreIcon,
+	BatteryFullIcon
 } from '@hugeicons-pro/core-duotone-rounded'
 import {
 	Apple01Icon as Apple01IconSolid,
@@ -18,6 +18,7 @@ import {
 	MilkCartonIcon as MilkCartonIconSolid,
 	OilBarrelIcon as OilBarrelIconSolid,
 	WasteRestoreIcon as WasteRestoreIconSolid,
+	BatteryFullIcon as BatteryFullIconSolid,
 } from '@hugeicons-pro/core-solid-rounded'
 
 export const createChipsList = (): ChipProps[] => [
@@ -73,6 +74,15 @@ export const createChipsList = (): ChipProps[] => [
 		icon: Apple01Icon,
 		iconSelected: Apple01IconSolid,
 		endPoint: 'organic_bins',
+		onPress: () => {},
+	},
+	{
+		id: 'battery',
+		title: 'Pilas',
+		mode: 'primary',
+		icon: BatteryFullIcon,
+		iconSelected: BatteryFullIconSolid,
+		endPoint: 'battery_bins',
 		onPress: () => {},
 	},
 	{

@@ -27,7 +27,7 @@ export class UserLocationService {
 
 			if (status === PermissionStatus.GRANTED) {
 				// También solicitar permisos de ubicación en segundo plano para mejor precisión
-				await Location.requestBackgroundPermissionsAsync()
+				// await Location.requestBackgroundPermissionsAsync()
 				return PermissionStatus.GRANTED
 			}
 

@@ -17,8 +17,12 @@ import { MapZoomLevels } from '@map/types/mapData'
 import { useEffect, useState } from 'react'
 
 export const useSuperclusterBins = () => {
-	const { lastValidatedZoom, lastValidatedBounds, lastValidatedCenter } =
-		useMapViewportStore()
+	const {
+		lastValidatedZoom,
+		lastValidatedBounds,
+		lastValidatedCenter,
+		viewport,
+	} = useMapViewportStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
 	const { shouldHideClusters } = useMapNavigationStore()
 	const { setPointsCache, getPointsCache, clearPointsCache } =
@@ -37,16 +41,22 @@ export const useSuperclusterBins = () => {
 
 	const hasNoData = !selectedEndPoint && allPoints.length === 0
 
+	const resetPoints = () => {
+		setAllPoints([])
+		setFilteredPoints([])
+		clearBinsCache(binsCache)
+		// Limpiar clusters cache al cambiar/deseleccionar chip
+		useSuperclusterCacheStore.getState().clearClustersCache()
+		setIsLoadingPoints(false)
+	}
+
 	// ✅ Efecto para cargar puntos cuando se selecciona un chip
 	useEffect(() => {
 		let isMounted = true
 
 		const loadPoints = async () => {
 			if (!selectedEndPoint) {
-				setAllPoints([])
-				setFilteredPoints([])
-				clearBinsCache(binsCache)
-				setIsLoadingPoints(false)
+				resetPoints()
 				return
 			}
 
@@ -65,32 +75,54 @@ export const useSuperclusterBins = () => {
 				// Guardar todos los puntos en el store
 				setAllPoints(loadedPoints)
 
+				const { zoom, bounds, center } = viewport
+
 				// ✅ FILTRADO IMPERATIVO: Primera carga del chip (siempre)
 				if (__DEV__) {
 					console.log('🎯 [CHIP_SELECT] Filtering with validated values', {
-						zoom: lastValidatedZoom,
-						hasBounds: lastValidatedBounds,
+						lastValidatedZoom: lastValidatedZoom,
+						lastValidatedCenter: lastValidatedCenter,
+						LastValidatedBounds: lastValidatedBounds,
+					})
+
+					console.log('🎯 [CHIP_SELECT] Filtering with viewport', {
+						zoom,
+						bounds,
+						center,
 					})
 				}
 
+				// Preferir valores validados en primer render/viewport inicial; luego viewport
+				const isInitialViewport =
+					!bounds || (zoom ?? 0) <= MapZoomLevels.DISTRICT
+				const effectiveZoom = isInitialViewport
+					? (lastValidatedZoom ?? MapZoomLevels.DISTRICT)
+					: (zoom ?? lastValidatedZoom ?? MapZoomLevels.DISTRICT)
+				const effectiveBounds = isInitialViewport
+					? (lastValidatedBounds ?? INITIAL_BOUNDS)
+					: (bounds ?? lastValidatedBounds ?? INITIAL_BOUNDS)
+				const effectiveCenter = isInitialViewport
+					? (lastValidatedCenter ?? {
+							lat: INITIAL_CENTER[1],
+							lng: INITIAL_CENTER[0],
+						})
+					: (center ??
+						lastValidatedCenter ?? {
+							lat: INITIAL_CENTER[1],
+							lng: INITIAL_CENTER[0],
+						})
+
 				const filtered = filterPointsForViewport(
 					loadedPoints,
-					lastValidatedZoom ?? MapZoomLevels.DISTRICT,
-					lastValidatedBounds ?? INITIAL_BOUNDS,
-					lastValidatedCenter ?? {
-						lat: INITIAL_CENTER[1],
-						lng: INITIAL_CENTER[0],
-					},
+					effectiveZoom,
+					effectiveBounds,
+					effectiveCenter,
 					null,
 				)
 				setFilteredPoints(filtered)
 
 				// ✅ CLUSTERING IMPERATIVO: Calcular clusters iniciales
-				calculateAndStoreClusters(
-					filtered,
-					lastValidatedZoom ?? MapZoomLevels.DISTRICT,
-					lastValidatedBounds ?? INITIAL_BOUNDS,
-				)
+				calculateAndStoreClusters(filtered, effectiveZoom, effectiveBounds)
 
 				setIsLoadingPoints(false)
 			} catch (error) {

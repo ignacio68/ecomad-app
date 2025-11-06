@@ -12,10 +12,10 @@ import { httpClient } from './httpClient'
 const BINS_BASE_URL =
 	process.env.EXPO_PUBLIC_API_BINS_BASE_URL as string
 
-// Schema para conteos jerárquicos
+// Schema para conteos jerárquicos (ahora usa IDs)
 const hierarchyCountSchema = z.object({
-	distrito: z.string(),
-	barrio: z.string(),
+	distrito: z.string(), // ID del distrito (1-35)
+	barrio: z.string(), // ID del barrio (1-218)
 	count: z.number(),
 })
 
