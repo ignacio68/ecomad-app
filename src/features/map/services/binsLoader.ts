@@ -109,21 +109,32 @@ const filterPointsByBounds = (
 ): BinPoint[] => {
 	const [[minLng, minLat], [maxLng, maxLat]] = bounds
 
-	// Buffer muy pequeño solo para evitar edge cases
-	// 0.002 grados ≈ 220 metros en Madrid
-	const buffer = zoom >= 14 ? 0.002 : 0
-	const expandedMinLng = minLng - buffer
-	const expandedMaxLng = maxLng + buffer
-	const expandedMinLat = minLat - buffer
-	const expandedMaxLat = maxLat + buffer
+	// Para zoom alto (>= 14), reducir el área visible en lugar de expandirla
+	// Esto asegura que solo se muestren bins realmente visibles en pantalla
+	let effectiveMinLng = minLng
+	let effectiveMaxLng = maxLng
+	let effectiveMinLat = minLat
+	let effectiveMaxLat = maxLat
+
+	if (zoom >= 14) {
+		// Reducir el área al 60% del viewport (eliminar 20% de cada lado)
+		const lngRange = maxLng - minLng
+		const latRange = maxLat - minLat
+		const reduction = 0.2 // 20% de cada lado = 40% total
+
+		effectiveMinLng = minLng + lngRange * reduction
+		effectiveMaxLng = maxLng - lngRange * reduction
+		effectiveMinLat = minLat + latRange * reduction
+		effectiveMaxLat = maxLat - latRange * reduction
+	}
 
 	return points.filter(point => {
 		const [lng, lat] = point.geometry.coordinates
 		return (
-			lng >= expandedMinLng &&
-			lng <= expandedMaxLng &&
-			lat >= expandedMinLat &&
-			lat <= expandedMaxLat
+			lng >= effectiveMinLng &&
+			lng <= effectiveMaxLng &&
+			lat >= effectiveMinLat &&
+			lat <= effectiveMaxLat
 		)
 	})
 }

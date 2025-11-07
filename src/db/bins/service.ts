@@ -7,6 +7,7 @@ import {
 	binsTotalCountCache,
 	type BinsContainersCacheRecord,
 } from './schema'
+import { BATCH_SIZE } from '../constants/db'
 
 export interface HierarchyData {
 	distrito: string
@@ -155,7 +156,6 @@ export class BinsService {
 				`🔍 BinsService.saveContainersData called for ${binType} with ${containers.length} containers`,
 			)
 
-
 			// Eliminar datos existentes para este binType
 			await db
 				.delete(binsContainersCache)
@@ -172,8 +172,8 @@ export class BinsService {
 				containerId: container.id.toString(), // ID único del backend
 				category_group_id: container.category_group_id,
 				category_id: container.category_id,
-				district_id: container.district_id,
-				neighborhood_id: container.neighborhood_id,
+				district_code: container.district_code, // Cambiado de district_id a district_code
+				neighborhood_code: container.neighborhood_code, // Cambiado de neighborhood_id a neighborhood_code
 				address: container.address || 'Dirección no disponible',
 				lat: container.lat,
 				lng: container.lng,
@@ -189,7 +189,6 @@ export class BinsService {
 			}))
 
 			// Insertar en lotes para evitar stack overflow con grandes datasets
-			const BATCH_SIZE = 500
 			let insertedCount = 0
 
 			for (let i = 0; i < records.length; i += BATCH_SIZE) {
@@ -224,6 +223,7 @@ export class BinsService {
 				.where(eq(binsContainersCache.binType, binType))
 
 			const records = limit ? await baseQuery.limit(limit) : await baseQuery
+
 			console.log(
 				`🔍 Found ${records.length} records in database for ${binType}`,
 			)
@@ -232,7 +232,7 @@ export class BinsService {
 				console.log(`⚠️ No records found in database for ${binType}`)
 				return null
 			}
-			
+
 			// Devolver los records directamente sin mapear
 			return records
 		} catch (error) {
@@ -264,7 +264,6 @@ export class BinsService {
 			throw error
 		}
 	}
-
 
 	/**
 	 * Limpiar todo el cache de bins

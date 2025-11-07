@@ -7,15 +7,8 @@ import {
 	NAVIGATION_PADDING_TOP,
 } from '@map/constants/map'
 
-import { CLUSTER_MAX_ZOOM } from '@map/constants/clustering'
-import { filterPointsForViewport } from '@map/services/binsLoader'
-import { calculateAndStoreClusters } from '@map/services/clusteringService'
 import { pauseViewportSync } from '@map/services/viewportSyncController'
-import { useMapBinsStore } from '@map/stores/mapBinsStore'
-import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
-import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
-import { MapViewport, MapZoomLevels } from '@map/types/mapData'
 import type { Camera } from '@rnmapbox/maps'
 import Mapbox from '@rnmapbox/maps'
 import type React from 'react'
@@ -183,59 +176,5 @@ export const fitBoundsToTwoPoints = (
 		)
 	} catch (error) {
 		console.error('❌ Error al ajustar bounds:', error)
-	}
-}
-
-export const calculatePoints = (viewport: MapViewport) => {
-	try {
-		const { allPoints: currentPoints } = useMapBinsStore.getState()
-		const { selectedEndPoint } = useMapChipsMenuStore.getState()
-		const { setDisplayClusters, setSuperclusterInstance } =
-			require('@map/stores/mapClustersStore').useMapClustersStore.getState()
-		const { zoom, bounds, center } = viewport
-
-		// Modo mega-cluster: ignorar bounds y filtrar, usar todos los puntos
-		if (zoom <= MapZoomLevels.GENERAL) {
-			useMapBinsStore.getState().setFilteredPoints(currentPoints)
-			calculateAndStoreClusters(currentPoints, zoom, null)
-			return
-		}
-
-		// Congelar clusters entre DISTRICT (11) y CLUSTER_MAX_ZOOM (13): reutilizar cache si existe
-		if (selectedEndPoint && zoom <= CLUSTER_MAX_ZOOM) {
-			const cached = useSuperclusterCacheStore
-				.getState()
-				.getClustersCache(selectedEndPoint, Math.floor(zoom))
-			if (cached && cached.length > 0) {
-				// Usar clusters cacheados tal cual (ya resueltos), sin reclustering
-				setDisplayClusters(cached)
-				setSuperclusterInstance(null)
-				return
-			}
-		}
-
-		const safeBounds: LngLatBounds =
-			bounds ?? createFallbackBounds(center!.lng, center!.lat, zoom)
-
-		const filtered = filterPointsForViewport(
-			currentPoints,
-			zoom,
-			safeBounds,
-			center,
-		)
-
-		console.log('✅ [VIEWPORT] Filtered:', {
-			input: currentPoints.length,
-			output: filtered.length,
-			ratio: ((filtered.length / currentPoints.length) * 100).toFixed(1) + '%',
-		})
-
-		useMapBinsStore.getState().setFilteredPoints(filtered)
-
-		// ✅ CLUSTERING IMPERATIVO: Calcular clusters y guardar en store
-		calculateAndStoreClusters(filtered, zoom, bounds)
-	} catch (error) {
-		console.error('❌ [VIEWPORT] Error filtering:', error)
-		useMapBinsStore.getState().setFilteredPoints([])
 	}
 }

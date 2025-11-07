@@ -18,7 +18,7 @@ import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { Camera, MapView, type MapState } from '@rnmapbox/maps'
 import { memo, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import MapBinsLayer from './MapBinsLayer'
+import MapBinsLayerV2 from './MapBinsLayerV2'
 import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
 import UserLocationMarker from './markers/UserLocationMarker'
 
@@ -201,7 +201,7 @@ const MapBase = () => {
 				/>
 
 				{route && <MapWalkingRouteLayer route={route} />}
-				{selectedEndPoint && <MapBinsLayer />}
+				{selectedEndPoint && <MapBinsLayerV2 />}
 				{isUserLocationFABActivated && <UserLocationMarker />}
 			</MapView>
 		</View>

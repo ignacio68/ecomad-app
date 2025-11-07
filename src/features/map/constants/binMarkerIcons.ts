@@ -16,7 +16,7 @@ type BinMarkerIconSet = {
 	active: IconSvgElement
 	color: string
 	mediumColor: string
-	hightcolor: string
+	highColor: string
 }
 
 export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
@@ -25,55 +25,55 @@ export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
 		active: CardiganIconSolid,
 		color: '#d3003b',
 		mediumColor: '#9F002A',
-		hightcolor: '#70001B',
+		highColor: '#70001B',
 	},
 	oil_bins: {
 		default: require('@map/assets/icons/oil-barrel.png'),
 		active: OilBarrelIconSolid,
 		color: '#F59E0B',
 		mediumColor: '#09855C',
-		hightcolor: '#056444',
+		highColor: '#056444',
 	},
 	glass_bins: {
 		default: require('@map/assets/icons/milk-bottle.png'),
 		active: MilkBottleIconSolid,
 		color: '#10B981',
 		mediumColor: '#059669',
-		hightcolor: '#047857',
+		highColor: '#047857',
 	},
 	paper_bins: {
 		default: require('@map/assets/icons/book-02.png'),
 		active: Book02IconSolid,
 		color: '#3B82F6',
 		mediumColor: '#2168CD',
-		hightcolor: '#174E9C',
+		highColor: '#174E9C',
 	},
 	plastic_bins: {
 		default: require('@map/assets/icons/cardigan.png'),
 		active: MilkCartonIconSolid,
 		color: '#F6DD57',
 		mediumColor: '#CEB948',
-		hightcolor: '#AA993A',
+		highColor: '#AA993A',
 	},
 	organic_bins: {
 		default: require('@map/assets/icons/apple-01.png'),
 		active: Apple01IconSolid,
 		color: '#A26B0B',
 		mediumColor: '#825507',
-		hightcolor: '#633F04',
+		highColor: '#633F04',
 	},
 	battery_bins: {
 		default: require('@map/assets/icons/battery-full.png'),
 		active: BatteryFullIconSolid,
 		color: '#817B87',
 		mediumColor: '#67616C',
-		hightcolor: '#64E4A52',
+		highColor: '#64E4A52',
 	},
 	other_bins: {
 		default: require('@map/assets/icons/waste-restore.png'),
 		active: WasteRestoreIconSolid,
 		color: '#7A49A0',
 		mediumColor: '#613981',
-		hightcolor: '#4B2B64',
+		highColor: '#4B2B64',
 	},
 }

@@ -3,15 +3,11 @@ import {
 	ZOOM_NO_BOUNDS_RECALC,
 	ZOOM_RECALC_THRESHOLD,
 } from '@map/constants/clustering'
-import { filterPointsForViewport } from '@map/services/binsLoader'
-import { calculateAndStoreClusters } from '@map/services/clusteringService'
-import { useMapBinsStore } from '@map/stores/mapBinsStore'
-import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { LngLatBounds } from '@map/types/mapData'
 import { getCurrentBoundsArea } from '@map/utils/geoUtils'
 import { useEffect, useRef } from 'react'
-import { LngLatBounds } from '@map/types/mapData'
 
 /**
  * Hook que valida si los cambios de viewport son significativos
@@ -20,14 +16,15 @@ import { LngLatBounds } from '@map/types/mapData'
 export const useMapViewportChanges = () => {
 	const { zoom, bounds, center, updateValidatedViewport } =
 		useMapViewportStore()
-	const { shouldHideClusters, route } = useMapNavigationStore()
-	const { selectedEndPoint } = useMapChipsMenuStore()
-	const { allPoints } = useMapBinsStore()
+	const { shouldHideClusters } = useMapNavigationStore()
 
 	const previousZoomRef = useRef<number | null>(null)
 	const previousBoundsAreaRef = useRef<number | null>(null)
 
-	const firstLoad = (center: {lat: number, lng: number}, bounds: LngLatBounds) => {
+	const firstLoad = (
+		center: { lat: number; lng: number },
+		bounds: LngLatBounds,
+	) => {
 		console.log('🎯 [VIEWPORT] First load, initializing validated values', {
 			zoom,
 			hasBounds: true,
@@ -58,8 +55,9 @@ export const useMapViewportChanges = () => {
 
 		console.log('🎯 [VIEWPORT] Validating viewport changes')
 
-		const zoomDiff =
-			previousZoomRef?.current ? zoom - previousZoomRef.current : 0
+		const zoomDiff = previousZoomRef?.current
+			? zoom - previousZoomRef.current
+			: 0
 		const hasSignificantZoomChange = Math.abs(zoomDiff) >= ZOOM_RECALC_THRESHOLD
 		let currentBoundsArea = 0
 		let hasSignificantBoundsChange = false
@@ -127,49 +125,7 @@ export const useMapViewportChanges = () => {
 
 		updateValidatedViewport(zoom, bounds, center)
 
-		// ✅ FILTRADO IMPERATIVO: Si hay chip seleccionado y puntos cargados
-		if (selectedEndPoint && allPoints.length > 0) {
-			console.log('🔄 [VIEWPORT] Filtering points imperatively', {
-				pointsCount: allPoints.length,
-				zoom,
-			})
-
-			try {
-				// Obtener allPoints actual del store para evitar dependencia reactiva
-				const { allPoints: currentPoints } = useMapBinsStore.getState()
-
-				const filtered = filterPointsForViewport(
-					currentPoints,
-					zoom,
-					bounds,
-					center,
-					route,
-				)
-
-				console.log('✅ [VIEWPORT] Filtered:', {
-					input: currentPoints.length,
-					output: filtered.length,
-					ratio:
-						((filtered.length / currentPoints.length) * 100).toFixed(1) + '%',
-				})
-
-				useMapBinsStore.getState().setFilteredPoints(filtered)
-
-				// ✅ CLUSTERING IMPERATIVO: Calcular clusters y guardar en store
-				calculateAndStoreClusters(filtered, zoom, bounds)
-			} catch (error) {
-				console.error('❌ [VIEWPORT] Error filtering:', error)
-				useMapBinsStore.getState().setFilteredPoints([])
-			}
-		}
-	}, [
-		zoom,
-		bounds,
-		center,
-		shouldHideClusters,
-		updateValidatedViewport,
-		selectedEndPoint,
-		allPoints.length, // Solo el length para detectar cuando se cargan puntos
-		route,
-	])
+		// El clustering jerárquico se maneja en useHierarchicalBins
+		// No necesitamos filtrado ni clustering imperativo aquí
+	}, [zoom, bounds, center, shouldHideClusters, updateValidatedViewport])
 }
