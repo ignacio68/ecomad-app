@@ -29,8 +29,8 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const {
 		properties: {
 			address,
-			district_id,
-			neighborhood_id,
+			district_code,
+			neighborhood_code,
 			binType,
 			notes,
 			subtype,
@@ -40,10 +40,10 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 
 	const [longitude, latitude] = coordinates
 
-	// Convertir IDs a nombres usando las funciones helper
-	const districtName = getDistrictNameById(district_id)
-	const neighborhoodName = neighborhood_id
-		? getNeighborhoodNameByCode(neighborhood_id)
+	// Convertir códigos a nombres usando las funciones helper
+	const districtName = getDistrictNameById(Number.parseInt(district_code))
+	const neighborhoodName = neighborhood_code
+		? getNeighborhoodNameByCode(Number.parseInt(neighborhood_code))
 		: 'N/A'
 
 	const {

@@ -1,6 +1,5 @@
-import { calculatePoints, createFallbackBounds } from '@map/services/mapService'
+import { createFallbackBounds } from '@map/services/mapService'
 import { isViewportSyncPaused } from '@map/services/viewportSyncController'
-import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import type { LngLatBounds, MapViewport } from '@map/types/mapData'
 import {
@@ -85,29 +84,8 @@ export const startBinsViewportSync = () => {
 				viewport.zoom,
 			)
 
-		// ✅ Actualiza SIEMPRE los valores validados, incluso sin chip seleccionado
+		// ✅ Actualiza SIEMPRE los valores validados
+		// El clustering jerárquico se maneja reactivamente en useHierarchicalBins
 		updateValidatedViewport(viewport.zoom, safeBounds, viewport.center!)
-
-		// Si no hay chip, no calculamos puntos, pero dejamos los validados al día
-		const { selectedEndPoint } = useMapChipsMenuStore.getState()
-		if (!selectedEndPoint) {
-			if (__DEV__) {
-				console.log('⏭️ [SYNC] No endpoint selected')
-			}
-			return
-		}
-
-		// ✅ Asegura bounds no nulos al negocio
-		const viewportWithBounds: MapViewport = { ...viewport, bounds: safeBounds }
-
-		if (__DEV__) {
-			console.log('✅ [SYNC] Calculating points', {
-				zoom: viewport.zoom,
-				hasBounds: !!viewport.bounds,
-				center: viewport.center,
-			})
-		}
-
-		calculatePoints(viewportWithBounds)
 	})
 }

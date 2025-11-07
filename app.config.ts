@@ -13,10 +13,8 @@ const byEnv = {
 	prod: { name: 'EcoMAD', slug: 'ecomad-app', channel: 'prod' },
 } as const
 
-
 export default ({ config }: ConfigContext): ExpoConfig => {
-
-	const projectId = "eeb844bb-6337-4cfd-890a-c3414df1da68";
+	const projectId = 'eeb844bb-6337-4cfd-890a-c3414df1da68'
 
 	return {
 		...config,
@@ -76,6 +74,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				},
 			],
 			'expo-font',
+			[
+				'expo-sqlite',
+				{
+					enableFTS: true, // Full Text Search
+					useSQLCipher: false, // No necesitamos encriptación por ahora
+				},
+			],
 			[
 				'@rnmapbox/maps',
 				{

@@ -1,9 +1,4 @@
-import { useSuperclusterBins } from '@map/components/markers/hooks/useSuperclusterBins'
-import { LARGE_CLUSTER_ZOOM } from '@map/constants/clustering'
-import { filterPointsForViewport } from '@map/services/binsLoader'
-import { calculateAndStoreClusters } from '@map/services/clusteringService'
-import { createFallbackBounds } from '@map/services/mapService'
-import { useMapBinsStore } from '@map/stores/mapBinsStore'
+import { useHierarchicalBins } from '@map/components/markers/hooks/useHierarchicalBins'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
@@ -11,13 +6,12 @@ import { MapZoomLevels } from '@map/types/mapData'
 import React, { useCallback, useMemo } from 'react'
 import HeroMarker from './markers/HeroMarker'
 import MapBinMarker from './markers/MapBinMarker'
-import MapClusterMarker from './markers/MapClusterMarker'
+import MapClusterMarkerV2 from './markers/MapClusterMarkerV2'
 
-const MapBinsLayer = () => {
-	const { clusters } = useSuperclusterBins()
+const MapBinsLayerV2 = () => {
+	const { clusters } = useHierarchicalBins()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setViewportAnimated } = useMapViewportStore()
-	const { allPoints } = useMapBinsStore()
 	const {
 		markerState,
 		isBinSelected,
@@ -54,50 +48,26 @@ const MapBinsLayer = () => {
 
 	const handleClusterPress = useCallback(
 		(cluster: any) => {
-			console.log('⏱️ [TIMING] Cluster press START')
+			console.log('🎯 [CLUSTER_PRESS] Cluster pressed:', {
+				level: cluster.properties.clusterLevel,
+				count: cluster.properties.point_count,
+				district: cluster.properties.districtName,
+				neighborhood: cluster.properties.neighborhoodName,
+			})
 
 			setSelectedCluster(cluster)
 			setIsMapBottomSheetOpen(true)
 
-			try {
-				const [longitude, latitude] = cluster.geometry.coordinates
+			// Hacer zoom al cluster
+			const [longitude, latitude] = cluster.geometry.coordinates
+			const targetZoom = 14.5
 
-				const newBounds = createFallbackBounds(
-					longitude,
-					latitude,
-					LARGE_CLUSTER_ZOOM,
-				)
-
-				setViewportAnimated({
-					zoom: LARGE_CLUSTER_ZOOM,
-					center: { lng: longitude, lat: latitude },
-					bounds: newBounds,
-				})
-
-				setTimeout(() => {
-					console.log('🎯 [CLUSTER_SELECT] Recalculating for new zoom')
-
-					const filtered = filterPointsForViewport(
-						allPoints,
-						LARGE_CLUSTER_ZOOM,
-						newBounds,
-						{ lng: longitude, lat: latitude },
-						null,
-					)
-
-					useMapBinsStore.getState().setFilteredPoints(filtered)
-					calculateAndStoreClusters(filtered, LARGE_CLUSTER_ZOOM, newBounds)
-				}, 100)
-			} catch (error) {
-				console.error('❌ Error al expandir cluster:', error)
-			}
+			setViewportAnimated({
+				zoom: targetZoom,
+				center: { lng: longitude, lat: latitude },
+			})
 		},
-		[
-			setSelectedCluster,
-			setIsMapBottomSheetOpen,
-			setViewportAnimated,
-			allPoints,
-		],
+		[setSelectedCluster, setIsMapBottomSheetOpen, setViewportAnimated],
 	)
 
 	const handleBinPress = useCallback(
@@ -133,18 +103,21 @@ const MapBinsLayer = () => {
 
 	return (
 		<>
+			{/* Renderizar clusters jerárquicos */}
 			{clusterItems.map(c => {
 				const coords = c?.geometry?.coordinates as [number, number]
-				const clusterId = c?.properties?.cluster_id
-				const stableKey = `cluster-${clusterId ?? `${coords?.[0]}-${coords?.[1]}`}`
+				const clusterId =
+					c?.properties?.cluster_id ?? `${coords?.[0]}-${coords?.[1]}`
 				return (
-					<MapClusterMarker
-						key={stableKey}
+					<MapClusterMarkerV2
+						key={`cluster-v2-${clusterId}`}
 						cluster={c}
 						onPress={handleClusterPress}
 					/>
 				)
 			})}
+
+			{/* Renderizar bins individuales */}
 			{visibleBins.map(b => (
 				<MapBinMarker
 					key={b.properties.containerId}
@@ -153,6 +126,8 @@ const MapBinsLayer = () => {
 					isActive={isBinSelected(String(b.properties.containerId))}
 				/>
 			))}
+
+			{/* Hero marker para el bin seleccionado */}
 			{markerState?.selectedBin && (
 				<HeroMarker
 					coordinate={markerState.selectedBin.geometry.coordinates}
@@ -164,4 +139,4 @@ const MapBinsLayer = () => {
 	)
 }
 
-export default MapBinsLayer
+export default MapBinsLayerV2
