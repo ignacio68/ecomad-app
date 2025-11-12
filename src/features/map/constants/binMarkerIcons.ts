@@ -31,8 +31,8 @@ export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
 		default: require('@map/assets/icons/oil-barrel.png'),
 		active: OilBarrelIconSolid,
 		color: '#F59E0B',
-		mediumColor: '#09855C',
-		highColor: '#056444',
+		mediumColor: '#C27C07',
+		highColor: '#8F5A04',
 	},
 	glass_bins: {
 		default: require('@map/assets/icons/milk-bottle.png'),
@@ -58,9 +58,9 @@ export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
 	organic_bins: {
 		default: require('@map/assets/icons/apple-01.png'),
 		active: Apple01IconSolid,
-		color: '#A26B0B',
-		mediumColor: '#825507',
-		highColor: '#633F04',
+		color: '#AD6F06',
+		mediumColor: '#8B5804',
+		highColor: '#684002',
 	},
 	battery_bins: {
 		default: require('@map/assets/icons/battery-full.png'),

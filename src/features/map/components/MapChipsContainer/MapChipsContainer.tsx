@@ -38,6 +38,7 @@ const MapChipsContainer = memo(
 		const { selectedChip, setSelectedChip, clearChip } = useMapChipsMenuStore()
 		const { setMapBottomSheetTitle } = useMapBottomSheetStore()
 		const {
+			zoom,
 			lastValidatedZoom,
 			lastValidatedBounds,
 			lastValidatedCenter,
@@ -79,11 +80,12 @@ const MapChipsContainer = memo(
 						await new Promise(resolve => setTimeout(resolve, 0))
 
 						// 3. Decidir qué mostrar según el zoom actual (imperativo, sin useEffect)
-						// Usar viewport.zoom (zoom actual de la cámara) en lugar de lastValidatedZoom
-						const effectiveZoom = viewport.zoom ?? lastValidatedZoom ?? 11
+						// Usar zoom (zoom actual de la cámara) que siempre está actualizado
+						const effectiveZoom = zoom ?? lastValidatedZoom ?? 11
 						console.log(`🔍 [CHIP_PRESS] Zoom values:`, {
-							viewportZoom: viewport.zoom,
+							cameraZoom: zoom,
 							lastValidatedZoom,
+							viewportZoom: viewport.zoom,
 							effectiveZoom,
 						})
 
@@ -187,6 +189,7 @@ const MapChipsContainer = memo(
 				setMapBottomSheetTitle,
 				onChipPress,
 				chips,
+				zoom,
 				viewport,
 				lastValidatedZoom,
 				lastValidatedBounds,
