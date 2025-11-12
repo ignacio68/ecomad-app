@@ -294,10 +294,6 @@ const MapBase = () => {
 		}
 	}
 
-	const onDidFinishRenderingMap = () => {
-		console.log('🔄 [MAP] onDidFinishRenderingMap')
-	}
-
 	return (
 		<View className="flex-1">
 			{!mapIsLoaded && !mapLoadErrorMessage && (
@@ -328,7 +324,6 @@ const MapBase = () => {
 				onTouchStart={onTouchStart}
 				zoomEnabled
 				rotateEnabled
-				onDidFinishRenderingMap={onDidFinishRenderingMap}
 			>
 				<Camera
 					ref={mapCameraRef}

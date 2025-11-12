@@ -44,11 +44,7 @@ const BinMarker: React.FC<BinMarkerProps> = ({ point, onPress, isActive }) => {
 	const handleBinMarkerPress = () => onPress?.(point)
 
 	return (
-		<MarkerView
-			coordinate={[longitude, latitude]}
-			anchor={{ x: 0.5, y: 0.5 }}
-			allowOverlap={true}
-		>
+		<MarkerView coordinate={[longitude, latitude]} anchor={{ x: 0.5, y: 0.5 }}>
 			<Pressable onPress={handleBinMarkerPress}>
 				<Animated.View
 					className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white"

@@ -26,15 +26,19 @@ export const useMapChipsMenuStore = create<MapChipsMenuStore>((set, get) => ({
 			clearTimeout(currentTimeoutId)
 		}
 
-		// Limpiar bins y clusters del mapa INMEDIATAMENTE de forma síncrona
+		// Limpiar bins, clusters y ruta del mapa INMEDIATAMENTE de forma síncrona
 		// Esto evita race conditions con Mapbox
 		const { clearBins } = useMapBinsStore.getState()
 		const { clearClusters } = useMapClustersStore.getState()
 		const { reset } = useMapBottomSheetStore.getState()
+		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
 
-		console.log('🧹 [CHIP_CHANGE] Clearing bins and clusters synchronously')
+		console.log(
+			'🧹 [CHIP_CHANGE] Clearing bins, clusters and route synchronously',
+		)
 		clearBins()
 		clearClusters()
+		deactivateRouteIfActive() // Desactivar ruta si está activa
 		reset() // Limpiar bin seleccionado y cerrar bottom sheet
 
 		set({

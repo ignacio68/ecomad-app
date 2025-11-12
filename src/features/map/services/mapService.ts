@@ -45,10 +45,10 @@ export const setMapboxAccessToken = async (): Promise<boolean> => {
 
 // Función auxiliar para obtener buffer dinámico según zoom
 const getDynamicBuffer = (zoom: number): number => {
-	if (zoom >= 16) return 0.003 // Buffer pequeño para zoom alto
-	if (zoom >= 14) return 0.008 // Buffer mediano para zoom medio
-	if (zoom >= 12) return 0.012 // Buffer grande para zoom bajo-medio
-	return 0.015 // Buffer grande para zoom muy bajo
+	if (zoom >= 16) return 0.003 // Buffer pequeño para zoom alto (~330m)
+	if (zoom >= 14) return 0.005 // Buffer mediano para zoom medio (~550m)
+	if (zoom >= 12) return 0.012 // Buffer grande para zoom bajo-medio (~1.3km)
+	return 0.015 // Buffer grande para zoom muy bajo (~1.6km)
 }
 
 // Función auxiliar para expandir bounds con buffer dinámico

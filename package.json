@@ -44,7 +44,7 @@
 		"@hugeicons/react-native": "~1.0.7",
 		"@react-navigation/elements": "~2.3.8",
 		"@react-navigation/native": "^7.1.6",
-		"@rnmapbox/maps": "^10.2.6",
+		"@rnmapbox/maps": "^10.2.7",
 		"@turf/turf": "^7.2.0",
 		"drizzle-orm": "^0.44.5",
 		"expo": "~53.0.22",

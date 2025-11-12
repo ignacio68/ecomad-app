@@ -45,11 +45,7 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 	}, [heroScale])
 
 	return (
-		<MarkerView
-			coordinate={coordinate}
-			anchor={{ x: 0.5, y: 1 }}
-			allowOverlap={true}
-		>
+		<MarkerView coordinate={coordinate} anchor={{ x: 0.5, y: 0.8 }}>
 			<Pressable onPress={onPress}>
 				<Animated.View
 					className="items-center"

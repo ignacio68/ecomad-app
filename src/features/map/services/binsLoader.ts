@@ -2,7 +2,7 @@ import { BinsService } from '@/db/bins/service'
 import { BinType } from '@/shared/types/bins'
 import { MAX_VISIBLE_POINTS_LOW_ZOOM } from '@map/constants/clustering'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
-import { BinPoint, type LngLatBounds } from '@map/types/mapData'
+import { BinPoint, MapZoomLevels, type LngLatBounds } from '@map/types/mapData'
 import { RouteData } from '@map/types/navigation'
 import {
 	calculateDistance,
@@ -86,7 +86,7 @@ const limitPointsByDistance = (
 ): BinPoint[] => {
 	// A zoom >= 14, ya no hay clustering y deberíamos mostrar todos los puntos del viewport
 	// sin filtrar por distancia. Solo aplicar filtro en zooms bajos.
-	if (zoom >= 14) {
+	if (zoom >= MapZoomLevels.NEIGHBORHOOD) {
 		return points
 	}
 	const maxPoints = MAX_VISIBLE_POINTS_LOW_ZOOM

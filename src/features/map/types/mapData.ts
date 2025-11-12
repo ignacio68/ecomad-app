@@ -98,7 +98,7 @@ export interface MapDataCache {
 export enum MapZoomLevels {
 	GENERAL = 8,
 	DISTRICT = 11, // Zoom inicial para ver toda Madrid
-	NEIGHBORHOOD = 14,
+	NEIGHBORHOOD = 13,
 	CONTAINER = 16,
 	CLUSTER = 15,
 }
