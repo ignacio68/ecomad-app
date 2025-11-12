@@ -1,13 +1,13 @@
 import { BinType } from '@/shared/types/bins'
 import { eq } from 'drizzle-orm'
-import { db } from '../connection'
+import { db } from '@/db/connection'
+import { BATCH_SIZE } from '@/db/constants/db'
 import {
 	binsContainersCache,
 	binsHierarchyCache,
 	binsTotalCountCache,
 	type BinsContainersCacheRecord,
 } from './schema'
-import { BATCH_SIZE } from '../constants/db'
 
 export interface HierarchyData {
 	distrito: string
@@ -26,11 +26,6 @@ export class BinsService {
 		data: HierarchyData[],
 	): Promise<void> {
 		try {
-			// Primero eliminar datos existentes para este binType
-			await db
-				.delete(binsHierarchyCache)
-				.where(eq(binsHierarchyCache.binType, binType))
-
 			// Insertar nuevos datos solo si hay datos
 			if (data.length === 0) {
 				console.log(`⚠️ No hierarchy data to save for ${binType}`)
@@ -46,7 +41,17 @@ export class BinsService {
 				updatedAt: new Date(),
 			}))
 
-			await db.insert(binsHierarchyCache).values(records)
+			// Usar transacción para operaciones atómicas
+			await db.transaction(async tx => {
+				// Eliminar datos existentes para este binType
+				await tx
+					.delete(binsHierarchyCache)
+					.where(eq(binsHierarchyCache.binType, binType))
+
+				// Insertar nuevos datos
+				await tx.insert(binsHierarchyCache).values(records)
+			})
+
 			console.log(`✅ Saved ${records.length} hierarchy records for ${binType}`)
 		} catch (error) {
 			console.error(`❌ Error saving hierarchy data for ${binType}:`, error)
@@ -72,7 +77,7 @@ export class BinsService {
 
 			return records.map(record => ({
 				distrito: record.distrito,
-				barrio: record.barrio,
+				barrio: record.barrio || '',
 				count: record.count,
 			}))
 		} catch (error) {
@@ -91,31 +96,33 @@ export class BinsService {
 		totalCount: number,
 	): Promise<void> {
 		try {
-			// Usar upsert (insert or update)
-			const existing = await db
-				.select()
-				.from(binsTotalCountCache)
-				.where(eq(binsTotalCountCache.binType, binType))
-				.limit(1)
+			// Usar transacción para operación atómica de upsert
+			await db.transaction(async tx => {
+				const existing = await tx
+					.select()
+					.from(binsTotalCountCache)
+					.where(eq(binsTotalCountCache.binType, binType))
+					.limit(1)
 
-			if (existing.length > 0) {
-				// Actualizar
-				await db
-					.update(binsTotalCountCache)
-					.set({
+				if (existing.length > 0) {
+					// Actualizar
+					await tx
+						.update(binsTotalCountCache)
+						.set({
+							totalCount,
+							updatedAt: new Date(),
+						})
+						.where(eq(binsTotalCountCache.binType, binType))
+				} else {
+					// Insertar
+					await tx.insert(binsTotalCountCache).values({
+						binType,
 						totalCount,
+						createdAt: new Date(),
 						updatedAt: new Date(),
 					})
-					.where(eq(binsTotalCountCache.binType, binType))
-			} else {
-				// Insertar
-				await db.insert(binsTotalCountCache).values({
-					binType,
-					totalCount,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				})
-			}
+				}
+			})
 
 			console.log(`✅ Saved total count for ${binType}: ${totalCount}`)
 		} catch (error) {
@@ -156,11 +163,6 @@ export class BinsService {
 				`🔍 BinsService.saveContainersData called for ${binType} with ${containers.length} containers`,
 			)
 
-			// Eliminar datos existentes para este binType
-			await db
-				.delete(binsContainersCache)
-				.where(eq(binsContainersCache.binType, binType))
-
 			// Insertar nuevos datos solo si hay datos
 			if (containers.length === 0) {
 				console.log(`⚠️ No container data to save for ${binType}`)
@@ -188,19 +190,32 @@ export class BinsService {
 				updatedAt: new Date(),
 			}))
 
-			// Insertar en lotes para evitar stack overflow con grandes datasets
+			// Usar transacción explícita para agrupar todas las operaciones
+			// Esto mejora significativamente el rendimiento al reducir writes a disco
+			const startTime = Date.now()
 			let insertedCount = 0
 
-			for (let i = 0; i < records.length; i += BATCH_SIZE) {
-				const batch = records.slice(i, i + BATCH_SIZE)
-				await db.insert(binsContainersCache).values(batch)
-				insertedCount += batch.length
-				console.log(
-					`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
-				)
-			}
+			await db.transaction(async tx => {
+				// Eliminar datos existentes para este binType
+				await tx
+					.delete(binsContainersCache)
+					.where(eq(binsContainersCache.binType, binType))
 
-			console.log(`✅ Saved ${insertedCount} container records for ${binType}`)
+				// Insertar en lotes para evitar stack overflow con grandes datasets
+				for (let i = 0; i < records.length; i += BATCH_SIZE) {
+					const batch = records.slice(i, i + BATCH_SIZE)
+					await tx.insert(binsContainersCache).values(batch)
+					insertedCount += batch.length
+					console.log(
+						`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
+					)
+				}
+			})
+
+			const duration = Date.now() - startTime
+			console.log(
+				`✅ Saved ${insertedCount} containers for ${binType} in ${duration}ms (${Math.round(insertedCount / (duration / 1000))} records/sec)`,
+			)
 		} catch (error) {
 			console.error(`❌ Error saving containers data for ${binType}:`, error)
 			throw error

@@ -95,6 +95,23 @@ export const binsMigrations = [
 		updated_at INTEGER NOT NULL
 	);
 	`,
+	// Migración 4: Hacer barrio nullable en bins_hierarchy_cache (para oil_bins y otros sin neighborhood_code)
+	`
+	-- Eliminar tabla antigua
+	DROP TABLE IF EXISTS bins_hierarchy_cache;
+	`,
+	`
+	-- Recrear con barrio nullable
+	CREATE TABLE IF NOT EXISTS bins_hierarchy_cache (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		bin_type TEXT NOT NULL,
+		distrito TEXT NOT NULL,
+		barrio TEXT,
+		count INTEGER NOT NULL,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	);
+	`,
 ]
 
 /**

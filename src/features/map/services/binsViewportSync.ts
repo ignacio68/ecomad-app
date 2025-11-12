@@ -54,10 +54,21 @@ export const startBinsViewportSync = () => {
 			viewport.center!,
 		)
 
+		// Detectar cruce del umbral de zoom 14 (clusters <-> bins individuales)
+		const INDIVIDUAL_BINS_ZOOM_THRESHOLD = 14
+		const prevZoom = prevViewport?.zoom ?? 11
+		const currZoom = viewport.zoom ?? 11
+		const crossedThreshold =
+			(prevZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD &&
+				currZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD) ||
+			(prevZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD &&
+				currZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD)
+
 		if (__DEV__) {
 			console.log('🔍 [SYNC] Checking viewport changes:', {
 				zoomChanged,
 				centerChanged,
+				crossedThreshold,
 				prevZoom: prevViewport?.zoom,
 				currZoom: viewport.zoom,
 				prevCenter: prevViewport?.center,
@@ -65,7 +76,8 @@ export const startBinsViewportSync = () => {
 			})
 		}
 
-		if (!zoomChanged && !centerChanged) {
+		// Actualizar si hay cambios significativos O si cruzamos el umbral de zoom 14
+		if (!zoomChanged && !centerChanged && !crossedThreshold) {
 			if (__DEV__) {
 				console.log('⏭️ [SYNC] No significant changes, skipping', {
 					prevViewport,

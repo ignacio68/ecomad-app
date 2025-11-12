@@ -33,7 +33,7 @@ const FAB =
 			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl border-[0.5px] border-gray-300 bg-surface ios:shadow android:shadow-lg`}
+				className={`h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl border-[0.5px] border-gray-300 bg-surface ios:shadow-sm android:shadow-lg`}
 				accessibilityRole="button"
 				accessibilityLabel="Fab"
 				accessibilityHint="Presiona para abrir la pantalla de mapa"

@@ -1,10 +1,10 @@
 import MapBase from '@map/components/MapBase'
 import MapBottomSheet from '@map/components/MapBottomSheet/MapBottomSheet'
 import MapChipsContainer from '@map/components/MapChipsContainer/MapChipsContainer'
-import MapFABsRightContainer from '@map/components/MapFABsRightContainer'
+import MapFABsRightContainer from '@/features/map/components/MapFABsRightContainer/MapFABsRightContainer'
 import { createChipsList } from '@map/constants/chips'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { View } from 'react-native'
 
 const MapContainer = memo(() => {
@@ -20,7 +20,7 @@ const MapContainer = memo(() => {
 			<MapBase />
 			<MapChipsContainer
 				chips={chipsList}
-				containerClassName="absolute left-0 right-0 top-16" // TODO: Convertir a constante
+				containerClassName="absolute left-0 right-0 top-16"
 				scrollViewClassName="px-4 py-2"
 				onChipPress={handleChipPress}
 			/>

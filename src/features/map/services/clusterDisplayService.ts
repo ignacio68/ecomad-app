@@ -39,6 +39,12 @@ export const showHierarchicalClusters = async (
 			return
 		}
 
+		// Debug: Mostrar muestra de hierarchyData
+		console.log(
+			`🔍 [CLUSTER_DISPLAY] HierarchyData sample:`,
+			JSON.stringify(hierarchyData.slice(0, 3), null, 2),
+		)
+
 		// Crear clusters según zoom
 		const clusters = HierarchicalClusteringService.createClusters(
 			hierarchyData,
@@ -79,6 +85,8 @@ export const showIndividualBins = async (
 		console.log(
 			`🎯 [BINS_DISPLAY] Showing individual bins for ${binType} at zoom ${zoom}`,
 		)
+		console.log(`🔍 [BINS_DISPLAY] Bounds:`, bounds)
+		console.log(`🔍 [BINS_DISPLAY] Center:`, center)
 
 		// Obtener cache persistente del store
 		const { getPointsCache, setPointsCache } =
@@ -136,5 +144,76 @@ export const showIndividualBins = async (
 		setDisplayClusters(filteredBins)
 	} catch (error) {
 		console.error(`❌ [BINS_DISPLAY] Error showing individual bins:`, error)
+	}
+}
+
+/**
+ * Muestra bins cercanos (nearby) sin cachear en SQLite
+ * Se usa cuando zoom >= 14 y SQLite está vacía (primera carga)
+ * @param binType - Tipo de contenedor
+ * @param nearbyBins - Bins descargados del endpoint /nearby
+ * @param zoom - Nivel de zoom actual
+ * @param bounds - Límites del viewport
+ * @param center - Centro del viewport
+ * @param route - Ruta activa (opcional)
+ */
+export const showNearbyBins = (
+	binType: BinType,
+	nearbyBins: any[],
+	zoom: number,
+	bounds: any,
+	center: any,
+	route: any = null,
+): void => {
+	try {
+		console.log(
+			`🎯 [NEARBY_DISPLAY] Showing ${nearbyBins.length} nearby bins for ${binType} at zoom ${zoom}`,
+		)
+
+		// Convertir bins a formato GeoJSON (sin cachear)
+		const geoJsonBins = nearbyBins.map(bin => ({
+			type: 'Feature' as const,
+			geometry: {
+				type: 'Point' as const,
+				coordinates: [bin.lng, bin.lat] as [number, number],
+			},
+			properties: {
+				containerId: `bin-${bin.id}`,
+				binType: binType,
+				cluster: false,
+				category_group_id: bin.category_group_id,
+				category_id: bin.category_id,
+				district_code: bin.district_code,
+				neighborhood_code: bin.neighborhood_code,
+				address: bin.address,
+				lat: bin.lat,
+				lng: bin.lng,
+				load_type: bin.load_type,
+				direction: bin.direction,
+				subtype: bin.subtype,
+				placement_type: bin.placement_type,
+				notes: bin.notes,
+				bus_stop: bin.bus_stop,
+				interurban_node: bin.interurban_node,
+			},
+		})) as BinPoint[]
+
+		// NO filtrar por viewport - los bins ya están filtrados por nearby (1km radio)
+		// Mostrar todos los bins nearby sin filtro adicional
+		const filteredBins = geoJsonBins
+
+		console.log(
+			`✅ [NEARBY_DISPLAY] Filtered ${geoJsonBins.length} → ${filteredBins.length} nearby bins`,
+		)
+
+		// Actualizar stores (solo en memoria)
+		const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
+		const { setDisplayClusters } = useMapClustersStore.getState()
+
+		setAllPoints(geoJsonBins)
+		setFilteredPoints(filteredBins)
+		setDisplayClusters(filteredBins)
+	} catch (error) {
+		console.error(`❌ [NEARBY_DISPLAY] Error showing nearby bins:`, error)
 	}
 }

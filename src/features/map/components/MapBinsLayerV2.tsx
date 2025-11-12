@@ -2,16 +2,20 @@ import { useHierarchicalBins } from '@map/components/markers/hooks/useHierarchic
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { MapZoomLevels } from '@map/types/mapData'
 import React, { useCallback, useMemo } from 'react'
 import HeroMarker from './markers/HeroMarker'
 import MapBinMarker from './markers/MapBinMarker'
 import MapClusterMarkerV2 from './markers/MapClusterMarkerV2'
+import { BIN_MARKER_ICONS } from '../constants/binMarkerIcons'
+import { Images } from '@rnmapbox/maps'
 
 const MapBinsLayerV2 = () => {
 	const { clusters } = useHierarchicalBins()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setViewportAnimated } = useMapViewportStore()
+	const { deactivateUserLocation } = useUserLocationFABStore()
 	const {
 		markerState,
 		isBinSelected,
@@ -55,23 +59,43 @@ const MapBinsLayerV2 = () => {
 				neighborhood: cluster.properties.neighborhoodName,
 			})
 
+			// Desactivar seguimiento de ubicación del usuario (como Google Maps y Apple Maps)
+			// Mantener la ruta activa si existe
+			deactivateUserLocation({ keepRoute: true })
+
 			setSelectedCluster(cluster)
 			setIsMapBottomSheetOpen(true)
 
 			// Hacer zoom al cluster
 			const [longitude, latitude] = cluster.geometry.coordinates
-			const targetZoom = 14.5
+			const targetZoom = 14.7
 
 			setViewportAnimated({
 				zoom: targetZoom,
 				center: { lng: longitude, lat: latitude },
 			})
 		},
-		[setSelectedCluster, setIsMapBottomSheetOpen, setViewportAnimated],
+		[
+			setSelectedCluster,
+			setIsMapBottomSheetOpen,
+			setViewportAnimated,
+			deactivateUserLocation,
+		],
 	)
 
 	const handleBinPress = useCallback(
 		(point: any) => {
+			console.log('🎯 [BIN_PRESS] Bin pressed:', {
+				containerId: point?.properties?.containerId,
+				binType: point?.properties?.binType,
+				hasCoordinates: !!point?.geometry?.coordinates,
+			})
+
+			if (!point?.geometry?.coordinates || !point?.properties?.containerId) {
+				console.warn('⚠️ [BIN_PRESS] Invalid point structure:', point)
+				return
+			}
+
 			const [longitude, latitude] = point.geometry.coordinates
 
 			if (
@@ -101,8 +125,20 @@ const MapBinsLayerV2 = () => {
 		],
 	)
 
+	// Cargar todos los iconos una sola vez
+	const allIcons = useMemo(() => {
+		const icons: Record<string, any> = {}
+		Object.entries(BIN_MARKER_ICONS).forEach(([binType, config]) => {
+			icons[`icon-${binType}`] = config.default
+		})
+		return icons
+	}, [])
+
 	return (
 		<>
+			{/* Cargar iconos una sola vez para todos los bins */}
+			<Images images={allIcons} />
+
 			{/* Renderizar clusters jerárquicos */}
 			{clusterItems.map(c => {
 				const coords = c?.geometry?.coordinates as [number, number]
@@ -120,7 +156,7 @@ const MapBinsLayerV2 = () => {
 			{/* Renderizar bins individuales */}
 			{visibleBins.map(b => (
 				<MapBinMarker
-					key={b.properties.containerId}
+					key={`${b.properties.binType}-${b.properties.containerId}`}
 					point={b}
 					onPress={handleBinPress}
 					isActive={isBinSelected(String(b.properties.containerId))}

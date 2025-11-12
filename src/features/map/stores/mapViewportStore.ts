@@ -148,9 +148,11 @@ export const useMapViewportStore = create<State & Action>(set => ({
 
 			// Actualizar zoom si se proporciona
 			if (updates.zoom !== undefined) {
-				if (
-					Math.abs((state.viewport.zoom ?? 0) - updates.zoom) >= ZOOM_THRESHOLD
-				) {
+				// Durante animaciones, NO aplicar threshold para capturar el zoom final
+				const isAnimating = state.shouldAnimate || state.isProgrammaticMove
+				const zoomDiff = Math.abs((state.viewport.zoom ?? 0) - updates.zoom)
+
+				if (isAnimating || zoomDiff >= ZOOM_THRESHOLD) {
 					newViewport.zoom = updates.zoom
 					hasChanges = true
 				}

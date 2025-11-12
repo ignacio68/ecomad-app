@@ -1,13 +1,40 @@
 import { BinsService } from '@/db/bins/service'
 import { INTERACTION_DELAY_MS } from '@/shared/constants/downloads'
 import type { BinType } from '@/shared/types/bins'
+import type { NearByCoordinates } from '@/shared/types/search'
 import { InteractionManager } from 'react-native'
-import { getAllBins, getBinsCountsHierarchy } from './api/bins'
+import { getAllBins, getBinsByNearby, getBinsCountsHierarchy } from './api/bins'
 
 /**
  * Mutex para evitar descargas duplicadas
  */
 const downloadingMutex = new Set<BinType>()
+
+/**
+ * Calcula datos jerárquicos a partir de bins individuales
+ */
+const calculateHierarchyData = (bins: any[]): any[] => {
+	const hierarchy = new Map<
+		string,
+		{ distrito: string; barrio: string; count: number }
+	>()
+
+	for (const bin of bins) {
+		const key = `${bin.district_code}-${bin.neighborhood_code}`
+
+		if (hierarchy.has(key)) {
+			hierarchy.get(key)!.count++
+		} else {
+			hierarchy.set(key, {
+				distrito: bin.district_code,
+				barrio: bin.neighborhood_code,
+				count: 1,
+			})
+		}
+	}
+
+	return Array.from(hierarchy.values())
+}
 
 /**
  * Descarga todos los bins en background (sin bloquear UI)
@@ -37,7 +64,14 @@ const downloadAllBinsInBackground = async (binType: BinType): Promise<void> => {
 		// 2. Guardar en SQLite (ya tiene batch insertion optimizado)
 		await BinsService.saveContainersData(binType, bins)
 
-		// 3. Actualizar conteo total
+		// 3. Calcular y guardar datos jerárquicos
+		const hierarchyData = calculateHierarchyData(bins)
+		await BinsService.saveHierarchyData(binType, hierarchyData)
+		console.log(
+			`✅ Calculated and saved ${hierarchyData.length} hierarchy groups`,
+		)
+
+		// 4. Actualizar conteo total
 		await BinsService.saveTotalCount(binType, bins.length)
 
 		console.log(
@@ -164,6 +198,15 @@ export const BinsDownloadService = {
 
 			// 3. Guardar en SQLite
 			await BinsService.saveContainersData(binType, bins)
+
+			// 4. Calcular y guardar datos jerárquicos
+			const hierarchyData = calculateHierarchyData(bins)
+			await BinsService.saveHierarchyData(binType, hierarchyData)
+			console.log(
+				`✅ Calculated and saved ${hierarchyData.length} hierarchy groups`,
+			)
+
+			// 5. Guardar conteo total
 			await BinsService.saveTotalCount(binType, bins.length)
 
 			console.log(
@@ -203,6 +246,40 @@ export const BinsDownloadService = {
 			hasCachedContainers: containers !== null && containers.length > 0,
 			hasCachedHierarchy: hierarchy !== null && hierarchy.length > 0,
 			totalCount,
+		}
+	},
+
+	/**
+	 * Descarga bins cercanos a una ubicación (para zoom alto inicial)
+	 * NO guarda en SQLite, solo devuelve los datos para mostrar en memoria
+	 * Útil cuando SQLite está vacía y el usuario está en zoom alto
+	 */
+	loadNearbyBins: async (
+		binType: BinType,
+		coordinates: NearByCoordinates,
+	): Promise<{ success: boolean; count: number; data: any[] }> => {
+		try {
+			console.log(
+				`📍 Loading nearby bins for ${binType} at (${coordinates.latitude}, ${coordinates.longitude}) radius: ${coordinates.radius}km`,
+			)
+
+			// Descargar bins cercanos
+			const response = await getBinsByNearby(binType, coordinates)
+
+			if (!response.success || !response.data) {
+				console.warn(`⚠️ No nearby bins found for ${binType}`)
+				return { success: false, count: 0, data: [] }
+			}
+
+			const bins = response.data
+			console.log(
+				`✅ Downloaded ${bins.length} nearby bins for ${binType} (in-memory only)`,
+			)
+
+			return { success: true, count: bins.length, data: bins }
+		} catch (error) {
+			console.error(`❌ Error loading nearby bins for ${binType}:`, error)
+			return { success: false, count: 0, data: [] }
 		}
 	},
 }

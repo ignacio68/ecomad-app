@@ -7,7 +7,7 @@ interface UserLocationFABStore {
 	isMapStylesFABActivated: boolean
 
 	activateUserLocation: (opts?: { manual?: boolean }) => void
-	deactivateUserLocation: () => void
+	deactivateUserLocation: (opts?: { keepRoute?: boolean }) => void
 	setIsUserLocationFABActivated: (
 		active: boolean,
 		opts?: { manual?: boolean },
@@ -19,43 +19,48 @@ interface UserLocationFABStore {
 	// setIsManuallyActivated: (manual: boolean) => void
 }
 
-export const useUserLocationFABStore = create<UserLocationFABStore>((set, get) => ({
-	isUserLocationFABActivated: false,
-	isManuallyActivated: false,
-	isMapStylesFABActivated: false,
+export const useUserLocationFABStore = create<UserLocationFABStore>(
+	(set, get) => ({
+		isUserLocationFABActivated: false,
+		isManuallyActivated: false,
+		isMapStylesFABActivated: false,
 
-	activateUserLocation: ({ manual = true } = {}) => {
-		if (get().isUserLocationFABActivated) return
-		set({ isUserLocationFABActivated: true, isManuallyActivated: manual })
-	},
+		activateUserLocation: ({ manual = true } = {}) => {
+			if (get().isUserLocationFABActivated) return
+			set({ isUserLocationFABActivated: true, isManuallyActivated: manual })
+		},
 
-	deactivateUserLocation: () => {
-		if (!get().isUserLocationFABActivated) return
+		deactivateUserLocation: ({ keepRoute = false } = {}) => {
+			if (!get().isUserLocationFABActivated) return
 
-		// Lógica de navegación al desactivar la localización
-		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
-		deactivateRouteIfActive()
+			// Lógica de navegación al desactivar la localización
+			// Solo desactivar ruta si keepRoute es false (comportamiento por defecto)
+			if (!keepRoute) {
+				const { deactivateRouteIfActive } = useMapNavigationStore.getState()
+				deactivateRouteIfActive()
+			}
 
-		set({ isUserLocationFABActivated: false, isManuallyActivated: false })
-	},
+			set({ isUserLocationFABActivated: false, isManuallyActivated: false })
+		},
 
-	setIsUserLocationFABActivated: active => {
-		if (!active) {
-			const { deactivateRouteIfActive } = useMapNavigationStore.getState()
-			deactivateRouteIfActive()
-			// Limpiar el flag manual al desactivar
-			set({
-				isUserLocationFABActivated: false,
-				isManuallyActivated: false,
-			})
-			return
-		}
-		set({ isUserLocationFABActivated: true })
-	},
+		setIsUserLocationFABActivated: active => {
+			if (!active) {
+				const { deactivateRouteIfActive } = useMapNavigationStore.getState()
+				deactivateRouteIfActive()
+				// Limpiar el flag manual al desactivar
+				set({
+					isUserLocationFABActivated: false,
+					isManuallyActivated: false,
+				})
+				return
+			}
+			set({ isUserLocationFABActivated: true })
+		},
 
-	setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
+		setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
 
-	setIsMapStylesFABActivated: active => {
-		set({ isMapStylesFABActivated: active })
-	},
-}))
+		setIsMapStylesFABActivated: active => {
+			set({ isMapStylesFABActivated: active })
+		},
+	}),
+)
