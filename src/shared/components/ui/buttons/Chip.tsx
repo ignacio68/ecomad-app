@@ -15,6 +15,8 @@ const Chip = React.memo(
 		mode,
 		icon,
 		iconSelected,
+		bgColor,
+		bgColorSelected,
 		endPoint,
 		isSelected = false,
 		disabled = false,
@@ -90,7 +92,7 @@ const Chip = React.memo(
 			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`ios:shadow android:shadow-lg h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
+				className={`ios:shadow-sm android:shadow-lg h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
 				accessibilityRole="button"
 				accessibilityLabel={getAccessibilityLabel()}
 				accessibilityHint={getAccessibilityHint()}

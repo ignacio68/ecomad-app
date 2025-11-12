@@ -12,6 +12,7 @@ import {
 	createRouteCorridor,
 	filterPointsByRouteCorridor,
 } from '@map/utils/routeUtils'
+import { expandBoundsWithBuffer } from './mapService'
 
 export interface BinsCache {
 	get: (key: BinType) => BinPoint[] | null
@@ -107,28 +108,52 @@ const filterPointsByBounds = (
 	bounds: LngLatBounds,
 	zoom: number,
 ): BinPoint[] => {
-	const [[minLng, minLat], [maxLng, maxLat]] = bounds
+	// Expandir bounds con buffer dinámico según zoom
+	// Esto evita que se vean zonas vacías al hacer pan
+	const expandedBounds = expandBoundsWithBuffer(bounds, zoom)
+	const [[minLng, minLat], [maxLng, maxLat]] = expandedBounds
 
-	// Para zoom alto (>= 14), reducir el área visible en lugar de expandirla
-	// Esto asegura que solo se muestren bins realmente visibles en pantalla
-	let effectiveMinLng = minLng
-	let effectiveMaxLng = maxLng
-	let effectiveMinLat = minLat
-	let effectiveMaxLat = maxLat
+	const effectiveMinLng = minLng
+	const effectiveMaxLng = maxLng
+	const effectiveMinLat = minLat
+	const effectiveMaxLat = maxLat
 
-	if (zoom >= 14) {
-		// Reducir el área al 60% del viewport (eliminar 20% de cada lado)
-		const lngRange = maxLng - minLng
-		const latRange = maxLat - minLat
-		const reduction = 0.2 // 20% de cada lado = 40% total
-
-		effectiveMinLng = minLng + lngRange * reduction
-		effectiveMaxLng = maxLng - lngRange * reduction
-		effectiveMinLat = minLat + latRange * reduction
-		effectiveMaxLat = maxLat - latRange * reduction
+	// Debug: Log de primeros puntos y bounds
+	if (points.length > 0) {
+		console.log(`🔍 [FILTERBOUNDS] Filtering ${points.length} points:`, {
+			bounds: {
+				original: { minLng, maxLng, minLat, maxLat },
+				effective: {
+					effectiveMinLng,
+					effectiveMaxLng,
+					effectiveMinLat,
+					effectiveMaxLat,
+				},
+			},
+			samplePoints: {
+				first: {
+					coords: points[0].geometry.coordinates,
+					lat: points[0].geometry.coordinates[1],
+					lng: points[0].geometry.coordinates[0],
+					latType: typeof points[0].geometry.coordinates[1],
+					lngType: typeof points[0].geometry.coordinates[0],
+				},
+				middle: {
+					coords: points[Math.floor(points.length / 2)].geometry.coordinates,
+					lat: points[Math.floor(points.length / 2)].geometry.coordinates[1],
+					lng: points[Math.floor(points.length / 2)].geometry.coordinates[0],
+					latType:
+						typeof points[Math.floor(points.length / 2)].geometry
+							.coordinates[1],
+					lngType:
+						typeof points[Math.floor(points.length / 2)].geometry
+							.coordinates[0],
+				},
+			},
+		})
 	}
 
-	return points.filter(point => {
+	const filtered = points.filter(point => {
 		const [lng, lat] = point.geometry.coordinates
 		return (
 			lng >= effectiveMinLng &&
@@ -137,6 +162,10 @@ const filterPointsByBounds = (
 			lat <= effectiveMaxLat
 		)
 	})
+
+	console.log(`🔍 [FILTERBOUNDS] Result: ${points.length} → ${filtered.length}`)
+
+	return filtered
 }
 
 const filterPointsByRoute = (

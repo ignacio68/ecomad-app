@@ -78,7 +78,7 @@ const MapFABsRightContainer = () => {
 				name="userLocation"
 				icon={LocationUser03Icon}
 				iconSelected={LocationUser03Icon}
-				colorSelected="red"
+				colorSelected='#0074d9'
 				isSelected={isUserLocationFABActivated}
 				onPress={handleUserLocation}
 			/>

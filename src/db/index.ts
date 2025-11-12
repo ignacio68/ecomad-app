@@ -1,4 +1,5 @@
 import { sqlite } from './connection'
+import { binsModule } from './bins'
 
 // Sistema de módulos registrados
 interface DatabaseModule {
@@ -19,14 +20,9 @@ export const registerModule = (module: DatabaseModule) => {
 	)
 }
 
-// Re-exportar la conexión para compatibilidad
-export { db } from './connection'
-
-// Exportar esquemas y servicios (se cargan dinámicamente)
-export * from './bins'
 
 // Auto-registrar módulos
-import { binsModule } from './bins'
+
 registerModule(binsModule)
 
 // Función para inicializar la base de datos (crear tablas si no existen)
@@ -131,3 +127,10 @@ export const getDatabaseInfo = async () => {
 		return {}
 	}
 }
+
+
+// Re-exportar la conexión para compatibilidad
+export { db } from './connection'
+
+// Exportar esquemas y servicios (se cargan dinámicamente)
+export * from './bins'

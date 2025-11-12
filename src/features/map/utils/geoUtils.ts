@@ -100,6 +100,27 @@ export const convertContainersToGeoJSON = (
 
 	const points: BinPoint[] = []
 
+	// Debug: Log de primeras coordenadas antes de conversión
+	if (containers.length > 0) {
+		console.log(
+			`🔍 [GEOJSON] Converting ${containers.length} containers for ${binType}:`,
+			{
+				first: {
+					lat: containers[0].lat,
+					lng: containers[0].lng,
+					latType: typeof containers[0].lat,
+					lngType: typeof containers[0].lng,
+				},
+				middle: {
+					lat: containers[Math.floor(containers.length / 2)].lat,
+					lng: containers[Math.floor(containers.length / 2)].lng,
+					latType: typeof containers[Math.floor(containers.length / 2)].lat,
+					lngType: typeof containers[Math.floor(containers.length / 2)].lng,
+				},
+			},
+		)
+	}
+
 	for (const container of containers) {
 		// Convertir coordenadas a números decimales
 		const lat = Number(container.lat)

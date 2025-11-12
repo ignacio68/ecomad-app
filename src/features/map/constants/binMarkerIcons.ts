@@ -67,7 +67,7 @@ export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
 		active: BatteryFullIconSolid,
 		color: '#817B87',
 		mediumColor: '#67616C',
-		highColor: '#64E4A52',
+		highColor: '#4E4A52',
 	},
 	other_bins: {
 		default: require('@map/assets/icons/waste-restore.png'),

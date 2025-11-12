@@ -16,7 +16,7 @@ export const binsHierarchyCache = sqliteTable('bins_hierarchy_cache', {
 		],
 	}).notNull(),
 	distrito: text('distrito').notNull(),
-	barrio: text('barrio').notNull(),
+	barrio: text('barrio'), // Nullable porque algunos bins no tienen neighborhood_code
 	count: integer('count').notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()

@@ -1,116 +1,71 @@
-import { ensureDataAvailable } from '@map/services/binsCacheService'
-import {
-	showHierarchicalClusters,
-	showIndividualBins,
-} from '@map/services/clusterDisplayService'
+import { BinsService } from '@/db/bins/service'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapClustersStore } from '@map/stores/mapClustersStore'
-import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
-import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useEffect, useState } from 'react'
-
-// Umbral de zoom para mostrar bins individuales
-const INDIVIDUAL_BINS_ZOOM_THRESHOLD = 14
 
 /**
  * Hook para manejar bins con clustering jerárquico
  * Reemplaza a useSuperclusterBins con una estrategia más eficiente
  */
 export const useHierarchicalBins = () => {
-	const {
-		lastValidatedZoom,
-		lastValidatedBounds,
-		lastValidatedCenter,
-		viewport,
-	} = useMapViewportStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
-	const { route } = useMapNavigationStore()
 	const { allPoints } = useMapBinsStore()
 	const { displayClusters, setDisplayClusters } = useMapClustersStore()
 
-	const [isLoading, setIsLoading] = useState(false)
-	const [isInitialLoad, setIsInitialLoad] = useState(true)
+	const [isUsingNearby, setIsUsingNearby] = useState(false)
 
 	const hasNoData = !selectedEndPoint && displayClusters.length === 0
 
 	const resetClusters = () => {
 		setDisplayClusters([])
-		setIsLoading(false)
-		setIsInitialLoad(true)
+		setIsUsingNearby(false)
 	}
 
 	// Efecto para cargar datos iniciales cuando se selecciona un chip
+	// NOTA: El useEffect de selectedEndPoint fue ELIMINADO
+	// La carga inicial ahora se maneja imperativamente desde MapChipsContainer
+	// Esto evita múltiples ejecuciones y mejora el rendimiento
+
+	// Resetear clusters cuando no hay endpoint seleccionado
 	useEffect(() => {
-		const loadInitialData = async () => {
-			if (!selectedEndPoint) {
-				resetClusters()
-				return
-			}
-
-			setIsLoading(true)
-			setIsInitialLoad(true)
-
-			try {
-				// Asegurar que tengamos hierarchyData (descarga si no existe)
-				await ensureDataAvailable(selectedEndPoint)
-
-				// Mostrar clusters inmediatamente
-				const effectiveZoom = lastValidatedZoom ?? viewport.zoom ?? 11
-				await showHierarchicalClusters(selectedEndPoint, effectiveZoom)
-
-				setIsLoading(false)
-				setIsInitialLoad(false) // Marcar que ya no es carga inicial
-			} catch (error) {
-				console.error('❌ [HIERARCHICAL] Error loading initial data:', error)
-				resetClusters()
-			}
+		if (!selectedEndPoint) {
+			resetClusters()
 		}
-
-		loadInitialData()
 	}, [selectedEndPoint])
 
-	// Efecto para actualizar visualización cuando cambia el zoom o viewport
-	// SOLO se ejecuta después de la carga inicial
+	// NOTA: El useEffect de zoom/viewport fue ELIMINADO
+	// Ahora todo se maneja imperativamente:
+	// - Carga inicial: MapChipsContainer
+	// - Animación de cluster: MapBase (timeout después de animación)
+	// - Pan/zoom manual: MapBase (onCameraChanged)
+
+	// Efecto para detectar cuando el background download termina
+	// y desactivar el modo nearby para permitir que onCameraChanged actualice la visualización
 	useEffect(() => {
-		if (!selectedEndPoint || isLoading || isInitialLoad) return
-		if (!lastValidatedBounds || !lastValidatedCenter) return
+		if (!isUsingNearby || !selectedEndPoint) return
 
-		const effectiveZoom = lastValidatedZoom ?? viewport.zoom ?? 11
-
-		console.log(
-			`🔄 [HIERARCHICAL] Zoom/viewport changed, updating display (zoom: ${effectiveZoom})`,
-		)
-
-		// Decidir qué mostrar según el zoom
-		if (effectiveZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD) {
-			// Zoom bajo: Mostrar clusters de distrito
-			showHierarchicalClusters(selectedEndPoint, effectiveZoom)
-		} else {
-			// Zoom alto (>= 14): Mostrar bins individuales filtrados
-			showIndividualBins(
-				selectedEndPoint,
-				effectiveZoom,
-				lastValidatedBounds,
-				lastValidatedCenter,
-				route,
-			)
+		const checkBackgroundDownload = async () => {
+			const cachedBins = await BinsService.getContainersData(selectedEndPoint)
+			if (cachedBins && cachedBins.length > 0) {
+				console.log(
+					`✅ [NEARBY_POLL] Background download complete, disabling nearby mode`,
+				)
+				setIsUsingNearby(false)
+				// onCameraChanged se encargará de actualizar la visualización automáticamente
+			}
 		}
-	}, [
-		lastValidatedZoom,
-		lastValidatedBounds,
-		lastValidatedCenter,
-		selectedEndPoint,
-		isLoading,
-		isInitialLoad,
-		route,
-	])
+
+		// Verificar cada 2 segundos si el download terminó
+		const interval = setInterval(checkBackgroundDownload, 2000)
+
+		return () => clearInterval(interval)
+	}, [isUsingNearby, selectedEndPoint])
 
 	if (hasNoData) {
 		return {
 			clusters: [],
 			points: [],
-			isLoading: false,
 			selectedBinType: null,
 		}
 	}
@@ -118,7 +73,6 @@ export const useHierarchicalBins = () => {
 	return {
 		clusters: displayClusters,
 		points: allPoints,
-		isLoading,
 		selectedBinType: selectedEndPoint,
 	}
 }

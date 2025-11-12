@@ -1,6 +1,7 @@
+import { Platform } from 'react-native'
 import { StyleURL } from '@rnmapbox/maps'
-import { CameraProps, MapViewProps } from '../types/mapConfig'
-import { LngLat, LngLatBounds } from '../types/mapData'
+import type { CameraProps, MapViewProps } from '@map/types/mapConfig'
+import type { LngLat, LngLatBounds } from '@map/types/mapData'
 
 export const MAPBOX_DOWNLOADS_TOKEN = process.env
 	.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN as string
@@ -28,7 +29,7 @@ export const INITIAL_BOUNDS: LngLatBounds = [
 
 export const DEFAULT_CAMERA: CameraProps = {
 	centerCoordinate: INITIAL_CENTER,
-	zoomLevel: 12,
+	zoomLevel: 11,
 	animationDuration: 1000,
 	animationMode: 'flyTo',
 }
@@ -37,7 +38,7 @@ export const DEFAULT_MAP_VIEW_PROPS: MapViewProps = {
 	styleURL: StyleURL.Outdoors,
 }
 
-export const COMPASS_POSITION = { top: 80, right: 18 }
+export const COMPASS_POSITION = Platform.OS === 'ios' ? { top: 80, right: 18 } : { top: 120, right: 16 }
 
 export const BOTTOM_SHEET_SNAP_POINTS = ['35%', '60%', '90%']
 

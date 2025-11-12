@@ -91,12 +91,14 @@ const createDistrictClusters = (
 
 /**
  * Crea clusters por barrio
+ * Los items sin barrio se agrupan como clusters de distrito
  */
 const createNeighborhoodClusters = (
 	hierarchyData: HierarchyData[],
 	binType: BinType,
 ): HierarchicalClusterFeature[] => {
 	const clusters: HierarchicalClusterFeature[] = []
+	const districtOnlyItems: HierarchyData[] = []
 
 	console.log('🔍 [HIERARCHICAL] Creating neighborhood clusters from data:', {
 		hierarchyDataLength: hierarchyData.length,
@@ -110,11 +112,9 @@ const createNeighborhoodClusters = (
 		const districtCode = item.distrito
 		const neighborhoodCode = item.barrio
 
-		// Saltar si no hay barrio (algunos contenedores solo tienen distrito)
+		// Si no hay barrio, guardar para agrupar por distrito después
 		if (!neighborhoodCode || neighborhoodCode === '') {
-			console.warn(
-				`⚠️ [HIERARCHICAL] Skipping item without neighborhood: district=${districtCode}, count=${item.count}`,
-			)
+			districtOnlyItems.push(item)
 			continue
 		}
 
@@ -156,8 +156,17 @@ const createNeighborhoodClusters = (
 		})
 	}
 
+	// Agrupar items sin barrio por distrito
+	if (districtOnlyItems.length > 0) {
+		console.log(
+			`🔍 [HIERARCHICAL] Creating district clusters for ${districtOnlyItems.length} items without neighborhood`,
+		)
+		const districtClusters = createDistrictClusters(districtOnlyItems, binType)
+		clusters.push(...districtClusters)
+	}
+
 	console.log(
-		`✅ [HIERARCHICAL] Created ${clusters.length} neighborhood clusters`,
+		`✅ [HIERARCHICAL] Created ${clusters.length} clusters (neighborhoods + districts without barrio)`,
 	)
 	return clusters
 }
@@ -169,22 +178,17 @@ const createNeighborhoodClusters = (
 export const HierarchicalClusteringService = {
 	/**
 	 * Crea clusters jerárquicos según el nivel de zoom
+	 * SOLO clusters de distrito - NO usamos clusters de barrio
 	 */
 	createClusters: (
 		hierarchyData: HierarchyData[],
 		zoom: number,
 		binType: BinType,
 	): HierarchicalClusterFeature[] => {
-		// Usar MapZoomLevels.NEIGHBORHOOD (14) como umbral
-		if (zoom < 14) {
-			// Zoom lejano/medio: clusters por distrito
-			console.log('🎯 [HIERARCHICAL] Creating district clusters')
-			return createDistrictClusters(hierarchyData, binType)
-		}
-
-		// Zoom cercano: clusters por barrio
-		console.log('🎯 [HIERARCHICAL] Creating neighborhood clusters')
-		return createNeighborhoodClusters(hierarchyData, binType)
+		// SIEMPRE crear clusters de distrito
+		// A partir de zoom 14, se mostrarán bins individuales (no clusters)
+		console.log('🎯 [HIERARCHICAL] Creating district clusters')
+		return createDistrictClusters(hierarchyData, binType)
 	},
 
 	/**
