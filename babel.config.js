@@ -7,7 +7,7 @@ module.exports = function (api) {
 		],
 		plugins: [
 			['inline-import', { extensions: ['.sql'] }], // Para migraciones de Drizzle
-			'react-native-reanimated/plugin',
+			'react-native-worklets/plugin',
 		],
 		env: {
 			production: {
