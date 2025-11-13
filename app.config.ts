@@ -63,6 +63,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			favicon: './src/assets/images/favicon.png',
 		},
 		plugins: [
+			['expo-build-properties',
+			{
+				android: {
+					usesCleartextTraffic: true,
+					useAndroidX: true,
+					enableJetifier: true,
+					kotlinVersion: '2.0.21',
+					ndkVersion: '27.1.12297006',
+					agpVersion: '8.11.0',
+				},
+				ios: {
+					deploymentTarget: '15.5',
+					useFrameworks: 'static',
+					forceStaticLinking: ['RNFBApp'],
+				},
+			}],
 			'expo-router',
 			[
 				'expo-splash-screen',
