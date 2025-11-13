@@ -38,20 +38,20 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 		}
 	}, [isAnyChipSelected])
 
-	// const makeStyle = () => {
-	// 	let horizontalMarginBottomSheet = 0
-	// 	if (SCREEN_WIDTH > 500) {
-	// 		horizontalMarginBottomSheet = (SCREEN_WIDTH - 500) / 2
-	// 	}
+	const makeStyle = () => {
+		let horizontalMarginBottomSheet = 0
+		if (SCREEN_WIDTH > 500) {
+			horizontalMarginBottomSheet = (SCREEN_WIDTH - 500) / 2
+		}
 
-	// 	return StyleSheet.create({
-	// 		bottomSheetContainerStyle: {
-	// 			marginHorizontal: horizontalMarginBottomSheet,
-	// 		},
-	// 	})
-	// }
+		return StyleSheet.create({
+			bottomSheetContainerStyle: {
+				marginHorizontal: horizontalMarginBottomSheet,
+			},
+		})
+	}
 
-	// const styles = makeStyle()
+	const styles = makeStyle()
 
 
 
@@ -85,7 +85,7 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 			snapPoints={snapPoints}
 			enableOverDrag={false}
 			keyboardBehavior="extend"
-			// containerStyle={styles.bottomSheetContainerStyle}
+			containerStyle={styles.bottomSheetContainerStyle}
 		>
 			<BottomSheetView>
 				<View className="mx-4 mb-8 flex-1 items-center justify-center">
