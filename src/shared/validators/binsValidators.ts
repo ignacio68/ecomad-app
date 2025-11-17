@@ -6,8 +6,8 @@ export const binSchema = z.object({
 	id: z.number(),
 	category_group_id: z.number(),
 	category_id: z.number(),
-	district_code: z.string(), // Cambiado de district_id (number) a district_code (string)
-	neighborhood_code: z.string().nullable(), // Cambiado de neighborhood_id (number) a neighborhood_code (string)
+	district_code: z.string(),
+	neighborhood_code: z.string().nullable(),
 	address: z.string(),
 	lat: z.number(),
 	lng: z.number(),

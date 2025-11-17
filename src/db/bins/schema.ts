@@ -70,8 +70,8 @@ export const binsContainersCache = sqliteTable('bins_containers_cache', {
 	containerId: text('container_id').notNull(), // ID del backend
 	category_group_id: integer('category_group_id').notNull(),
 	category_id: integer('category_id').notNull(),
-	district_code: text('district_code').notNull(), // Cambiado de district_id a district_code
-	neighborhood_code: text('neighborhood_code'), // Cambiado de neighborhood_id a neighborhood_code
+	district_code: text('district_code').notNull(),
+	neighborhood_code: text('neighborhood_code'),
 	address: text('address').notNull(),
 	lat: real('lat').notNull(),
 	lng: real('lng').notNull(),

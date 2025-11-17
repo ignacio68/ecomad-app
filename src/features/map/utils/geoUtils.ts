@@ -144,8 +144,8 @@ export const convertContainersToGeoJSON = (
 				containerId,
 				category_group_id: container.category_group_id,
 				category_id: container.category_id,
-				district_code: container.district_code, // Cambiado de district_id a district_code
-				neighborhood_code: container.neighborhood_code, // Cambiado de neighborhood_id a neighborhood_code
+				district_code: container.district_code,
+				neighborhood_code: container.neighborhood_code,
 				address: container.address,
 				lat,
 				lng,

@@ -23,8 +23,8 @@ export interface HierarchicalClusterFeature {
 		point_count: number
 		binType: BinType
 		clusterLevel: ClusterLevel
-		districtId?: number
-		neighborhoodId?: number
+		districtCode?: string // Código del distrito (ej: "01", "02")
+		neighborhoodCode?: string // Código del barrio (ej: "011", "012")
 		districtName?: string
 		neighborhoodName?: string
 	}
@@ -61,7 +61,9 @@ const createDistrictClusters = (
 		// El código ya viene con formato correcto "01", "02"... del backend
 
 		// Buscar centroide en DISTRICTS
-		const district = DISTRICTS.find(d => d.district_id === districtCode)
+		const district = DISTRICTS.find(
+			district => district.district_code === districtCode,
+		)
 
 		if (!district || count === 0) {
 			continue // Saltar si no encontramos el distrito o no hay contenedores
@@ -79,7 +81,7 @@ const createDistrictClusters = (
 				point_count: count,
 				binType,
 				clusterLevel: 'district',
-				districtId: Number.parseInt(districtCode),
+				districtCode: districtCode,
 				districtName: district.nom_dis,
 			},
 		})
@@ -118,16 +120,16 @@ const createNeighborhoodClusters = (
 			continue
 		}
 
-		// Buscar distrito por district_id (ya viene con formato "01", "02"...)
-		const district = DISTRICTS.find(d => d.district_id === districtCode)
+		// Buscar distrito por district_code (ya viene con formato "01", "02"...)
+		const district = DISTRICTS.find(d => d.district_code === districtCode)
 		if (!district) {
 			console.warn(`⚠️ [HIERARCHICAL] District not found: ${districtCode}`)
 			continue
 		}
 
-		// Buscar barrio por neighborhood_id (ya viene con formato "011", "024"...)
+		// Buscar barrio por neighborhood_code (ya viene con formato "011", "024"...)
 		const neighborhood = district.barrios.find(
-			b => b.neighborhood_id === neighborhoodCode,
+			b => b.neighborhood_code === neighborhoodCode,
 		)
 		if (!neighborhood) {
 			console.warn(
@@ -144,12 +146,12 @@ const createNeighborhoodClusters = (
 			},
 			properties: {
 				cluster: true,
-				cluster_id: `neighborhood-${neighborhood.neighborhood_id}`,
+				cluster_id: `neighborhood-${neighborhood.neighborhood_code}`,
 				point_count: item.count,
 				binType,
 				clusterLevel: 'neighborhood',
-				districtId: Number.parseInt(districtCode),
-				neighborhoodId: Number.parseInt(neighborhood.neighborhood_id),
+				districtCode: districtCode,
+				neighborhoodCode: neighborhood.neighborhood_code,
 				districtName: district.nom_dis,
 				neighborhoodName: neighborhood.nom_bar,
 			},

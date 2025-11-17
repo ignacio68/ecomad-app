@@ -128,28 +128,24 @@ export const getDistrictByNeighborhood = (
 }
 
 /**
- * Obtiene el nombre de un distrito por su ID (1-35)
+ * Obtiene el nombre de un distrito por su código (ej: "01", "02", etc.)
  */
-export const getDistrictNameById = (districtId: string): string => {
-	console.log('🔍 [DEBUG] districtId:', districtId)
-	const districtName = DISTRICTS.find(
-		district => district.district_id === districtId.toString(),
+export const getDistrictNameById = (districtCode: string): string => {
+	const district = DISTRICTS.find(
+		district => district.district_code === districtCode,
 	)
-	console.log('🔍 [DEBUG] districtName:', districtName)
-	return districtName ? districtName.nom_dis : `Distrito ${districtId}`
+	return district ? district.nom_dis : `Distrito ${districtCode}`
 }
 
 /**
- * Obtiene el nombre de un barrio por su código de barrio
- * El código de barrio es único en toda la ciudad (ej: 11, 12, 21, 101, etc.)
+ * Obtiene el nombre de un barrio por su código (ej: "011", "012", etc.)
+ * El código de barrio es único en toda la ciudad
  */
-export const getNeighborhoodNameById = (
-	neighborhoodCode: string
-): string => {
+export const getNeighborhoodNameById = (neighborhoodCode: string): string => {
 	const code = neighborhoodCode.toString()
 	for (const district of DISTRICTS) {
 		const neighborhood = district.barrios.find(
-			neighborhood => neighborhood.neighborhood_id === code,
+			neighborhood => neighborhood.neighborhood_code === code,
 		)
 		if (neighborhood) {
 			return neighborhood.nom_bar
@@ -159,9 +155,35 @@ export const getNeighborhoodNameById = (
 }
 
 /**
- * Obtiene el ID del distrito por su nombre
+ * Obtiene el código del distrito por su nombre
+ * @deprecated Usar getDistrictCodeByName en su lugar
  */
-export const getDistrictIdByName = (districtName: string): number | null => {
+export const getDistrictIdByName = (districtName: string): string | null => {
 	const district = DISTRICTS.find(d => d.nom_dis === districtName)
-	return district ? Number.parseInt(district.district_id) : null
+	return district ? district.district_code : null
+}
+
+/**
+ * Obtiene el código del distrito por su nombre
+ */
+export const getDistrictCodeByName = (districtName: string): string | null => {
+	const district = DISTRICTS.find(d => d.nom_dis === districtName)
+	return district ? district.district_code : null
+}
+
+/**
+ * Obtiene el código del barrio por su nombre
+ */
+export const getNeighborhoodCodeByName = (
+	neighborhoodName: string,
+): string | null => {
+	for (const district of DISTRICTS) {
+		const neighborhood = district.barrios.find(
+			b => b.nom_bar === neighborhoodName,
+		)
+		if (neighborhood) {
+			return neighborhood.neighborhood_code
+		}
+	}
+	return null
 }
