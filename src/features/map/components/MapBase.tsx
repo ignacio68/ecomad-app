@@ -29,7 +29,7 @@ const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)
 	const justFinishedAnimationRef = useRef(false)
-	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const debounceTimerRef = useRef<number | null>(null)
 
 	const [mapIsLoaded, setMapIsLoaded] = useState(false)
 	const [mapLoadErrorMessage, setMapLoadErrorMessage] = useState<string | null>(
@@ -343,8 +343,8 @@ const MapBase = () => {
 					}
 				/>
 				{selectedEndPoint && <MapBinsLayerV2 />}
-				{route && <MapWalkingRouteLayer route={route} />}
 				{isUserLocationFABActivated && <UserLocationMarker />}
+				{route && <MapWalkingRouteLayer route={route} />}
 			</MapView>
 		</View>
 	)

@@ -1,6 +1,6 @@
 import {
 	getDistrictNameById,
-	getNeighborhoodNameByCode,
+	getNeighborhoodNameById,
 } from '@/shared/utils/locationsUtils'
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
@@ -34,10 +34,10 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const [longitude, latitude] = coordinates
 
 	// Convertir códigos a nombres usando las funciones helper
-	const districtName = getDistrictNameById(Number.parseInt(district_code))
+	const districtName = getDistrictNameById(district_code)
 	const neighborhoodName = neighborhood_code
-		? getNeighborhoodNameByCode(Number.parseInt(neighborhood_code))
-		: 'N/A'
+		? getNeighborhoodNameById(neighborhood_code)
+		: null
 
 	const {
 		isUserLocationFABActivated,
@@ -120,12 +120,17 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 			<Text className="mt-2 font-lato-bold text-2xl text-gray-900">
 				{address}
 			</Text>
-			<Text className="mt-1 font-lato-medium text-base text-gray-700">
-				{districtName} · {neighborhoodName}
-			</Text>
+			<View className="flex-row items-center gap-2">
+				<Text className="font-lato-medium text-base text-gray-700">
+					{districtName}
+				</Text>
+				{!!neighborhoodName && <Text className="font-lato-medium text-base text-gray-700">
+					· {neighborhoodName}
+				</Text>}
+			</View>
 			{subtype && (
 				<Text className="mt-1 font-lato-medium text-sm text-gray-600">
-					{subtype}
+					Tipo de contenedor: {subtype}
 				</Text>
 			)}
 			{notes && (
