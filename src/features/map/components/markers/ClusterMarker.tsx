@@ -3,9 +3,9 @@ import {
 	CLUSTER_SIZE_THRESHOLD_MEDIUM,
 	CLUSTER_SIZE_THRESHOLD_SMALL,
 } from '@map/constants/clustering'
-import { MarkerView } from '@rnmapbox/maps'
+// TODO: MarkerView comentado temporalmente - no compatible con Nueva Arquitectura (Fabric)
+// import { MarkerView } from '@rnmapbox/maps'
 import React from 'react'
-import { Pressable, Text, View } from 'react-native'
 
 interface ClusterMarkerProps {
 	cluster: any
@@ -39,21 +39,24 @@ const ClusterMarker: React.FC<ClusterMarkerProps> = React.memo(
 
 		const handleClusterMarkerPress = () => onPress?.(cluster)
 
-		return (
-			<MarkerView
-				coordinate={[longitude, latitude]}
-				anchor={{ x: 0.5, y: 0.5 }}
-			>
-				<Pressable onPress={handleClusterMarkerPress}>
-					<View
-						className={getClusterClassName(point_count, binType)}
-						collapsable={false}
-					>
-						<Text className="text-lg font-bold text-white">{point_count}</Text>
-					</View>
-				</Pressable>
-			</MarkerView>
-		)
+		// TODO: MarkerView comentado temporalmente - no compatible con Nueva Arquitectura (Fabric)
+		// Usar MapClusterMarkerV2 o ShapeSource en su lugar
+		return null
+		// return (
+		// 	<MarkerView
+		// 		coordinate={[longitude, latitude]}
+		// 		anchor={{ x: 0.5, y: 0.5 }}
+		// 	>
+		// 		<Pressable onPress={handleClusterMarkerPress}>
+		// 			<View
+		// 				className={getClusterClassName(point_count, binType)}
+		// 				collapsable={false}
+		// 			>
+		// 				<Text className="text-lg font-bold text-white">{point_count}</Text>
+		// 			</View>
+		// 		</Pressable>
+		// 	</MarkerView>
+		// )
 	},
 )
 

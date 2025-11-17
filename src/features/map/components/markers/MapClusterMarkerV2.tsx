@@ -1,6 +1,6 @@
 import { BinType } from '@/shared/types/bins'
-import { HierarchicalClusteringService } from '@map/services/hierarchicalClusteringService'
 import type { ClusterLevel } from '@map/services/hierarchicalClusteringService'
+import { HierarchicalClusteringService } from '@map/services/hierarchicalClusteringService'
 import { CircleLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 import React from 'react'
 
@@ -36,15 +36,13 @@ const MapClusterMarkerV2: React.FC<MapClusterMarkerV2Props> = ({
 	}
 
 	// Usar el servicio para calcular tamaño, color y fuente
-	const clusterSize =
-		HierarchicalClusteringService.getClusterSize(point_count)
+	const clusterSize = HierarchicalClusteringService.getClusterSize(point_count)
 	const clusterColor = HierarchicalClusteringService.getClusterColor(
 		clusterLevelValue,
 		binType as BinType,
 		'medium', // Tamaño medio por defecto
 	)
-	const fontSize =
-		HierarchicalClusteringService.getClusterFontSize(point_count)
+	const fontSize = HierarchicalClusteringService.getClusterFontSize(point_count)
 
 	return (
 		<ShapeSource
@@ -77,4 +75,3 @@ const MapClusterMarkerV2: React.FC<MapClusterMarkerV2Props> = ({
 }
 
 export default MapClusterMarkerV2
-

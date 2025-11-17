@@ -26,11 +26,9 @@ const MapAutocomplete = () => {
 
 	const handleSearchText = (text: string) => {
 		setSearchText(text)
-		console.log('SearchText', text)
 	}
 
 	const handleSubmit = () => {
-		console.log('Submit')
 		getAutocompletedirections(searchText)
 	}
 

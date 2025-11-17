@@ -13,17 +13,25 @@ import { MarkerView } from '@rnmapbox/maps'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { Animated, Pressable, View } from 'react-native'
 
-interface HeroMarkerProps {
+interface HeroMarkerTestProps {
 	coordinate: [number, number]
 	binType: BinType
 	onPress?: () => void
 }
 
-const HeroMarker: React.FC<HeroMarkerProps> = ({
+const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
 	coordinate,
 	binType,
 	onPress,
 }) => {
+	console.log('🧪 [HERO_MARKER_TEST] Renderizando con coordinate:', {
+		coordinate,
+		type: typeof coordinate,
+		isArray: Array.isArray(coordinate),
+		length: Array.isArray(coordinate) ? coordinate.length : 'N/A',
+		binType,
+	})
+
 	const { color, active: ActiveIcon } = BIN_MARKER_ICONS[binType]
 	const heroScale = useRef(new Animated.Value(0)).current
 
@@ -43,6 +51,8 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 			tension: 170,
 		}).start()
 	}, [heroScale])
+
+	console.log('🧪 [HERO_MARKER_TEST] Antes de renderizar MarkerView')
 
 	return (
 		<MarkerView coordinate={coordinate} anchor={{ x: 0.5, y: 0.8 }}>
@@ -94,4 +104,4 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 	)
 }
 
-export default HeroMarker
+export default HeroMarkerTest
