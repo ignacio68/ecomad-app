@@ -9,8 +9,8 @@ export interface BinPoint {
 		containerId: string
 		category_group_id: number
 		category_id: number
-		district_code: string // Cambiado de district_id (number) a district_code (string)
-		neighborhood_code: string | null // Cambiado de neighborhood_id (number) a neighborhood_code (string)
+		district_code: string
+		neighborhood_code: string | null 
 		address: string
 		lat: number
 		lng: number

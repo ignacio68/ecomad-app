@@ -1,7 +1,7 @@
+import { db, sqlite } from '@/db/connection'
+import { BATCH_SIZE } from '@/db/constants/db'
 import { BinType } from '@/shared/types/bins'
 import { eq } from 'drizzle-orm'
-import { db } from '@/db/connection'
-import { BATCH_SIZE } from '@/db/constants/db'
 import {
 	binsContainersCache,
 	binsHierarchyCache,
@@ -159,11 +159,6 @@ export class BinsService {
 		containers: any[],
 	): Promise<void> {
 		try {
-			console.log(
-				`🔍 BinsService.saveContainersData called for ${binType} with ${containers.length} containers`,
-			)
-
-			// Insertar nuevos datos solo si hay datos
 			if (containers.length === 0) {
 				console.log(`⚠️ No container data to save for ${binType}`)
 				return
@@ -171,11 +166,11 @@ export class BinsService {
 
 			const records = containers.map(container => ({
 				binType,
-				containerId: container.id.toString(), // ID único del backend
+				containerId: container.id.toString(),
 				category_group_id: container.category_group_id,
 				category_id: container.category_id,
-				district_code: container.district_code, // Cambiado de district_id a district_code
-				neighborhood_code: container.neighborhood_code, // Cambiado de neighborhood_id a neighborhood_code
+				district_code: container.district_code,
+				neighborhood_code: container.neighborhood_code,
 				address: container.address || 'Dirección no disponible',
 				lat: container.lat,
 				lng: container.lng,
@@ -190,25 +185,70 @@ export class BinsService {
 				updatedAt: new Date(),
 			}))
 
-			// Usar transacción explícita para agrupar todas las operaciones
-			// Esto mejora significativamente el rendimiento al reducir writes a disco
 			const startTime = Date.now()
 			let insertedCount = 0
 
-			await db.transaction(async tx => {
-				// Eliminar datos existentes para este binType
-				await tx
-					.delete(binsContainersCache)
-					.where(eq(binsContainersCache.binType, binType))
+			// DELETE fuera de la transacción usando SQL async (no bloquea el hilo principal)
+			// Esto evita bloquear la UI durante el DELETE
+			const deleteStartTime = Date.now()
+			await sqlite.runAsync(
+				'DELETE FROM bins_containers_cache WHERE bin_type = ?',
+				[binType],
+			)
+			const deleteDuration = Date.now() - deleteStartTime
+			console.log(
+				`🗑️ Deleted existing records for ${binType} in ${deleteDuration}ms`,
+			)
 
-				// Insertar en lotes para evitar stack overflow con grandes datasets
-				for (let i = 0; i < records.length; i += BATCH_SIZE) {
-					const batch = records.slice(i, i + BATCH_SIZE)
-					await tx.insert(binsContainersCache).values(batch)
-					insertedCount += batch.length
-					console.log(
-						`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
-					)
+			// INSERT dentro de transacción async optimizada usando withTransactionAsync
+			// Esto es más eficiente que db.transaction() para operaciones masivas
+			await sqlite.withTransactionAsync(async () => {
+				// Preparar statement una sola vez para mejor rendimiento
+				const insertStmt = await sqlite.prepareAsync(`
+					INSERT INTO bins_containers_cache (
+						bin_type, container_id, category_group_id, category_id,
+						district_code, neighborhood_code, address, lat, lng,
+						load_type, direction, subtype, placement_type, notes,
+						bus_stop, interurban_node, created_at, updated_at
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				`)
+
+				try {
+					// Insertar en lotes para evitar stack overflow con grandes datasets
+					for (let i = 0; i < records.length; i += BATCH_SIZE) {
+						const batch = records.slice(i, i + BATCH_SIZE)
+
+						// Ejecutar cada registro del batch usando parámetros posicionales
+						for (const record of batch) {
+							await insertStmt.executeAsync([
+								record.binType,
+								record.containerId,
+								record.category_group_id,
+								record.category_id,
+								record.district_code,
+								record.neighborhood_code ?? null,
+								record.address,
+								record.lat,
+								record.lng,
+								record.load_type ?? null,
+								record.direction ?? null,
+								record.subtype ?? null,
+								record.placement_type ?? null,
+								record.notes ?? null,
+								record.bus_stop ?? null,
+								record.interurban_node ?? null,
+								record.createdAt.getTime(),
+								record.updatedAt.getTime(),
+							])
+						}
+
+						insertedCount += batch.length
+						console.log(
+							`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
+						)
+					}
+				} finally {
+					await insertStmt.finalizeAsync()
 				}
 			})
 

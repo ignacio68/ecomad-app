@@ -50,8 +50,8 @@ export const binsMigrations = [
 		container_id TEXT NOT NULL,
 		category_group_id INTEGER NOT NULL,
 		category_id INTEGER NOT NULL,
-		district_id INTEGER NOT NULL,
-		neighborhood_id INTEGER,
+		district_code INTEGER NOT NULL,
+		neighborhood_code INTEGER,
 		address TEXT NOT NULL,
 		lat REAL NOT NULL,
 		lng REAL NOT NULL,
@@ -66,7 +66,7 @@ export const binsMigrations = [
 		updated_at INTEGER NOT NULL
 	);
 	`,
-	// Migración 3: Cambiar district_id y neighborhood_id a códigos (TEXT)
+
 	`
 	-- Eliminar tabla antigua (Schema v2: códigos en lugar de IDs)
 	DROP TABLE IF EXISTS bins_containers_cache;
