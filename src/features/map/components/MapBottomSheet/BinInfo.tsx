@@ -4,7 +4,7 @@ import {
 } from '@/shared/utils/locationsUtils'
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
-import { SquareArrowUpLeftIcon } from '@hugeicons-pro/core-solid-rounded'
+import { SquareArrowDownRightIcon } from '@hugeicons-pro/core-solid-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { fitBoundsToTwoPoints } from '@map/services/mapService'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
@@ -27,14 +27,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
 
 	const {
-		properties: {
-			address,
-			district_code,
-			neighborhood_code,
-			binType,
-			notes,
-			subtype,
-		},
+		properties: { address, district_code, neighborhood_code, notes, subtype },
 		geometry: { coordinates },
 	} = bin
 
@@ -119,10 +112,6 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 		return 'bg-secondary'
 	}, [hasActiveRoute])
 
-	const getNavigationIconRotation = useCallback(() => {
-		return hasActiveRoute ? 0 : 135
-	}, [hasActiveRoute])
-
 	return (
 		<BottomSheetScrollView className="w-full px-2 py-6">
 			<Text className="font-lato-semibold text-sm uppercase text-gray-500">
@@ -159,8 +148,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 				testID={`NavigateButton`}
 			>
 				<HugeiconsIcon
-					transform={getNavigationIconRotation}
-					icon={SquareArrowUpLeftIcon}
+					icon={SquareArrowDownRightIcon}
 					altIcon={Cancel01Icon}
 					showAlt={hasActiveRoute}
 					size={24}

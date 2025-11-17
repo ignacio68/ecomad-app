@@ -6,11 +6,11 @@ import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
-import { MarkerType } from '@map/types/mapData'
 import { useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import BinInfo from './BinInfo'
 // import ClusterInfo from './ClusterInfo'
+import { MarkerType } from '@map/types/mapData'
 import GeneralInfo from './GeneralInfo'
 import MapBottomSheetTitle from './MapBottomSheetTitle'
 // import NearbyButton from './NearbyButton'
@@ -53,10 +53,8 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 
 	const styles = makeStyle()
 
-
-
 	const renderContent = () => {
-		if( markerState.markerType === MarkerType.BIN) {
+		if (markerState.markerType === MarkerType.BIN) {
 			return markerState.selectedBin ? (
 				<BinInfo bin={markerState.selectedBin} />
 			) : (
@@ -73,7 +71,6 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 				totalBins={totalBins}
 			/>
 		)
-
 	}
 
 	return (
@@ -92,11 +89,6 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>
-					{/* {markerState.markerType === MarkerType.GENERAL ||
-					markerState.markerType === MarkerType.CLUSTER ? (
-						<MapAutocomplete />
-					) : null} */}
-					{/* <NearbyButton /> */}
 					{renderContent()}
 				</View>
 			</BottomSheetView>
