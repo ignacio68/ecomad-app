@@ -10,7 +10,16 @@ interface MapBinMarkerV2Props {
 
 const MapBinMarkerV2: React.FC<MapBinMarkerV2Props> = ({ point, onPress }) => {
 	const { binType, containerId } = point.properties
-	const { color } = BIN_MARKER_ICONS[binType as BinType]
+	const iconConfig = BIN_MARKER_ICONS[binType as BinType]
+
+	if (!iconConfig) {
+		console.error(
+			`❌ [MAPBINMARKER] No icon config found for binType: ${binType}`,
+		)
+		return null
+	}
+
+	const { color } = iconConfig
 
 	const handleBinMarkerPress = () => onPress?.(point)
 
@@ -35,14 +44,14 @@ const MapBinMarkerV2: React.FC<MapBinMarkerV2Props> = ({ point, onPress }) => {
 			id={`bin-${binType}-${containerId}`}
 			shape={pointGeoJSON}
 			onPress={handleBinMarkerPress}
-			hitbox={{ width: 32, height: 32 }}
+			hitbox={{ width: 20, height: 20 }}
 		>
 			<CircleLayer
 				id={`bin-circle-${binType}-${containerId}`}
 				style={{
-					circleRadius: 12,
+					circleRadius: 10,
 					circleColor: color,
-					circleStrokeWidth: 1,
+					circleStrokeWidth: 1.5,
 					circleStrokeColor: '#ffffff',
 					circleOpacity: 1,
 				}}
@@ -51,9 +60,10 @@ const MapBinMarkerV2: React.FC<MapBinMarkerV2Props> = ({ point, onPress }) => {
 				id={`bin-icon-${binType}-${containerId}`}
 				style={{
 					iconImage: `icon-${binType}`,
-					iconSize: 0.4,
+					iconSize: 0.65,
 					iconAllowOverlap: true,
 					iconIgnorePlacement: true,
+					iconOpacity: 0.95,
 				}}
 			/>
 		</ShapeSource>

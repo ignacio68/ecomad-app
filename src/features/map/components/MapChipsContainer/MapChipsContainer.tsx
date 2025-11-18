@@ -13,6 +13,8 @@ import {
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
+import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
+import { convertContainersToGeoJSON } from '@map/utils/geoUtils'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import React, { memo, useCallback, useState } from 'react'
 import { Alert } from 'react-native'
@@ -89,13 +91,31 @@ const MapChipsContainer = memo(
 							effectiveZoom,
 						})
 
+						// Verificar primero el cache del store (más rápido)
+						const { getPointsCache } = useSuperclusterCacheStore.getState()
+						const storeCacheBins = getPointsCache(endPoint)
+						const hasStoreCache = storeCacheBins && storeCacheBins.length > 0
+
 						// Verificar si tenemos hierarchyData en cache
 						let hierarchyData = await BinsService.getHierarchyData(endPoint)
 						const hasHierarchyData = hierarchyData && hierarchyData.length > 0
 
-						// Verificar si SQLite tiene bins cacheados
-						const cachedBins = await BinsService.getContainersData(endPoint)
-						const hasCachedBins = cachedBins && cachedBins.length > 0
+						// Solo verificar SQLite si no hay cache en el store Y vamos a mostrar bins individuales
+						// (para decidir entre nearby y bins individuales)
+						let hasCachedBins = hasStoreCache
+						let sqliteContainers: any[] | null = null
+						if (!hasStoreCache && effectiveZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD) {
+							sqliteContainers = await BinsService.getContainersData(endPoint)
+							hasCachedBins = sqliteContainers && sqliteContainers.length > 0
+
+							// Si hay datos en SQLite, precargar el cache del store para evitar doble verificación
+							if (hasCachedBins && sqliteContainers) {
+								const { setPointsCache } = useSuperclusterCacheStore.getState()
+								const geoJsonBins = convertContainersToGeoJSON(sqliteContainers, endPoint)
+								setPointsCache(endPoint, geoJsonBins)
+								console.log(`⚡ [CHIP_PRESS] Precached ${geoJsonBins.length} bins in store`)
+							}
+						}
 
 						// Si no hay hierarchyData (primera vez), descargar ANTES de mostrar
 						if (!hasHierarchyData) {
@@ -170,8 +190,10 @@ const MapChipsContainer = memo(
 							}
 						}
 
-						// 4. Si ya teníamos hierarchyData, descargar bins completos en background
-						if (hasHierarchyData) {
+						// 4. Solo descargar bins completos en background si:
+						// - Ya teníamos hierarchyData (primera carga completada)
+						// - Y NO tenemos bins en SQLite (necesitamos descargarlos)
+						if (hasHierarchyData && !hasCachedBins) {
 							ensureDataAvailable(endPoint).catch((error: Error) => {
 								console.error(`❌ Error ensuring data for ${endPoint}:`, error)
 							})

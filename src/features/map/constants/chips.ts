@@ -6,9 +6,9 @@ import {
 	CardiganIcon,
 	MilkBottleIcon,
 	MilkCartonIcon,
-	OilBarrelIcon,
+	DatabaseRestoreIcon,
 	WasteRestoreIcon,
-	BatteryFullIcon
+	BatteryEmptyIcon,
 } from '@hugeicons-pro/core-duotone-rounded'
 import {
 	Apple01Icon as Apple01IconSolid,
@@ -16,9 +16,9 @@ import {
 	CardiganIcon as CardiganIconSolid,
 	MilkBottleIcon as MilkBottleIconSolid,
 	MilkCartonIcon as MilkCartonIconSolid,
-	OilBarrelIcon as OilBarrelIconSolid,
+	DatabaseRestoreIcon as DatabaseRestoreIconSolid,
 	WasteRestoreIcon as WasteRestoreIconSolid,
-	BatteryFullIcon as BatteryFullIconSolid,
+	BatteryEmptyIcon as BatteryEmptyIconSolid,
 } from '@hugeicons-pro/core-solid-rounded'
 
 export const createChipsList = (): ChipProps[] => [
@@ -35,8 +35,8 @@ export const createChipsList = (): ChipProps[] => [
 		id: 'oil',
 		title: 'Aceite',
 		mode: 'primary',
-		icon: OilBarrelIcon,
-		iconSelected: OilBarrelIconSolid,
+		icon: DatabaseRestoreIcon,
+		iconSelected: DatabaseRestoreIconSolid,
 		endPoint: 'oil_bins',
 		onPress: () => {},
 	},
@@ -80,8 +80,8 @@ export const createChipsList = (): ChipProps[] => [
 		id: 'battery',
 		title: 'Pilas',
 		mode: 'primary',
-		icon: BatteryFullIcon,
-		iconSelected: BatteryFullIconSolid,
+		icon: BatteryEmptyIcon,
+		iconSelected: BatteryEmptyIconSolid,
 		endPoint: 'battery_bins',
 		onPress: () => {},
 	},

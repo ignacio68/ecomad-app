@@ -54,11 +54,6 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 						heroAnimatedStyle,
 						{
 							paddingBottom: 15,
-							shadowColor: '#000',
-							shadowOffset: { width: 0, height: 8 },
-							shadowOpacity: HERO_MARKER_SHADOW_OPACITY,
-							shadowRadius: HERO_MARKER_SHADOW_RADIUS,
-							elevation: HERO_MARKER_ELEVATION,
 						},
 					]}
 				>
@@ -67,12 +62,17 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 							width: HERO_MARKER_SIZE,
 							height: HERO_MARKER_SIZE,
 							backgroundColor: color,
-							borderRadius: "100%",
-							borderWidth: 2,
+							borderRadius: '100%',
+							borderWidth: 3,
 							borderColor: '#fff',
 							alignItems: 'center',
 							justifyContent: 'center',
-							zIndex: 1000,
+							zIndex: 10,
+							shadowColor: '#000',
+							shadowOffset: { width: 0, height: 8 },
+							shadowOpacity: HERO_MARKER_SHADOW_OPACITY,
+							shadowRadius: HERO_MARKER_SHADOW_RADIUS,
+							elevation: HERO_MARKER_ELEVATION,
 						}}
 					>
 						<HugeiconsIcon
