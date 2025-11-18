@@ -40,9 +40,9 @@ const MapBinMarkerV2: React.FC<MapBinMarkerV2Props> = ({ point, onPress }) => {
 			<CircleLayer
 				id={`bin-circle-${binType}-${containerId}`}
 				style={{
-					circleRadius: 16,
+					circleRadius: 12,
 					circleColor: color,
-					circleStrokeWidth: 2,
+					circleStrokeWidth: 1,
 					circleStrokeColor: '#ffffff',
 					circleOpacity: 1,
 				}}

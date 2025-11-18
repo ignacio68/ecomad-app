@@ -29,6 +29,8 @@ const MapBinsLayerV2 = () => {
 		const clusterItems: any[] = []
 		const binItems: any[] = []
 
+		console.log(`🔍 [MAPBINSLAYER] Processing ${clusters.length} items from clusters`)
+
 		for (const item of clusters) {
 			if (item?.properties?.cluster) {
 				clusterItems.push(item)
@@ -37,16 +39,26 @@ const MapBinsLayerV2 = () => {
 			}
 		}
 
+		console.log(
+			`🔍 [MAPBINSLAYER] Separated: ${clusterItems.length} clusters, ${binItems.length} bins`,
+		)
+
 		return { clusterItems, binItems }
 	}, [clusters])
 
 	// Filtrar bins visibles (excluir el seleccionado
 	const visibleBins = useMemo(() => {
 		const selectedBinId = markerState.selectedBin?.properties?.containerId
-		return binItems.filter(b => {
+		const filtered = binItems.filter(b => {
 			const containerId = b?.properties?.containerId
 			return !selectedBinId || String(containerId) !== String(selectedBinId)
 		})
+
+		console.log(
+			`🔍 [MAPBINSLAYER] Visible bins: ${filtered.length} (from ${binItems.length} total bins, selected: ${selectedBinId || 'none'})`,
+		)
+
+		return filtered
 	}, [binItems, markerState.selectedBin])
 
 	const handleClusterPress = useCallback(

@@ -1,5 +1,4 @@
 import { db, sqlite } from '@/db/connection'
-import { BATCH_SIZE } from '@/db/constants/db'
 import { BinType } from '@/shared/types/bins'
 import { eq } from 'drizzle-orm'
 import {
@@ -201,7 +200,7 @@ export class BinsService {
 			)
 
 			// INSERT dentro de transacción async optimizada usando withTransactionAsync
-			// Esto es más eficiente que db.transaction() para operaciones masivas
+			// El prepared statement se reutiliza automáticamente para todos los inserts
 			await sqlite.withTransactionAsync(async () => {
 				// Preparar statement una sola vez para mejor rendimiento
 				const insertStmt = await sqlite.prepareAsync(`
@@ -210,42 +209,32 @@ export class BinsService {
 						district_code, neighborhood_code, address, lat, lng,
 						load_type, direction, subtype, placement_type, notes,
 						bus_stop, interurban_node, created_at, updated_at
-					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`)
 
 				try {
-					// Insertar en lotes para evitar stack overflow con grandes datasets
-					for (let i = 0; i < records.length; i += BATCH_SIZE) {
-						const batch = records.slice(i, i + BATCH_SIZE)
-
-						// Ejecutar cada registro del batch usando parámetros posicionales
-						for (const record of batch) {
-							await insertStmt.executeAsync([
-								record.binType,
-								record.containerId,
-								record.category_group_id,
-								record.category_id,
-								record.district_code,
-								record.neighborhood_code ?? null,
-								record.address,
-								record.lat,
-								record.lng,
-								record.load_type ?? null,
-								record.direction ?? null,
-								record.subtype ?? null,
-								record.placement_type ?? null,
-								record.notes ?? null,
-								record.bus_stop ?? null,
-								record.interurban_node ?? null,
-								record.createdAt.getTime(),
-								record.updatedAt.getTime(),
-							])
-						}
-
-						insertedCount += batch.length
-						console.log(
-							`📦 Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}: ${insertedCount}/${records.length}`,
-						)
+					for (const record of records) {
+						await insertStmt.executeAsync([
+							record.binType,
+							record.containerId,
+							record.category_group_id,
+							record.category_id,
+							record.district_code,
+							record.neighborhood_code ?? null,
+							record.address,
+							record.lat,
+							record.lng,
+							record.load_type ?? null,
+							record.direction ?? null,
+							record.subtype ?? null,
+							record.placement_type ?? null,
+							record.notes ?? null,
+							record.bus_stop ?? null,
+							record.interurban_node ?? null,
+							record.createdAt.getTime(),
+							record.updatedAt.getTime(),
+						])
+						insertedCount++
 					}
 				} finally {
 					await insertStmt.finalizeAsync()

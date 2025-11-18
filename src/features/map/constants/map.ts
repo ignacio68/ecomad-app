@@ -41,7 +41,7 @@ export const DEFAULT_MAP_VIEW_PROPS: MapViewProps = {
 export const COMPASS_POSITION =
 	Platform.OS === 'ios' ? { top: 80, right: 18 } : { top: 120, right: 16 }
 
-export const BOTTOM_SHEET_SNAP_POINTS = ['35%', '60%', '90%']
+export const BOTTOM_SHEET_SNAP_POINTS = ['40%', '60%', '90%']
 
 export const IDLE_THROTTLE_MS = 300
 

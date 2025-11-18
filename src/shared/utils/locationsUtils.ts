@@ -130,7 +130,7 @@ export const getDistrictByNeighborhood = (
 /**
  * Obtiene el nombre de un distrito por su código (ej: "01", "02", etc.)
  */
-export const getDistrictNameById = (districtCode: string): string => {
+export const getDistrictNameByCode = (districtCode: string): string => {
 	const district = DISTRICTS.find(
 		district => district.district_code === districtCode,
 	)
@@ -141,7 +141,7 @@ export const getDistrictNameById = (districtCode: string): string => {
  * Obtiene el nombre de un barrio por su código (ej: "011", "012", etc.)
  * El código de barrio es único en toda la ciudad
  */
-export const getNeighborhoodNameById = (neighborhoodCode: string): string => {
+export const getNeighborhoodNameByCode = (neighborhoodCode: string): string => {
 	const code = neighborhoodCode.toString()
 	for (const district of DISTRICTS) {
 		const neighborhood = district.barrios.find(

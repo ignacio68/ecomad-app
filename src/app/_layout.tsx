@@ -81,7 +81,6 @@ export default function RootLayout() {
 
 	if (dbError) {
 		console.error('Database initialization error:', dbError)
-		// Continuar sin base de datos por ahora
 	}
 
 	return (
