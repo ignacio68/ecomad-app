@@ -29,7 +29,9 @@ const MapBinsLayerV2 = () => {
 		const clusterItems: any[] = []
 		const binItems: any[] = []
 
-		console.log(`🔍 [MAPBINSLAYER] Processing ${clusters.length} items from clusters`)
+		console.log(
+			`🔍 [MAPBINSLAYER] Processing ${clusters.length} items from clusters`,
+		)
 
 		for (const item of clusters) {
 			if (item?.properties?.cluster) {
@@ -53,10 +55,6 @@ const MapBinsLayerV2 = () => {
 			const containerId = b?.properties?.containerId
 			return !selectedBinId || String(containerId) !== String(selectedBinId)
 		})
-
-		console.log(
-			`🔍 [MAPBINSLAYER] Visible bins: ${filtered.length} (from ${binItems.length} total bins, selected: ${selectedBinId || 'none'})`,
-		)
 
 		return filtered
 	}, [binItems, markerState.selectedBin])
