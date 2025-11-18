@@ -16,7 +16,7 @@ const MapContainer = memo(() => {
 	const handleChipPress = () => setIsMapBottomSheetOpen(true)
 
 	return (
-		<View className="flex-1">
+		<View className="flex-1 bg-primary">
 			<MapBase />
 			<MapChipsContainer
 				chips={chipsList}

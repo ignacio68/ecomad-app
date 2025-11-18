@@ -1,6 +1,6 @@
 import {
-	getDistrictNameById,
-	getNeighborhoodNameById,
+	getDistrictNameByCode,
+	getNeighborhoodNameByCode,
 } from '@/shared/utils/locationsUtils'
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
@@ -15,9 +15,9 @@ import { useUserLocationStore } from '@map/stores/userLocationStore'
 import type { BinPoint, LngLat } from '@map/types/mapData'
 import { MapZoomLevels } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
-import { useCallback } from 'react'
+import type { UserLocation } from '@map/types/userLocation'
+import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
-
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
@@ -34,37 +34,62 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const [longitude, latitude] = coordinates
 
 	// Convertir códigos a nombres usando las funciones helper
-	const districtName = getDistrictNameById(district_code)
+	const districtName = getDistrictNameByCode(district_code)
 	const neighborhoodName = neighborhood_code
-		? getNeighborhoodNameById(neighborhood_code)
+		? getNeighborhoodNameByCode(neighborhood_code)
 		: null
-
 	const {
 		isUserLocationFABActivated,
 		setIsUserLocationFABActivated,
 		setIsManuallyActivated,
 	} = useUserLocationFABStore()
-	const {
-		location: userLocation,
-		requestPermissions,
-		getCurrentLocation,
-	} = useUserLocationStore()
+	const { requestPermissions, getCurrentLocation } = useUserLocationStore()
 	const { calculateRoute, setNavigationMode, hasActiveRoute, clearRoute } =
 		useMapNavigationStore()
 	const { cameraRef } = useMapCameraStore()
+
+	const binIdRef = useRef<string | number | null>(null)
+
+	// Limpiar ruta cuando cambia el bin seleccionado
+	useEffect(() => {
+		const currentBinId = bin.properties.containerId
+		if (binIdRef.current !== null && binIdRef.current !== currentBinId) {
+			if (hasActiveRoute) {
+				clearRoute()
+				setNavigationMode(false)
+			}
+		}
+		binIdRef.current = currentBinId
+	}, [
+		bin.properties.containerId,
+		hasActiveRoute,
+		clearRoute,
+		setNavigationMode,
+	])
 
 	const handleNavigate = async () => {
 		if (!cameraRef || hasActiveRoute) {
 			return
 		}
 
-		let currentUserLocation = userLocation
+		let currentUserLocation: UserLocation | null = null
 
-		if (!isUserLocationFABActivated) {
+		if (isUserLocationFABActivated) {
+			// Si el FAB ya está activado, leer directamente del store (más rápido)
+			currentUserLocation = useUserLocationStore.getState().location
+		} else {
+			// Si el FAB no está activado, activarlo primero
 			await requestPermissions()
 			setIsUserLocationFABActivated(true)
 			setIsManuallyActivated(false)
-			currentUserLocation = await getCurrentLocation()
+
+			// Intentar usar la ubicación del store primero (puede estar disponible aunque el FAB no esté activado)
+			currentUserLocation = useUserLocationStore.getState().location
+
+			// Solo llamar a getCurrentLocation() si realmente no hay ubicación disponible
+			if (!currentUserLocation) {
+				currentUserLocation = await getCurrentLocation()
+			}
 		}
 
 		if (!currentUserLocation) {
@@ -124,9 +149,11 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 				<Text className="font-lato-medium text-base text-gray-700">
 					{districtName}
 				</Text>
-				{!!neighborhoodName && <Text className="font-lato-medium text-base text-gray-700">
-					· {neighborhoodName}
-				</Text>}
+				{!!neighborhoodName && (
+					<Text className="font-lato-medium text-base text-gray-700">
+						· {neighborhoodName}
+					</Text>
+				)}
 			</View>
 			{subtype && (
 				<Text className="mt-1 font-lato-medium text-sm text-gray-600">
