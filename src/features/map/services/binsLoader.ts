@@ -1,4 +1,4 @@
-import { getContainersData } from '@/db/bins/service'
+import { getContainersData, getContainersDataInBounds } from '@/db/bins/service'
 import { BinType } from '@/shared/types/bins'
 import { MAX_VISIBLE_POINTS_LOW_ZOOM } from '@map/constants/clustering'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
@@ -7,12 +7,17 @@ import { RouteData } from '@map/types/navigation'
 import {
 	calculateDistance,
 	convertContainersToGeoJSON,
+	convertContainersToGeoJSONChunked,
 	getCurrentBoundsArea,
 } from '@map/utils/geoUtils'
 import {
 	createRouteCorridor,
 	filterPointsByRouteCorridor,
 } from '@map/utils/routeUtils'
+import {
+	readGeoJsonCache,
+	writeGeoJsonCache,
+} from '@map/services/geoJsonCacheService'
 import { expandBoundsWithBuffer } from './mapService'
 
 export interface BinsCache {
@@ -25,13 +30,22 @@ export const loadContainersAsGeoJSON = async (
 	binType: BinType,
 	cache: BinsCache,
 ): Promise<BinPoint[]> => {
+	console.time(`⏱️ [GEOJSON_LOAD] total-${binType}`)
 	console.log(`🔄 loadContainersAsGeoJSON called for ${binType}`)
 
 	try {
 		const cachedPoints = cache.get(binType)
 		if (cachedPoints) {
 			console.log(`✅ Cache hit for ${binType}: ${cachedPoints.length} points`)
+			console.timeEnd(`⏱️ [GEOJSON_LOAD] total-${binType}`)
 			return cachedPoints
+		}
+
+		const diskCache = await readGeoJsonCache(binType)
+		if (diskCache && diskCache.length > 0) {
+			cache.set(binType, diskCache)
+			console.timeEnd(`⏱️ [GEOJSON_LOAD] total-${binType}`)
+			return diskCache
 		}
 
 		console.log(`📥 Cache miss for ${binType}, loading containers...`)
@@ -39,20 +53,58 @@ export const loadContainersAsGeoJSON = async (
 		const containers = await getContainersData(binType)
 
 		if (!containers || containers.length === 0) {
+			console.timeEnd(`⏱️ [GEOJSON_LOAD] total-${binType}`)
 			return []
 		}
 
-		const points = convertContainersToGeoJSON(containers, binType)
+		console.time(`⏱️ [GEOJSON_LOAD] convert-${binType}`)
+		const points = await convertContainersToGeoJSONChunked(
+			containers,
+			binType,
+			processed =>
+				console.log(
+					`⏱️ [GEOJSON_LOAD] ${binType} conversion progress ${processed}/${containers.length}`,
+				),
+		)
+		console.timeEnd(`⏱️ [GEOJSON_LOAD] convert-${binType}`)
 		console.log(
 			`✅ Converted ${containers.length} containers → ${points.length} GeoJSON points for ${binType}`,
 		)
 
 		cache.set(binType, points)
+		writeGeoJsonCache(binType, points).catch(error =>
+			console.warn(`⚠️ [GEOJSON_LOAD] Failed to persist cache for ${binType}`, error),
+		)
+		console.timeEnd(`⏱️ [GEOJSON_LOAD] total-${binType}`)
 		return points
 	} catch (error) {
 		console.error(`❌ Error loading containers for ${binType}:`, error)
+		console.timeEnd(`⏱️ [GEOJSON_LOAD] total-${binType}`)
 		return []
 	}
+}
+
+export const loadViewportBinsFromDatabase = async (
+	binType: BinType,
+	bounds: LngLatBounds,
+	zoom: number,
+): Promise<BinPoint[]> => {
+	console.time(`⏱️ [VIEWPORT_DB_LOAD] total-${binType}`)
+	const rawBins = await getContainersDataInBounds(
+		binType,
+		expandBoundsWithBuffer(bounds, zoom),
+	)
+	if (!rawBins?.length) {
+		console.timeEnd(`⏱️ [VIEWPORT_DB_LOAD] total-${binType}`)
+		return []
+	}
+
+	const geoJson = convertContainersToGeoJSON(rawBins, binType)
+	console.log(
+		`⚡ [VIEWPORT_DB_LOAD] Loaded ${geoJson.length} bins directly from SQLite for current viewport`,
+	)
+	console.timeEnd(`⏱️ [VIEWPORT_DB_LOAD] total-${binType}`)
+	return geoJson
 }
 
 export const clearBinsCache = (cache: BinsCache): void => {
@@ -214,13 +266,13 @@ const filterPointsByRoute = (
  */
 const getMaxBinsByZoom = (zoom: number): number => {
 	if (zoom >= 14) return Infinity // Mostrar todos en zoom alto
-	if (zoom >= 13) return 200 // Máximo 200 bins en zoom 13
-	if (zoom >= 12) return 150 // Máximo 150 bins en zoom 12
-	if (zoom >= 11) return 100 // Máximo 100 bins en zoom 11
-	if (zoom >= 10) return 75 // Máximo 75 bins en zoom 10
-	if (zoom >= 9) return 50 // Máximo 50 bins en zoom 9
-	if (zoom >= 8) return 50 // Máximo 50 bins en zoom 8
-	return 50 // Máximo 50 bins en zoom muy bajo (< 8)
+	if (zoom >= 13) return 100 // Máximo 200 bins en zoom 13
+	if (zoom >= 12) return 80 // Máximo 150 bins en zoom 12
+	if (zoom >= 11) return 60 // Máximo 100 bins en zoom 11
+	if (zoom >= 10) return 40 // Máximo 75 bins en zoom 10
+	if (zoom >= 9) return 20 // Máximo 50 bins en zoom 9
+	if (zoom >= 8) return 10 // Máximo 50 bins en zoom 8
+	return 5 // Máximo 50 bins en zoom muy bajo (< 8)
 }
 
 /**
@@ -278,62 +330,6 @@ export const calculateLimit = (bounds: LngLatBounds, zoom: number): number => {
 	// Limitar entre 100 y 1000 (límite del backend)
 	// Multiplicar por 2 para tener margen antes del muestreo
 	return Math.max(100, Math.min(1000, neededBins * 2))
-}
-
-/**
- * Encuentra el bin más cercano a un punto que no haya sido usado
- */
-const findClosestUnusedBin = (
-	points: BinPoint[],
-	target: { lng: number; lat: number },
-	usedIndices: Set<number>,
-): { bin: BinPoint; index: number } | null => {
-	let closestBin: BinPoint | null = null
-	let closestDistance = Infinity
-	let closestIndex = -1
-
-	for (let i = 0; i < points.length; i++) {
-		if (usedIndices.has(i)) continue
-
-		const binCoords = points[i].geometry.coordinates
-		const distance = calculateDistance(
-			{ lat: target.lat, lng: target.lng },
-			{ lat: binCoords[1], lng: binCoords[0] },
-		)
-
-		if (distance < closestDistance) {
-			closestDistance = distance
-			closestBin = points[i]
-			closestIndex = i
-		}
-	}
-
-	return closestBin && closestIndex !== -1
-		? { bin: closestBin, index: closestIndex }
-		: null
-}
-
-/**
- * Crea una grilla de puntos de referencia para distribución geográfica uniforme
- */
-const createGridCenters = (
-	bounds: LngLatBounds,
-	gridSize: number,
-): Array<{ lng: number; lat: number }> => {
-	const [[minLng, minLat], [maxLng, maxLat]] = bounds
-	const lngStep = (maxLng - minLng) / gridSize
-	const latStep = (maxLat - minLat) / gridSize
-
-	const gridCenters: Array<{ lng: number; lat: number }> = []
-	for (let i = 0; i < gridSize; i++) {
-		for (let j = 0; j < gridSize; j++) {
-			gridCenters.push({
-				lng: minLng + (i + 0.5) * lngStep,
-				lat: minLat + (j + 0.5) * latStep,
-			})
-		}
-	}
-	return gridCenters
 }
 
 /**

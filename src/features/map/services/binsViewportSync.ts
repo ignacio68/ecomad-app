@@ -120,7 +120,10 @@ export const startBinsViewportSync = () => {
 						cachedBins.length > 5000 ||
 						(totalCount !== null && cachedBins.length >= totalCount * 0.95)
 
-					if (hasAllBins) {
+					const isHighZoom =
+						(viewport.zoom ?? 11) >= INDIVIDUAL_BINS_ZOOM_THRESHOLD
+
+					if (hasAllBins && !isHighZoom) {
 						if (__DEV__) {
 							console.log('⏭️ [SYNC] Pan ignored, all bins already cached', {
 								zoom: viewport.zoom,

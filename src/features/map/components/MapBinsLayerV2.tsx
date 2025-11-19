@@ -3,6 +3,7 @@ import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
+import { createFallbackBounds } from '@map/services/mapService'
 import { MapZoomLevels } from '@map/types/mapData'
 import { Images } from '@rnmapbox/maps'
 import React, { useCallback, useMemo } from 'react'
@@ -13,7 +14,13 @@ import MapClusterMarkerV2 from './markers/MapClusterMarkerV2'
 
 const MapBinsLayerV2 = () => {
 	const { clusters } = useHierarchicalBins()
-	const { deactivateRouteIfActive } = useMapNavigationStore()
+	const deactivateRouteIfActive = useMapNavigationStore(
+		state => state.deactivateRouteIfActive,
+	)
+	const hasActiveRoute = useMapNavigationStore(state => state.hasActiveRoute)
+	const shouldHideClusters = useMapNavigationStore(
+		state => state.shouldHideClusters,
+	)
 	const { setViewportAnimated } = useMapViewportStore()
 	const { deactivateUserLocation } = useUserLocationFABStore()
 	const {
@@ -94,6 +101,19 @@ const MapBinsLayerV2 = () => {
 				point.properties.containerId
 			) {
 				deactivateRouteIfActive()
+				useMapNavigationStore.setState({ shouldHideClusters: false })
+				const { viewport, updateValidatedViewport } =
+					useMapViewportStore.getState()
+				if (viewport?.zoom && viewport?.center) {
+					const safeBounds =
+						viewport.bounds ??
+						createFallbackBounds(
+							viewport.center.lng,
+							viewport.center.lat,
+							viewport.zoom,
+						)
+					updateValidatedViewport(viewport.zoom, safeBounds, viewport.center)
+				}
 				reset()
 			} else {
 				setSelectedCluster(null)
@@ -131,27 +151,31 @@ const MapBinsLayerV2 = () => {
 			<Images images={allIcons} />
 
 			{/* Renderizar clusters jerárquicos */}
-			{clusterItems.map(cluster => {
-				const coords = cluster?.geometry?.coordinates as [number, number]
-				const clusterId =
-					cluster?.properties?.cluster_id ?? `${coords?.[0]}-${coords?.[1]}`
-				return (
-					<MapClusterMarkerV2
-						key={`cluster-v2-${clusterId}`}
-						cluster={cluster}
-						onPress={handleClusterPress}
-					/>
-				)
-			})}
+			{!shouldHideClusters &&
+				!hasActiveRoute &&
+				clusterItems.map(cluster => {
+					const coords = cluster?.geometry?.coordinates as [number, number]
+					const clusterId =
+						cluster?.properties?.cluster_id ?? `${coords?.[0]}-${coords?.[1]}`
+					return (
+						<MapClusterMarkerV2
+							key={`cluster-v2-${clusterId}`}
+							cluster={cluster}
+							onPress={handleClusterPress}
+						/>
+					)
+				})}
 
 			{/* Renderizar bins individuales */}
-			{visibleBins.map(bin => (
-				<MapBinMarkerV2
-					key={bin.properties.containerId}
-					point={bin}
-					onPress={handleBinPress}
-				/>
-			))}
+			{!hasActiveRoute &&
+				!shouldHideClusters &&
+				visibleBins.map(bin => (
+					<MapBinMarkerV2
+						key={bin.properties.containerId}
+						point={bin}
+						onPress={handleBinPress}
+					/>
+				))}
 
 			{/* Hero marker para el bin seleccionado */}
 			{markerState?.selectedBin && (

@@ -90,6 +90,51 @@ export const generateCacheKey = (
  * @param binType - Tipo de contenedor
  * @returns Array de puntos en formato GeoJSON
  */
+const convertBinRecord = (
+	container: BinsContainersCacheRecord,
+	binType: BinType,
+): BinPoint | null => {
+	const lat = Number(container.lat)
+	const lng = Number(container.lng)
+
+	if (Number.isNaN(lat) || Number.isNaN(lng)) {
+		console.warn(
+			'⚠️ Contenedor con coordenadas inválidas omitido',
+			container.containerId,
+		)
+		return null
+	}
+
+	const containerId = `bin-${container.containerId}`
+
+	return {
+		type: 'Feature',
+		properties: {
+			cluster: false,
+			binType,
+			containerId,
+			category_group_id: container.category_group_id,
+			category_id: container.category_id,
+			district_code: container.district_code,
+			neighborhood_code: container.neighborhood_code,
+			address: container.address,
+			lat,
+			lng,
+			load_type: container.load_type,
+			direction: container.direction,
+			subtype: container.subtype,
+			placement_type: container.placement_type,
+			notes: container.notes,
+			bus_stop: container.bus_stop,
+			interurban_node: container.interurban_node,
+		},
+		geometry: {
+			type: 'Point',
+			coordinates: [lng, lat],
+		},
+	}
+}
+
 export const convertContainersToGeoJSON = (
 	containers: BinsContainersCacheRecord[],
 	binType: BinType,
@@ -122,49 +167,56 @@ export const convertContainersToGeoJSON = (
 	}
 
 	for (const container of containers) {
-		// Convertir coordenadas a números decimales
-		const lat = Number(container.lat)
-		const lng = Number(container.lng)
-
-		if (Number.isNaN(lat) || Number.isNaN(lng)) {
-			console.warn(
-				'⚠️ Contenedor con coordenadas inválidas omitido',
-				container.containerId,
-			)
-			continue
+		const feature = convertBinRecord(container, binType)
+		if (feature) {
+			points.push(feature)
 		}
-
-		const containerId = `bin-${container.containerId}`
-
-		points.push({
-			type: 'Feature',
-			properties: {
-				cluster: false,
-				binType,
-				containerId,
-				category_group_id: container.category_group_id,
-				category_id: container.category_id,
-				district_code: container.district_code,
-				neighborhood_code: container.neighborhood_code,
-				address: container.address,
-				lat,
-				lng,
-				load_type: container.load_type,
-				direction: container.direction,
-				subtype: container.subtype,
-				placement_type: container.placement_type,
-				notes: container.notes,
-				bus_stop: container.bus_stop,
-				interurban_node: container.interurban_node,
-			},
-			geometry: {
-				type: 'Point',
-				coordinates: [lng, lat],
-			},
-		})
 	}
 
 	return points
+}
+
+const CHUNK_SIZE = 750
+
+const flushChunk = (
+	chunk: BinPoint[],
+	accumulator: BinPoint[],
+	onChunk?: (processed: number, total: number) => void,
+	total = 0,
+) => {
+	accumulator.push(...chunk)
+	onChunk?.(accumulator.length, total)
+}
+
+export const convertContainersToGeoJSONChunked = async (
+	containers: BinsContainersCacheRecord[],
+	binType: BinType,
+	onChunk?: (processed: number, total: number) => void,
+): Promise<BinPoint[]> => {
+	const total = containers.length
+	if (total === 0) return []
+
+	const accumulator: BinPoint[] = []
+
+	for (let i = 0; i < containers.length; i += CHUNK_SIZE) {
+		const chunk = containers.slice(i, i + CHUNK_SIZE)
+		const convertedChunk: BinPoint[] = []
+
+		for (const container of chunk) {
+			const feature = convertBinRecord(container, binType)
+			if (feature) {
+				convertedChunk.push(feature)
+			}
+		}
+
+		flushChunk(convertedChunk, accumulator, onChunk, total)
+
+		if (i + CHUNK_SIZE < containers.length) {
+			await new Promise(resolve => setTimeout(resolve, 0))
+		}
+	}
+
+	return accumulator
 }
 
 export const getCurrentBoundsArea = (currentBounds: LngLatBounds): number => {

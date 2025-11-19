@@ -1,5 +1,6 @@
 import { db, sqlite } from '@/db/connection'
 import { BinType } from '@/shared/types/bins'
+import type { LngLatBounds } from '@map/types/mapData'
 import { eq } from 'drizzle-orm'
 import {
 	binsContainersCache,
@@ -260,6 +261,7 @@ export const getContainersData = async (
 	limit?: number,
 ): Promise<BinsContainersCacheRecord[] | null> => {
 	try {
+		console.time(`⏱️ [GETCONTAINERSDATA] total-${binType}`)
 		const limitText = limit ? ` (limit: ${limit})` : ' (no limit)'
 		console.log(
 			`🔍 BinsService.getContainersData called for ${binType}${limitText}`,
@@ -309,36 +311,79 @@ export const getContainersData = async (
 				`🔍 [GETCONTAINERSDATA] SQL direct query returned ${sqlRecords.length} records`,
 			)
 
-			// Mapear los registros SQL a la estructura esperada
-			const mappedRecords = sqlRecords.map((r: any) => ({
-				id: r.id,
-				binType: r.bin_type,
-				containerId: r.container_id,
-				category_group_id: r.category_group_id,
-				category_id: r.category_id,
-				district_code: r.district_code,
-				neighborhood_code: r.neighborhood_code,
-				address: r.address,
-				lat: r.lat,
-				lng: r.lng,
-				load_type: r.load_type,
-				direction: r.direction,
-				subtype: r.subtype,
-				placement_type: r.placement_type,
-				notes: r.notes,
-				bus_stop: r.bus_stop,
-				interurban_node: r.interurban_node,
-				createdAt: new Date(r.created_at),
-				updatedAt: new Date(r.updated_at),
-			}))
-
-			return mappedRecords as BinsContainersCacheRecord[]
+			return sqlRecords.map(mapSqlRecordToCacheRecord)
 		}
 
 		// Devolver los records directamente sin mapear
+		console.timeEnd(`⏱️ [GETCONTAINERSDATA] total-${binType}`)
 		return records
 	} catch (error) {
 		console.error(`❌ Error getting containers data for ${binType}:`, error)
+		return null
+	}
+}
+
+const mapSqlRecordToCacheRecord = (r: any): BinsContainersCacheRecord => ({
+	id: r.id,
+	binType: r.bin_type,
+	containerId: r.container_id,
+	category_group_id: r.category_group_id,
+	category_id: r.category_id,
+	district_code: r.district_code,
+	neighborhood_code: r.neighborhood_code,
+	address: r.address,
+	lat: r.lat,
+	lng: r.lng,
+	load_type: r.load_type,
+	direction: r.direction,
+	subtype: r.subtype,
+	placement_type: r.placement_type,
+	notes: r.notes,
+	bus_stop: r.bus_stop,
+	interurban_node: r.interurban_node,
+	createdAt: new Date(r.created_at),
+	updatedAt: new Date(r.updated_at),
+})
+
+export const getContainersDataInBounds = async (
+	binType: BinType,
+	bounds: LngLatBounds,
+	limit = 2000,
+): Promise<BinsContainersCacheRecord[] | null> => {
+	try {
+		const [[minLng, minLat], [maxLng, maxLat]] = bounds
+		console.time(`⏱️ [GET_BOUNDED_CONTAINERS] total-${binType}`)
+		const rows = await sqlite.getAllAsync<any>(
+			`
+        SELECT *
+        FROM bins_containers_cache
+        WHERE bin_type = ?
+          AND lat BETWEEN ? AND ?
+          AND lng BETWEEN ? AND ?
+        ORDER BY id
+        LIMIT ?
+      `,
+			[binType, minLat, maxLat, minLng, maxLng, limit],
+		)
+
+		if (!rows || rows.length === 0) {
+			console.log(
+				`⚠️ [GET_BOUNDED_CONTAINERS] No rows for ${binType} within bounds`,
+			)
+			console.timeEnd(`⏱️ [GET_BOUNDED_CONTAINERS] total-${binType}`)
+			return null
+		}
+
+		console.log(
+			`📦 [GET_BOUNDED_CONTAINERS] Loaded ${rows.length} rows for ${binType}`,
+		)
+		console.timeEnd(`⏱️ [GET_BOUNDED_CONTAINERS] total-${binType}`)
+		return rows.map(mapSqlRecordToCacheRecord)
+	} catch (error) {
+		console.error(
+			`❌ [GET_BOUNDED_CONTAINERS] Error loading ${binType} bounds`,
+			error,
+		)
 		return null
 	}
 }

@@ -57,6 +57,7 @@
 		"expo-crypto": "~15.0.7",
 		"expo-dev-client": "~6.0.1",
 		"expo-drizzle-studio-plugin": "~0.2.1",
+		"expo-file-system": "^19.0.19",
 		"expo-font": "~14.0.2",
 		"expo-haptics": "~15.0.7",
 		"expo-image": "~3.0.1",

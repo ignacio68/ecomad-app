@@ -2,7 +2,9 @@ import FAB from '@/shared/components/ui/buttons/FAB'
 import FABExpanded from '@/shared/components/ui/buttons/FABExpanded'
 import {
 	Layers01Icon as Layers01IconDuotone,
-	LocationUser03Icon,
+	UserRoadsideIcon,
+	GpsOff02Icon,
+	Gps02Icon,
 } from '@hugeicons-pro/core-duotone-rounded'
 import { Layers01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { MAP_FAB_STYLES } from '@map/constants/map'
@@ -76,8 +78,8 @@ const MapFABsRightContainer = () => {
 			/>
 			<FAB
 				name="userLocation"
-				icon={LocationUser03Icon}
-				iconSelected={LocationUser03Icon}
+				icon={UserRoadsideIcon}
+				iconSelected={UserRoadsideIcon}
 				colorSelected='#0074d9'
 				isSelected={isUserLocationFABActivated}
 				onPress={handleUserLocation}

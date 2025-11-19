@@ -80,7 +80,8 @@ const MapChipsContainer = memo(
 
 						// 3. Decidir qué mostrar según el zoom actual (imperativo, sin useEffect)
 						// Usar zoom (zoom actual de la cámara) que siempre está actualizado
-						const effectiveZoom = zoom ?? lastValidatedZoom ?? 11
+						const effectiveZoom =
+							zoom ?? lastValidatedZoom ?? viewport.zoom ?? 11
 						console.log(`🔍 [CHIP_PRESS] Zoom values:`, {
 							cameraZoom: zoom,
 							lastValidatedZoom,
@@ -117,48 +118,27 @@ const MapChipsContainer = memo(
 						// En zoom bajo (< 11), usar el centro de la ciudad en lugar del center del viewport
 						const LOW_ZOOM_THRESHOLD = 11
 						const isLowZoom = effectiveZoom < LOW_ZOOM_THRESHOLD
+						const fallbackCenter =
+							lastValidatedCenter ?? viewport.center ?? center
 						const effectiveCenter = isLowZoom
 							? { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] }
-							: lastValidatedCenter
+							: fallbackCenter
 
 						// Mostrar bins siempre (sin clusters)
-						if (hasCachedBins && lastValidatedBounds && effectiveCenter) {
-							// Cache llena: Mostrar bins del viewport con muestreo proporcional
-							console.log(
-								`⚡ [CHIP_PRESS] Showing bins from cache at zoom ${effectiveZoom}`,
-							)
-							if (isLowZoom) {
-								console.log(
-									`📍 [CHIP_PRESS] Low zoom detected, using city center:`,
-									effectiveCenter,
-								)
-							}
-							await showIndividualBins(
-								endPoint,
-								effectiveZoom,
-								lastValidatedBounds,
-								effectiveCenter,
-								route,
-							)
-						} else if (effectiveCenter && lastValidatedBounds) {
-							// Cache vacía: Cargar nearby inmediatamente con radio dinámico y muestreo proporcional
-							console.log(
-								`📍 [CHIP_PRESS] Empty cache, loading nearby bins immediately`,
-							)
-							if (isLowZoom) {
-								console.log(
-									`📍 [CHIP_PRESS] Low zoom detected, using city center:`,
-									effectiveCenter,
-								)
-							}
+						const workingBounds = lastValidatedBounds ?? viewport.bounds
+						const canShowViewport = workingBounds && effectiveCenter
+
+						const showNearbyFirst = async () => {
+							if (!canShowViewport) return
+							console.time(`⏱️ [CHIP_PRESS_NEARBY] ${endPoint}`)
 							const nearbyResult = await loadNearbyBins(
 								endPoint,
 								{
 									latitude: effectiveCenter.lat,
 									longitude: effectiveCenter.lng,
-									radius: 1, // Se calculará dinámicamente
+									radius: 1,
 								},
-								lastValidatedBounds,
+								workingBounds,
 								effectiveZoom,
 							)
 
@@ -167,12 +147,42 @@ const MapChipsContainer = memo(
 									endPoint,
 									nearbyResult.data,
 									effectiveZoom,
-									lastValidatedBounds,
+									workingBounds,
 									effectiveCenter,
 									route,
 								)
-							} else {
-								console.log(`⚠️ [CHIP_PRESS] No nearby bins found`)
+								console.timeEnd(`⏱️ [CHIP_PRESS_NEARBY] ${endPoint}`)
+								return true
+							}
+							console.timeEnd(`⏱️ [CHIP_PRESS_NEARBY] ${endPoint}`)
+							return false
+						}
+
+						if (hasCachedBins && canShowViewport) {
+							console.log(
+								`⚡ [CHIP_PRESS] Showing bins from cache at zoom ${effectiveZoom}`,
+							)
+							await showIndividualBins(
+								endPoint,
+								effectiveZoom,
+								workingBounds,
+								effectiveCenter,
+								route,
+							)
+						} else if (canShowViewport) {
+							const displayedNearby = await showNearbyFirst()
+							await showIndividualBins(
+								endPoint,
+								effectiveZoom,
+								workingBounds,
+								effectiveCenter,
+								route,
+							)
+
+							if (!displayedNearby) {
+								console.log(
+									`⚠️ [CHIP_PRESS] Nearby endpoint returned empty set`,
+								)
 							}
 						} else {
 							console.log(
@@ -180,7 +190,6 @@ const MapChipsContainer = memo(
 							)
 						}
 
-						// Descargar conteo total y bins completos en background (no bloqueante)
 						if (!hasCachedBins) {
 							ensureDataAvailable(endPoint).catch((error: Error) => {
 								console.error(`❌ Error ensuring data for ${endPoint}:`, error)
