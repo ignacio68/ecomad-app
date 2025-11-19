@@ -1,6 +1,7 @@
 import {
 	ANIMATION_DURATION_MS,
 	COMPASS_POSITION,
+	INITIAL_BOUNDS,
 	INITIAL_CENTER,
 } from '@map/constants/map'
 import { startBinsViewportSync } from '@map/services/binsViewportSync'
@@ -53,6 +54,21 @@ const MapBase = () => {
 		if (__DEV__) {
 			console.log('🗺️ [MapBase] onMapLoaded → startBinsViewportSync()')
 		}
+		if (mapCameraRef.current) {
+			mapCameraRef.current.setCamera({
+				centerCoordinate: INITIAL_CENTER,
+				zoomLevel: MapZoomLevels.DISTRICT,
+				animationDuration: 0,
+				animationMode: 'flyTo',
+			})
+		}
+		useMapViewportStore
+			.getState()
+			.setViewportBatch({
+				zoom: MapZoomLevels.DISTRICT,
+				center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+				bounds: INITIAL_BOUNDS,
+			})
 		startBinsViewportSync()
 	}
 
@@ -148,6 +164,9 @@ const MapBase = () => {
 	}, [shouldAnimate, resetAnimation, resetProgrammaticMove])
 
 	const onCameraChanged = (event: MapState) => {
+		if (!mapIsLoaded) {
+			return
+		}
 		const { zoom, center, bounds } = event.properties
 		if (zoom == null || !center) return
 

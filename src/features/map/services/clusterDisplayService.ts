@@ -5,12 +5,27 @@ import { INITIAL_CENTER } from '@map/constants/map'
 import {
 	filterPointsForViewport,
 	loadContainersAsGeoJSON,
+	loadViewportBinsFromDatabase,
+	type BinsCache,
 } from '@map/services/binsLoader'
 import { HierarchicalClusteringService } from '@map/services/hierarchicalClusteringService'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import { useMapClustersStore } from '@map/stores/mapClustersStore'
 import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import type { BinPoint } from '@map/types/mapData'
+const binCacheWarmup = new Map<BinType, Promise<BinPoint[]>>()
+
+const warmBinCache = (binType: BinType, cache: BinsCache) => {
+	if (binCacheWarmup.has(binType)) return
+
+	const promise = loadContainersAsGeoJSON(binType, cache)
+		.catch(error =>
+			console.error(`❌ [BINS_DISPLAY] Failed to warm cache for ${binType}`, error),
+		)
+		.finally(() => binCacheWarmup.delete(binType))
+
+	binCacheWarmup.set(binType, promise as Promise<BinPoint[]>)
+}
 
 /**
  * Servicio para mostrar clusters o bins en el mapa
@@ -78,6 +93,7 @@ export const showIndividualBins = async (
 	route: any = null,
 ): Promise<void> => {
 	try {
+		console.time(`⏱️ [BINS_DISPLAY] total-${binType}`)
 		// En zoom bajo (< 11), usar el centro de la ciudad en lugar del center del viewport
 		const LOW_ZOOM_THRESHOLD = 11
 		const isLowZoom = zoom < LOW_ZOOM_THRESHOLD
@@ -103,7 +119,7 @@ export const showIndividualBins = async (
 
 		// Verificar si ya tenemos los bins en cache
 		const cachedBins = getPointsCache(binType)
-		let allBins: any[]
+		let allBins: BinPoint[] | null = null
 
 		if (cachedBins && cachedBins.length > 0) {
 			console.log(
@@ -112,21 +128,93 @@ export const showIndividualBins = async (
 			allBins = cachedBins
 		} else {
 			console.log(`📥 [BINS_DISPLAY] Loading bins from database...`)
-			// Crear objeto cache compatible con loadContainersAsGeoJSON
 			const binsCache = {
 				get: getPointsCache,
 				set: setPointsCache,
 				clear: () => {},
 			}
-			allBins = await loadContainersAsGeoJSON(binType, binsCache)
-			// Guardar en superclusterCacheStore para evitar cargar desde SQLite en cada pan
-			setPointsCache(binType, allBins)
-			console.log(`📦 [BINS_DISPLAY] Loaded and cached ${allBins.length} bins`)
+
+			let usedViewportSample = false
+
+			if (bounds) {
+				const viewportBins = await loadViewportBinsFromDatabase(
+					binType,
+					bounds,
+					zoom,
+				)
+				if (viewportBins.length > 0) {
+					allBins = viewportBins
+					usedViewportSample = true
+					console.log(
+						`⚡ [BINS_DISPLAY] Using viewport sample (${viewportBins.length}) while warming full cache`,
+					)
+					warmBinCache(binType, binsCache)
+				}
+			}
+
+			if (!allBins || allBins.length === 0) {
+				allBins = await loadContainersAsGeoJSON(binType, binsCache)
+				setPointsCache(binType, allBins)
+				console.log(
+					`📦 [BINS_DISPLAY] Loaded and cached ${allBins.length} bins`,
+				)
+			} else if (!usedViewportSample) {
+				setPointsCache(binType, allBins)
+			}
 		}
 
-		// Filtrar por viewport (usar effectiveCenter que puede ser el centro de la ciudad)
-		const filteredBins = filterPointsForViewport(
-			allBins,
+		const resolvedBins = allBins ?? []
+
+		const shouldUseViewportQuery =
+			zoom >= MapZoomLevels.NEIGHBORHOOD && bounds && !route
+
+		const applyFilteredBins = (filtered: BinPoint[]) => {
+			const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
+			const { setDisplayClusters } = useMapClustersStore.getState()
+			setAllPoints(resolvedBins)
+			setFilteredPoints(filtered)
+			setDisplayClusters(filtered)
+		}
+
+		let filteredBins: BinPoint[] | null = null
+
+		if (shouldUseViewportQuery) {
+			console.log(
+				`⚡ [BINS_DISPLAY] Using fallback while SQL viewport query loads (zoom ${zoom})`,
+			)
+			const fallbackFiltered = filterPointsForViewport(
+				resolvedBins,
+				zoom,
+				bounds,
+				effectiveCenter,
+				route,
+			)
+			applyFilteredBins(fallbackFiltered)
+
+			const viewportBins = await loadViewportBinsFromDatabase(
+				binType,
+				bounds,
+				zoom,
+			)
+
+			if (viewportBins.length > 0) {
+				console.log(
+					`⚡ [BINS_DISPLAY] Viewport SQL query returned ${viewportBins.length} bins`,
+				)
+				applyFilteredBins(viewportBins)
+				console.timeEnd(`⏱️ [BINS_DISPLAY] total-${binType}`)
+				return
+			}
+
+			console.log(
+				`⚠️ [BINS_DISPLAY] Viewport SQL query returned empty, keeping fallback results`,
+			)
+			console.timeEnd(`⏱️ [BINS_DISPLAY] total-${binType}`)
+			return
+		}
+
+		filteredBins = filterPointsForViewport(
+			resolvedBins,
 			zoom,
 			bounds,
 			effectiveCenter,
@@ -134,14 +222,15 @@ export const showIndividualBins = async (
 		)
 
 		console.log(
-			`✅ [BINS_DISPLAY] Filtered ${allBins.length} → ${filteredBins.length} bins`,
+			`✅ [BINS_DISPLAY] Filtered ${resolvedBins.length} → ${filteredBins.length} bins`,
 		)
 
 		// Si no hay bins en el viewport y tenemos una muestra parcial,
 		// cargar nearby bins para la nueva ubicación
 		if (filteredBins.length === 0 && center && bounds) {
 			const totalCount = await getTotalCount(binType)
-			const hasPartialData = totalCount !== null && totalCount > allBins.length
+			const hasPartialData =
+				totalCount !== null && totalCount > resolvedBins.length
 
 			if (hasPartialData) {
 				console.log(
@@ -181,14 +270,10 @@ export const showIndividualBins = async (
 			console.log('📍 [BINS_DISPLAY] Sample coordinates:', sample)
 		}
 
-		// Actualizar stores
-		const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
-		const { setDisplayClusters } = useMapClustersStore.getState()
-
-		setAllPoints(allBins)
-		setFilteredPoints(filteredBins)
-		setDisplayClusters(filteredBins)
+		applyFilteredBins(filteredBins)
+		console.timeEnd(`⏱️ [BINS_DISPLAY] total-${binType}`)
 	} catch (error) {
+		console.timeEnd(`⏱️ [BINS_DISPLAY] total-${binType}`)
 		console.error(`❌ [BINS_DISPLAY] Error showing individual bins:`, error)
 	}
 }

@@ -5,6 +5,7 @@ import {
 } from '@/shared/services/binsDownloadService'
 import { BinType } from '@/shared/types/bins'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
+import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
 
 const loadingMutex = new Map<BinType, Promise<void>>()
 
@@ -59,6 +60,7 @@ export const ensureDataAvailable = async (binType: BinType): Promise<void> => {
 export const clearCache = async (binType: BinType): Promise<void> => {
 	try {
 		await clearCacheFromService(binType)
+		await clearGeoJsonCache(binType)
 		console.log(`✅ Cleared cache for ${binType}`)
 	} catch (error) {
 		console.error(`❌ Error clearing cache for ${binType}:`, error)

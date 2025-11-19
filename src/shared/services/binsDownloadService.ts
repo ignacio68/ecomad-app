@@ -5,6 +5,7 @@ import {
 	saveTotalCount,
 } from '@/db/bins/service'
 import { useSuperclusterCacheStore } from '@/features/map/stores/superclusterCacheStore'
+import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
 import type { BinType } from '@/shared/types/bins'
 import type { NearByCoordinates } from '@/shared/types/search'
 import type { LngLatBounds } from '@map/types/mapData'
@@ -58,6 +59,7 @@ const downloadAndSaveBins = async (
 	onProgress?.(bins.length, bins.length)
 
 	await saveContainersData(binType, bins)
+	await clearGeoJsonCache(binType)
 	const hierarchyData = calculateHierarchyData(bins)
 	await saveHierarchyData(binType, hierarchyData)
 	await saveTotalCount(binType, bins.length)

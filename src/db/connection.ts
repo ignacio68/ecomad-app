@@ -16,6 +16,24 @@ sqlite.execSync('PRAGMA synchronous = NORMAL;')
 sqlite.execSync('PRAGMA temp_store = MEMORY;')
 sqlite.execSync('PRAGMA mmap_size = 30000000000;')
 
+const ensureSpatialIndexes = () => {
+	try {
+		sqlite.execSync(
+			'CREATE INDEX IF NOT EXISTS idx_bins_containers_bounds ON bins_containers_cache (bin_type, lat, lng);',
+		)
+		sqlite.execSync(
+			'CREATE INDEX IF NOT EXISTS idx_bins_containers_geo ON bins_containers_cache (bin_type, district_code, neighborhood_code);',
+		)
+		console.log('🗄️ SQLite spatial indexes ensured')
+	} catch (error) {
+		console.warn('⚠️ Unable to ensure SQLite indexes (likely before migrations)', {
+			error,
+		})
+	}
+}
+
+ensureSpatialIndexes()
+
 console.log('🗄️ SQLite database opened with WAL mode')
 
 // Crear instancia de Drizzle
