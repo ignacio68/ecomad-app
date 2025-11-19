@@ -312,8 +312,8 @@ const MapBase = () => {
 					}
 				/>
 				{selectedEndPoint && <MapBinsLayerV2 />}
-				{isUserLocationFABActivated && <UserLocationMarker />}
 				{route && <MapWalkingRouteLayer route={route} />}
+				{isUserLocationFABActivated && <UserLocationMarker />}
 			</MapView>
 		</View>
 	)
