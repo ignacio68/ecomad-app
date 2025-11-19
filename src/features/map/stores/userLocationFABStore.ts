@@ -5,6 +5,7 @@ interface UserLocationFABStore {
 	isUserLocationFABActivated: boolean
 	isManuallyActivated: boolean
 	isMapStylesFABActivated: boolean
+	isUserLocationCentered: boolean
 
 	activateUserLocation: (opts?: { manual?: boolean }) => void
 	deactivateUserLocation: (opts?: { keepRoute?: boolean }) => void
@@ -13,6 +14,7 @@ interface UserLocationFABStore {
 		opts?: { manual?: boolean },
 	) => void
 	setIsManuallyActivated: (manual: boolean) => void
+	setIsUserLocationCentered: (centered: boolean) => void
 
 	setIsMapStylesFABActivated: (active: boolean) => void
 	// setIsUserLocationFABActivated: (active: boolean) => void
@@ -24,10 +26,15 @@ export const useUserLocationFABStore = create<UserLocationFABStore>(
 		isUserLocationFABActivated: false,
 		isManuallyActivated: false,
 		isMapStylesFABActivated: false,
+		isUserLocationCentered: false,
 
 		activateUserLocation: ({ manual = true } = {}) => {
 			if (get().isUserLocationFABActivated) return
-			set({ isUserLocationFABActivated: true, isManuallyActivated: manual })
+			set({
+				isUserLocationFABActivated: true,
+				isManuallyActivated: manual,
+				isUserLocationCentered: true,
+			})
 		},
 
 		deactivateUserLocation: ({ keepRoute = false } = {}) => {
@@ -40,7 +47,11 @@ export const useUserLocationFABStore = create<UserLocationFABStore>(
 				deactivateRouteIfActive()
 			}
 
-			set({ isUserLocationFABActivated: false, isManuallyActivated: false })
+			set({
+				isUserLocationFABActivated: false,
+				isManuallyActivated: false,
+				isUserLocationCentered: false,
+			})
 		},
 
 		setIsUserLocationFABActivated: active => {
@@ -51,13 +62,15 @@ export const useUserLocationFABStore = create<UserLocationFABStore>(
 				set({
 					isUserLocationFABActivated: false,
 					isManuallyActivated: false,
+					isUserLocationCentered: false,
 				})
 				return
 			}
-			set({ isUserLocationFABActivated: true })
+			set({ isUserLocationFABActivated: true, isUserLocationCentered: true })
 		},
 
 		setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
+		setIsUserLocationCentered: centered => set({ isUserLocationCentered: centered }),
 
 		setIsMapStylesFABActivated: active => {
 			set({ isMapStylesFABActivated: active })

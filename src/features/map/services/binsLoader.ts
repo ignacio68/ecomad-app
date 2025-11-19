@@ -631,6 +631,7 @@ export const filterPointsForViewport = (
 	bounds: LngLatBounds,
 	center: { lng: number; lat: number } | null,
 	route: RouteData | null = null,
+	opts?: { skipSampling?: boolean },
 ): BinPoint[] => {
 	console.log('🔍 [FILTERPOINTS] Called with:', {
 		pointsCount: points.length,
@@ -657,6 +658,10 @@ export const filterPointsForViewport = (
 		output: filteredByBounds.length,
 		ratio: ((filteredByBounds.length / points.length) * 100).toFixed(1) + '%',
 	})
+
+	if (opts?.skipSampling) {
+		return filteredByBounds
+	}
 
 	// Muestrear proporcionalmente al área visible
 	const sampledPoints = sampleBinsProportionalToArea(

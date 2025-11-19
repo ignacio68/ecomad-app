@@ -41,7 +41,7 @@ export const DEFAULT_MAP_VIEW_PROPS: MapViewProps = {
 export const COMPASS_POSITION =
 	Platform.OS === 'ios' ? { top: 80, right: 18 } : { top: 120, right: 16 }
 
-export const BOTTOM_SHEET_SNAP_POINTS = ['40%', '60%', '90%']
+export const BOTTOM_SHEET_SNAP_POINTS = ['25%', '50%', '90%']
 
 export const IDLE_THROTTLE_MS = 300
 
@@ -49,6 +49,7 @@ export const ANIMATION_PAUSE_BUFFER_MS = 150
 
 // Thresholds para comparaciones de viewport (optimizados para performance)
 export const CENTER_THRESHOLD = 0.001 // ~100 metros de diferencia - evita recálculos innecesarios
+export const CENTER_THRESHOLD_FOLLOW = 0.00005 // ~5 metros cuando seguimos al usuario
 export const ZOOM_THRESHOLD = 1 // 1 nivel de zoom de diferencia - mejora la reactividad del zoom
 
 export interface MapFABStyle {

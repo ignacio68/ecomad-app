@@ -1,4 +1,5 @@
 import BottomSheet, {
+	BottomSheetScrollView,
 	BottomSheetView,
 	SCREEN_WIDTH,
 } from '@gorhom/bottom-sheet'
@@ -34,43 +35,38 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 	const totalBins = totalBinsFromStore ?? totalBinsFromDB
 
 	// Cargar total count desde SQLite si no está en el store
-	useEffect(() => {
-		if (!selectedEndPoint) {
-			setTotalBinsFromDB(null)
-			return
-		}
+useEffect(() => {
+	if (!selectedEndPoint) {
+		setTotalBinsFromDB(null)
+		return
+	}
 
-		const loadTotalCountFromDB = async () => {
-			try {
-				console.log(`🔍 [BOTTOMSHEET] Loading total count from DB for ${selectedEndPoint}`)
-				const count = await getTotalCountFromService(selectedEndPoint)
-				console.log(`🔍 [BOTTOMSHEET] Total count from DB for ${selectedEndPoint}:`, count)
-				if (count !== null) {
-					setTotalBinsFromDB(count)
-					// Actualizar el store también para futuras consultas
-					setTotalCount(selectedEndPoint, count)
-					console.log(`✅ [BOTTOMSHEET] Updated total count in store for ${selectedEndPoint}:`, count)
-				} else {
-					console.log(`⚠️ [BOTTOMSHEET] No total count found in DB for ${selectedEndPoint}`)
-					setTotalBinsFromDB(null)
-				}
-			} catch (error) {
-				console.error(`❌ Error loading total count for ${selectedEndPoint}:`, error)
-				setTotalBinsFromDB(null)
-			}
-		}
+	if (totalBinsFromStore != null) {
+		setTotalBinsFromDB(totalBinsFromStore)
+		return
+	}
 
-		// Solo cargar desde DB si no está en el store
-		if (!totalBinsFromStore) {
-			loadTotalCountFromDB()
-		} else {
+	const load = async () => {
+		try {
+			const count = await getTotalCountFromService(selectedEndPoint)
+			setTotalBinsFromDB(count)
+			if (count != null) setTotalCount(selectedEndPoint, count)
+		} catch (error) {
+			console.error(
+				`❌ Error loading total count for ${selectedEndPoint}:`,
+				error,
+			)
 			setTotalBinsFromDB(null)
 		}
-	}, [selectedEndPoint, totalBinsFromStore, setTotalCount])
+	}
+
+	load()
+}, [selectedEndPoint, totalBinsFromStore, setTotalCount])
+
 
 	useEffect(() => {
 		if (isAnyChipSelected) {
-			bottomSheetRef.current?.snapToIndex(1)
+			markerState.markerType === MarkerType.BIN ? bottomSheetRef.current?.snapToIndex(2) : bottomSheetRef.current?.snapToIndex(1)
 		} else {
 			bottomSheetRef.current?.close()
 		}
@@ -91,25 +87,6 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 
 	const styles = makeStyle()
 
-	const renderContent = () => {
-		if (markerState.markerType === MarkerType.BIN) {
-			return markerState.selectedBin ? (
-				<BinInfo bin={markerState.selectedBin} />
-			) : (
-				<GeneralInfo
-					mapBottomSheetTitle={mapBottomSheetTitle}
-					totalBins={totalBins}
-				/>
-			)
-		}
-
-		return (
-			<GeneralInfo
-				mapBottomSheetTitle={mapBottomSheetTitle}
-				totalBins={totalBins}
-			/>
-		)
-	}
 
 	return (
 		<BottomSheet
@@ -127,7 +104,16 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 					<MapBottomSheetTitle
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>
-					{renderContent()}
+					<BottomSheetScrollView className="w-full px-2 py-2">
+					{markerState.markerType === MarkerType.BIN ? (
+						<BinInfo bin={markerState.selectedBin!} />
+					) : (
+						<GeneralInfo
+							mapBottomSheetTitle={mapBottomSheetTitle}
+							totalBins={totalBins}
+						/>
+					)}
+					</BottomSheetScrollView>
 				</View>
 			</BottomSheetView>
 		</BottomSheet>

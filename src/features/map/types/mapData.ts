@@ -10,7 +10,7 @@ export interface BinPoint {
 		category_group_id: number
 		category_id: number
 		district_code: string
-		neighborhood_code: string | null 
+		neighborhood_code: string | null
 		address: string
 		lat: number
 		lng: number
@@ -99,7 +99,7 @@ export enum MapZoomLevels {
 	GENERAL = 8,
 	DISTRICT = 11, // Zoom inicial para ver toda Madrid
 	NEIGHBORHOOD = 13,
-	CONTAINER = 16,
+	BINS = 16,
 	CLUSTER = 15,
 }
 
