@@ -1,25 +1,22 @@
-import { BinsService } from '@/db/bins/service'
+import { getContainersData } from '@/db/bins/service'
 import ChipsContainer, {
 	ChipsContainerProps,
 } from '@/shared/components/ui/ChipsContainer'
-import { BinsDownloadService } from '@/shared/services/binsDownloadService'
+import { loadNearbyBins } from '@/shared/services/binsDownloadService'
 import type { IconSvgElement } from '@hugeicons/react-native'
+import { INITIAL_CENTER } from '@map/constants/map'
 import { ensureDataAvailable } from '@map/services/binsCacheService'
 import {
-	showHierarchicalClusters,
 	showIndividualBins,
 	showNearbyBins,
 } from '@map/services/clusterDisplayService'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
+import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import { convertContainersToGeoJSON } from '@map/utils/geoUtils'
-import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import React, { memo, useCallback, useState } from 'react'
-import { Alert } from 'react-native'
-
-const INDIVIDUAL_BINS_ZOOM_THRESHOLD = 14
 
 interface Chip {
 	id: string
@@ -96,104 +93,95 @@ const MapChipsContainer = memo(
 						const storeCacheBins = getPointsCache(endPoint)
 						const hasStoreCache = storeCacheBins && storeCacheBins.length > 0
 
-						// Verificar si tenemos hierarchyData en cache
-						let hierarchyData = await BinsService.getHierarchyData(endPoint)
-						const hasHierarchyData = hierarchyData && hierarchyData.length > 0
-
-						// Solo verificar SQLite si no hay cache en el store Y vamos a mostrar bins individuales
-						// (para decidir entre nearby y bins individuales)
+						// Verificar SQLite si no hay cache en el store
 						let hasCachedBins = hasStoreCache
 						let sqliteContainers: any[] | null = null
-						if (!hasStoreCache && effectiveZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD) {
-							sqliteContainers = await BinsService.getContainersData(endPoint)
+						if (!hasStoreCache) {
+							sqliteContainers = await getContainersData(endPoint)
 							hasCachedBins = sqliteContainers && sqliteContainers.length > 0
 
 							// Si hay datos en SQLite, precargar el cache del store para evitar doble verificación
 							if (hasCachedBins && sqliteContainers) {
 								const { setPointsCache } = useSuperclusterCacheStore.getState()
-								const geoJsonBins = convertContainersToGeoJSON(sqliteContainers, endPoint)
+								const geoJsonBins = convertContainersToGeoJSON(
+									sqliteContainers,
+									endPoint,
+								)
 								setPointsCache(endPoint, geoJsonBins)
-								console.log(`⚡ [CHIP_PRESS] Precached ${geoJsonBins.length} bins in store`)
+								console.log(
+									`⚡ [CHIP_PRESS] Precached ${geoJsonBins.length} bins in store`,
+								)
 							}
 						}
 
-						// Si no hay hierarchyData (primera vez), descargar ANTES de mostrar
-						if (!hasHierarchyData) {
-							console.log(
-								`📥 [CHIP_PRESS] First time, downloading hierarchy data...`,
-							)
-							await ensureDataAvailable(endPoint)
-							hierarchyData = await BinsService.getHierarchyData(endPoint)
-						}
+						// En zoom bajo (< 11), usar el centro de la ciudad en lugar del center del viewport
+						const LOW_ZOOM_THRESHOLD = 11
+						const isLowZoom = effectiveZoom < LOW_ZOOM_THRESHOLD
+						const effectiveCenter = isLowZoom
+							? { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] }
+							: lastValidatedCenter
 
-						// Mostrar según zoom
-						if (effectiveZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD) {
-							// Zoom bajo: Mostrar clusters
+						// Mostrar bins siempre (sin clusters)
+						if (hasCachedBins && lastValidatedBounds && effectiveCenter) {
+							// Cache llena: Mostrar bins del viewport con muestreo proporcional
 							console.log(
-								`⚡ [CHIP_PRESS] Showing clusters at zoom ${effectiveZoom}`,
+								`⚡ [CHIP_PRESS] Showing bins from cache at zoom ${effectiveZoom}`,
 							)
-							await showHierarchicalClusters(endPoint, effectiveZoom)
-						} else if (!hasCachedBins) {
-							// Zoom alto + cache vacía: Mostrar nearby
-							if (lastValidatedCenter && lastValidatedBounds) {
+							if (isLowZoom) {
 								console.log(
-									`📍 [CHIP_PRESS] High zoom + empty cache, loading nearby bins`,
+									`📍 [CHIP_PRESS] Low zoom detected, using city center:`,
+									effectiveCenter,
 								)
-								const nearbyResult = await BinsDownloadService.loadNearbyBins(
-									endPoint,
-									{
-										latitude: lastValidatedCenter.lat,
-										longitude: lastValidatedCenter.lng,
-										radius: 1,
-									},
-								)
-
-								if (nearbyResult.success && nearbyResult.data.length > 0) {
-									showNearbyBins(
-										endPoint,
-										nearbyResult.data,
-										effectiveZoom,
-										lastValidatedBounds,
-										lastValidatedCenter,
-										route,
-									)
-								} else {
-									await showHierarchicalClusters(endPoint, effectiveZoom)
-								}
-							} else {
-								await showHierarchicalClusters(endPoint, effectiveZoom)
 							}
-						} else {
-							// Zoom alto + cache llena: Mostrar bins del viewport
-							console.log(`🔍 [CHIP_PRESS] Checking bounds/center:`, {
-								hasBounds: !!lastValidatedBounds,
-								hasCenter: !!lastValidatedCenter,
-								bounds: lastValidatedBounds,
-								center: lastValidatedCenter,
-							})
-							if (lastValidatedBounds && lastValidatedCenter) {
+							await showIndividualBins(
+								endPoint,
+								effectiveZoom,
+								lastValidatedBounds,
+								effectiveCenter,
+								route,
+							)
+						} else if (effectiveCenter && lastValidatedBounds) {
+							// Cache vacía: Cargar nearby inmediatamente con radio dinámico y muestreo proporcional
+							console.log(
+								`📍 [CHIP_PRESS] Empty cache, loading nearby bins immediately`,
+							)
+							if (isLowZoom) {
 								console.log(
-									`⚡ [CHIP_PRESS] Showing individual bins at zoom ${effectiveZoom}`,
+									`📍 [CHIP_PRESS] Low zoom detected, using city center:`,
+									effectiveCenter,
 								)
-								await showIndividualBins(
+							}
+							const nearbyResult = await loadNearbyBins(
+								endPoint,
+								{
+									latitude: effectiveCenter.lat,
+									longitude: effectiveCenter.lng,
+									radius: 1, // Se calculará dinámicamente
+								},
+								lastValidatedBounds,
+								effectiveZoom,
+							)
+
+							if (nearbyResult.success && nearbyResult.data.length > 0) {
+								showNearbyBins(
 									endPoint,
+									nearbyResult.data,
 									effectiveZoom,
 									lastValidatedBounds,
-									lastValidatedCenter,
+									effectiveCenter,
 									route,
 								)
 							} else {
-								console.log(
-									`⚠️ [CHIP_PRESS] No bounds/center, showing clusters instead`,
-								)
-								await showHierarchicalClusters(endPoint, effectiveZoom)
+								console.log(`⚠️ [CHIP_PRESS] No nearby bins found`)
 							}
+						} else {
+							console.log(
+								`⚠️ [CHIP_PRESS] No bounds/center available, cannot show bins`,
+							)
 						}
 
-						// 4. Solo descargar bins completos en background si:
-						// - Ya teníamos hierarchyData (primera carga completada)
-						// - Y NO tenemos bins en SQLite (necesitamos descargarlos)
-						if (hasHierarchyData && !hasCachedBins) {
+						// Descargar conteo total y bins completos en background (no bloqueante)
+						if (!hasCachedBins) {
 							ensureDataAvailable(endPoint).catch((error: Error) => {
 								console.error(`❌ Error ensuring data for ${endPoint}:`, error)
 							})
@@ -219,13 +207,6 @@ const MapChipsContainer = memo(
 				route,
 			],
 		)
-
-		const showAlert = (title: string) => {
-			Alert.alert(
-				'Sin datos disponibles',
-				`No hay contenedores para ${title.toUpperCase()} disponibles en este momento.`,
-			)
-		}
 
 		return (
 			<ChipsContainer

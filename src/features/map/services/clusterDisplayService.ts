@@ -1,5 +1,7 @@
-import { BinsService } from '@/db/bins/service'
+import { getHierarchyData, getTotalCount } from '@/db/bins/service'
+import { loadNearbyBins } from '@/shared/services/binsDownloadService'
 import type { BinType } from '@/shared/types/bins'
+import { INITIAL_CENTER } from '@map/constants/map'
 import {
 	filterPointsForViewport,
 	loadContainersAsGeoJSON,
@@ -30,7 +32,7 @@ export const showHierarchicalClusters = async (
 		)
 
 		// Obtener hierarchyData de BD (ya debe estar cacheada)
-		const hierarchyData = await BinsService.getHierarchyData(binType)
+		const hierarchyData = await getHierarchyData(binType)
 
 		if (!hierarchyData || hierarchyData.length === 0) {
 			console.warn(
@@ -38,12 +40,6 @@ export const showHierarchicalClusters = async (
 			)
 			return
 		}
-
-		// Debug: Mostrar muestra de hierarchyData
-		console.log(
-			`🔍 [CLUSTER_DISPLAY] HierarchyData sample:`,
-			JSON.stringify(hierarchyData.slice(0, 3), null, 2),
-		)
 
 		// Crear clusters según zoom
 		const clusters = HierarchicalClusteringService.createClusters(
@@ -82,11 +78,24 @@ export const showIndividualBins = async (
 	route: any = null,
 ): Promise<void> => {
 	try {
+		// En zoom bajo (< 11), usar el centro de la ciudad en lugar del center del viewport
+		const LOW_ZOOM_THRESHOLD = 11
+		const isLowZoom = zoom < LOW_ZOOM_THRESHOLD
+		const effectiveCenter = isLowZoom
+			? { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] }
+			: center
+
 		console.log(
 			`🎯 [BINS_DISPLAY] Showing individual bins for ${binType} at zoom ${zoom}`,
 		)
 		console.log(`🔍 [BINS_DISPLAY] Bounds:`, bounds)
 		console.log(`🔍 [BINS_DISPLAY] Center:`, center)
+		if (isLowZoom) {
+			console.log(
+				`📍 [BINS_DISPLAY] Low zoom detected, using city center:`,
+				effectiveCenter,
+			)
+		}
 
 		// Obtener cache persistente del store
 		const { getPointsCache, setPointsCache } =
@@ -110,21 +119,58 @@ export const showIndividualBins = async (
 				clear: () => {},
 			}
 			allBins = await loadContainersAsGeoJSON(binType, binsCache)
+			// Guardar en superclusterCacheStore para evitar cargar desde SQLite en cada pan
+			setPointsCache(binType, allBins)
 			console.log(`📦 [BINS_DISPLAY] Loaded and cached ${allBins.length} bins`)
 		}
 
-		// Filtrar por viewport
+		// Filtrar por viewport (usar effectiveCenter que puede ser el centro de la ciudad)
 		const filteredBins = filterPointsForViewport(
 			allBins,
 			zoom,
 			bounds,
-			center,
+			effectiveCenter,
 			route,
 		)
 
 		console.log(
 			`✅ [BINS_DISPLAY] Filtered ${allBins.length} → ${filteredBins.length} bins`,
 		)
+
+		// Si no hay bins en el viewport y tenemos una muestra parcial,
+		// cargar nearby bins para la nueva ubicación
+		if (filteredBins.length === 0 && center && bounds) {
+			const totalCount = await getTotalCount(binType)
+			const hasPartialData = totalCount !== null && totalCount > allBins.length
+
+			if (hasPartialData) {
+				console.log(
+					`📍 [BINS_DISPLAY] No bins in viewport, loading nearby bins for new location`,
+				)
+				const nearbyResult = await loadNearbyBins(
+					binType,
+					{
+						latitude: effectiveCenter.lat,
+						longitude: effectiveCenter.lng,
+						radius: 1, // Se calculará dinámicamente
+					},
+					bounds,
+					zoom,
+				)
+
+				if (nearbyResult.success && nearbyResult.data.length > 0) {
+					showNearbyBins(
+						binType,
+						nearbyResult.data,
+						zoom,
+						bounds,
+						effectiveCenter,
+						route,
+					)
+					return
+				}
+			}
+		}
 
 		// Debug: Mostrar muestra de coordenadas
 		if (filteredBins.length > 0) {
@@ -149,7 +195,7 @@ export const showIndividualBins = async (
 
 /**
  * Muestra bins cercanos (nearby) sin cachear en SQLite
- * Se usa cuando zoom >= 14 y SQLite está vacía (primera carga)
+ * Aplica muestreo proporcional al área visible
  * @param binType - Tipo de contenedor
  * @param nearbyBins - Bins descargados del endpoint /nearby
  * @param zoom - Nivel de zoom actual
@@ -198,21 +244,31 @@ export const showNearbyBins = (
 			},
 		})) as BinPoint[]
 
-		// NO filtrar por viewport - los bins ya están filtrados por nearby (1km radio)
-		// Mostrar todos los bins nearby sin filtro adicional
-		const filteredBins = geoJsonBins
+		// Aplicar muestreo proporcional al área visible
+		const { filterPointsForViewport } = require('@map/services/binsLoader')
+		const sampledBins = filterPointsForViewport(
+			geoJsonBins,
+			zoom,
+			bounds,
+			center,
+			route,
+		)
 
 		console.log(
-			`✅ [NEARBY_DISPLAY] Filtered ${geoJsonBins.length} → ${filteredBins.length} nearby bins`,
+			`✅ [NEARBY_DISPLAY] Sampled ${geoJsonBins.length} → ${sampledBins.length} nearby bins`,
 		)
 
 		// Actualizar stores (solo en memoria)
 		const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
 		const { setDisplayClusters } = useMapClustersStore.getState()
+		const { setPointsCache } = useSuperclusterCacheStore.getState()
+
+		// Guardar en superclusterCacheStore para que showIndividualBins los encuentre
+		setPointsCache(binType, geoJsonBins)
 
 		setAllPoints(geoJsonBins)
-		setFilteredPoints(filteredBins)
-		setDisplayClusters(filteredBins)
+		setFilteredPoints(sampledBins)
+		setDisplayClusters(sampledBins)
 	} catch (error) {
 		console.error(`❌ [NEARBY_DISPLAY] Error showing nearby bins:`, error)
 	}
