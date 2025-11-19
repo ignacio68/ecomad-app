@@ -6,9 +6,11 @@ import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
 import { SquareArrowDownRightIcon } from '@hugeicons-pro/core-solid-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { fitBoundsToTwoPoints } from '@map/services/mapService'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { useNavigationBottomSheetStore } from '@map/stores/navigationBottomSheetStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import type { BinPoint, LngLat } from '@map/types/mapData'
@@ -17,7 +19,6 @@ import { RouteProfile } from '@map/types/navigation'
 import type { UserLocation } from '@map/types/userLocation'
 import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
-import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
@@ -27,6 +28,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setMarkerType, reset } = useMapBottomSheetStore()
+	const { setIsNavigationBottomSheetOpen } = useNavigationBottomSheetStore()
 	const {
 		properties: { address, district_code, neighborhood_code, notes, subtype },
 		geometry: { coordinates },
@@ -69,7 +71,9 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	])
 
 	const handleNavigate = async () => {
+		// setIsNavigationBottomSheetOpen(true)
 		if (!cameraRef || hasActiveRoute) {
+			handleCloseNavigate()
 			return
 		}
 
@@ -127,14 +131,12 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	}
 
 	const handleCloseNavigate = () => {
-		if (hasActiveRoute) {
-			clearRoute()
-			setNavigationMode(false)
-			setViewportAnimated({
-				zoom: MapZoomLevels.BINS,
-				center: { lng: longitude, lat: latitude },
-			})
-		}
+		clearRoute()
+		setNavigationMode(false)
+		setViewportAnimated({
+			zoom: MapZoomLevels.BINS,
+			center: { lng: longitude, lat: latitude },
+		})
 	}
 
 	const getNavigationButtonColor = useCallback(() => {
@@ -146,11 +148,11 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 
 	return (
 		<>
-			<View className="flex-row justify-between items-center">
+			<View className="flex-row items-center justify-between">
 				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
 					Contenedor seleccionado
 				</Text>
-				<View className="p-2 rounded-full bg-secondary/10">
+				<View className="rounded-full bg-secondary/10 p-2">
 					<HugeiconsIcon
 						icon={Cancel01Icon}
 						size={24}
@@ -194,10 +196,11 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
-			<View
+			<Pressable
 				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-6 flex-row items-center justify-center gap-3 px-5 py-3`}
 				accessibilityLabel={'botón de navegación'}
 				testID={`NavigateButton`}
+				onPress={handleNavigate}
 			>
 				<HugeiconsIcon
 					icon={SquareArrowDownRightIcon}
@@ -207,14 +210,11 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 					color="white"
 					accessibilityLabel={`comienza la navegación`}
 					testID={`StartNAvigationIcon`}
-					onPress={handleCloseNavigate}
 				/>
-				<Pressable onPress={handleNavigate}>
-					<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
-						Cómo llegar
-					</Text>
-				</Pressable>
-			</View>
+				<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
+					Cómo llegar
+				</Text>
+			</Pressable>
 		</>
 	)
 }
