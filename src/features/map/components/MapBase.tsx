@@ -21,6 +21,10 @@ import MapBinsLayerV2 from './MapBinsLayerV2'
 import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
 import UserLocationMarker from './markers/UserLocationMarker'
 
+const FOLLOWING_CAMERA_THROTTLE_MS = 250
+const ZOOM_EPSILON = 0.01
+const FOLLOW_CENTER_EPSILON = 0.00001
+
 const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)
@@ -31,14 +35,18 @@ const MapBase = () => {
 		null,
 	)
 
-	const { isUserLocationFABActivated, isManuallyActivated } =
-		useUserLocationFABStore()
+	const {
+		isUserLocationFABActivated,
+		isManuallyActivated,
+		isUserLocationCentered,
+	} = useUserLocationFABStore()
 	const { route, hasActiveRoute } = useMapNavigationStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
 	const { setCameraRef: registerCameraRef } = useMapCameraStore()
 	const { currentStyle } = useMapStyleStore()
 	const { markerState } = useMapBottomSheetStore()
 	const lastCameraEmitRef = useRef(0)
+	const lastFollowCenterRef = useRef<{ lat: number; lng: number } | null>(null)
 
 	const {
 		shouldAnimate,
@@ -62,13 +70,11 @@ const MapBase = () => {
 				animationMode: 'flyTo',
 			})
 		}
-		useMapViewportStore
-			.getState()
-			.setViewportBatch({
-				zoom: MapZoomLevels.DISTRICT,
-				center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
-				bounds: INITIAL_BOUNDS,
-			})
+		useMapViewportStore.getState().setViewportBatch({
+			zoom: MapZoomLevels.DISTRICT,
+			center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+			bounds: INITIAL_BOUNDS,
+		})
 		startBinsViewportSync()
 	}
 
@@ -77,17 +83,16 @@ const MapBase = () => {
 	}
 
 	const onTouchStart = () => {
-		// Desactivar seguimiento de ubicación cuando el usuario toca el mapa (como Google Maps y Apple Maps)
-		// Esto aplica tanto si fue activado manualmente como por una ruta
-		const { isUserLocationFABActivated, deactivateUserLocation } =
-			useUserLocationFABStore.getState()
+		// Desanclar seguimiento cuando el usuario interactúa con el mapa (similar a Google/Apple Maps)
+		const {
+			isUserLocationFABActivated: activated,
+			isUserLocationCentered,
+			setIsUserLocationCentered,
+		} = useUserLocationFABStore.getState()
 
-		if (isUserLocationFABActivated) {
-			console.log(
-				'👆 [MAP] User touch detected, deactivating location tracking',
-			)
-			// Mantener la ruta activa si existe
-			deactivateUserLocation({ keepRoute: true })
+		if (activated && isUserLocationCentered) {
+			console.log('👆 [MAP] User touch detected, pausing user follow mode')
+			setIsUserLocationCentered(false)
 		}
 	}
 
@@ -170,20 +175,24 @@ const MapBase = () => {
 		const { zoom, center, bounds } = event.properties
 		if (zoom == null || !center) return
 
-		// Failsafe: NO resetear isProgrammaticMove aquí
-		// Se resetea en el setTimeout después de la animación (línea 105-106)
-		// const viewportState = useMapViewportStore.getState()
-		// if (viewportState.isProgrammaticMove && !viewportState.shouldAnimate) {
-		// 	resetProgrammaticMove()
-		// }
-
 		// 🕒 Debounce para pan del usuario (esperar a que termine)
 		const { isProgrammaticMove } = useMapViewportStore.getState()
-		const { isUserLocationFABActivated, isManuallyActivated } =
-			useUserLocationFABStore.getState()
+		const {
+			isUserLocationFABActivated,
+			isManuallyActivated,
+			isUserLocationCentered,
+		} = useUserLocationFABStore.getState()
 
 		const isFollowingUser =
-			isUserLocationFABActivated && isManuallyActivated && !isProgrammaticMove
+			isUserLocationFABActivated &&
+			isManuallyActivated &&
+			isUserLocationCentered &&
+			!isProgrammaticMove
+
+		if (!isFollowingUser) {
+			lastCameraEmitRef.current = 0
+			lastFollowCenterRef.current = null
+		}
 
 		// ✅ center mutable
 		const centerLatLng = { lat: center[1], lng: center[0] }
@@ -195,6 +204,42 @@ const MapBase = () => {
 				[bounds.sw[0], bounds.sw[1]],
 				[bounds.ne[0], bounds.ne[1]],
 			]
+		}
+
+		const prevViewport = useMapViewportStore.getState().viewport
+		const zoomChangedSignificantly =
+			prevViewport.zoom == null ||
+			Math.abs((prevViewport.zoom ?? 0) - zoom) >= ZOOM_EPSILON
+
+		let shouldSkip = false
+		if (isFollowingUser) {
+			const prevCenter = lastFollowCenterRef.current
+			const now = Date.now()
+
+			if (!zoomChangedSignificantly) {
+				if (
+					prevCenter &&
+					Math.abs(prevCenter.lat - centerLatLng.lat) < FOLLOW_CENTER_EPSILON &&
+					Math.abs(prevCenter.lng - centerLatLng.lng) < FOLLOW_CENTER_EPSILON
+				) {
+					shouldSkip = true
+				} else if (
+					lastCameraEmitRef.current !== 0 &&
+					now - lastCameraEmitRef.current < FOLLOWING_CAMERA_THROTTLE_MS
+				) {
+					shouldSkip = true
+				}
+			}
+
+			lastFollowCenterRef.current = centerLatLng
+
+			if (!shouldSkip) {
+				lastCameraEmitRef.current = now
+			}
+		}
+
+		if (shouldSkip) {
+			return
 		}
 
 		if (__DEV__) {
@@ -211,9 +256,6 @@ const MapBase = () => {
 			center: centerLatLng,
 			...(mutableBounds ? { bounds: mutableBounds } : {}),
 		})
-
-		// Los bins se actualizan automáticamente cuando binsViewportSync detecta cambios
-		// significativos en el viewport validado. No necesitamos llamar showIndividualBins aquí.
 	}
 
 	return (
@@ -258,10 +300,15 @@ const MapBase = () => {
 					followUserLocation={
 						isUserLocationFABActivated &&
 						isManuallyActivated &&
+						isUserLocationCentered &&
 						!isProgrammaticMove
 					}
 					followZoomLevel={
-						hasActiveRoute || markerState.selectedBin ? undefined : 15
+						hasActiveRoute ||
+						markerState.selectedBin ||
+						(isUserLocationFABActivated && isManuallyActivated)
+							? undefined
+							: 15
 					}
 				/>
 				{selectedEndPoint && <MapBinsLayerV2 />}

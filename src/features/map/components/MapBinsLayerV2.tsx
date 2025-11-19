@@ -1,15 +1,14 @@
 import { useHierarchicalBins } from '@map/components/markers/hooks/useHierarchicalBins'
+import { createFallbackBounds } from '@map/services/mapService'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
-import { createFallbackBounds } from '@map/services/mapService'
 import { MapZoomLevels } from '@map/types/mapData'
-import { Images } from '@rnmapbox/maps'
+import { CircleLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 import React, { useCallback, useMemo } from 'react'
 import { BIN_MARKER_ICONS } from '../constants/binMarkerIcons'
 import HeroMarker from './markers/HeroMarker'
-import MapBinMarkerV2 from './markers/MapBinMarkerV2'
 import MapClusterMarkerV2 from './markers/MapClusterMarkerV2'
 
 const MapBinsLayerV2 = () => {
@@ -120,7 +119,7 @@ const MapBinsLayerV2 = () => {
 				setSelectedBin(point)
 				setIsMapBottomSheetOpen(true)
 				setViewportAnimated({
-					zoom: MapZoomLevels.CONTAINER,
+					zoom: MapZoomLevels.BINS,
 					center: { lng: longitude, lat: latitude },
 				})
 			}
@@ -134,6 +133,38 @@ const MapBinsLayerV2 = () => {
 			setIsMapBottomSheetOpen,
 			setViewportAnimated,
 		],
+	)
+
+	// Colección GeoJSON para todos los bins visibles
+	const binsFeatureCollection = useMemo(() => {
+		const features = visibleBins.map(bin => {
+			const binType = bin.properties.binType
+			const color = BIN_MARKER_ICONS[binType]?.color ?? '#0074d9'
+
+			return {
+				type: 'Feature' as const,
+				geometry: bin.geometry,
+				properties: {
+					...bin.properties,
+					color,
+					iconId: `icon-${binType}`,
+				},
+			}
+		})
+
+		return {
+			type: 'FeatureCollection' as const,
+			features,
+		}
+	}, [visibleBins])
+
+	const handleBinShapePress = useCallback(
+		(event: any) => {
+			const feature = event?.features?.[0]
+			if (!feature) return
+			handleBinPress(feature)
+		},
+		[handleBinPress],
 	)
 
 	// Cargar todos los iconos una sola vez
@@ -167,15 +198,35 @@ const MapBinsLayerV2 = () => {
 				})}
 
 			{/* Renderizar bins individuales */}
-			{!hasActiveRoute &&
-				!shouldHideClusters &&
-				visibleBins.map(bin => (
-					<MapBinMarkerV2
-						key={bin.properties.containerId}
-						point={bin}
-						onPress={handleBinPress}
+			{!hasActiveRoute && !shouldHideClusters && binsFeatureCollection.features.length > 0 && (
+				<ShapeSource
+					id="bins-shape-source"
+					shape={binsFeatureCollection}
+					onPress={handleBinShapePress}
+					hitbox={{ width: 24, height: 24 }}
+				>
+					<CircleLayer
+						id="bins-circle-layer"
+						style={{
+							circleRadius: 10,
+							circleColor: ['get', 'color'],
+							circleStrokeWidth: 1.5,
+							circleStrokeColor: '#ffffff',
+							circleOpacity: 1,
+						}}
 					/>
-				))}
+					<SymbolLayer
+						id="bins-symbol-layer"
+						style={{
+							iconImage: ['get', 'iconId'],
+							iconSize: 0.65,
+							iconAllowOverlap: true,
+							iconIgnorePlacement: true,
+							iconOpacity: 0.95,
+						}}
+					/>
+				</ShapeSource>
+			)}
 
 			{/* Hero marker para el bin seleccionado */}
 			{markerState?.selectedBin && (

@@ -2,6 +2,7 @@ import * as Location from 'expo-location'
 import { PermissionStatus } from 'expo-location'
 import { UserLocation, LocationOptions } from '@map/types/userLocation'
 
+const MAX_ACCEPTABLE_ACCURACY_METERS = 20
 
 export class UserLocationService {
 	private static instance: UserLocationService
@@ -97,9 +98,6 @@ export class UserLocationService {
 		onLocationUpdate?: (location: UserLocation) => void,
 	): Promise<boolean> {
 		try {
-			// Detener seguimiento anterior si existe
-			await this.stopLocationTracking()
-
 			const permissionStatus = await this.checkPermissions()
 			if (permissionStatus !== PermissionStatus.GRANTED) {
 				console.warn('⚠️ Location permissions not granted')
@@ -109,6 +107,16 @@ export class UserLocationService {
 			// Agregar listener si se proporciona
 			if (onLocationUpdate) {
 				this.addLocationListener(onLocationUpdate)
+				if (this.currentLocation) {
+					onLocationUpdate(this.currentLocation)
+				}
+			}
+
+			if (this.watchSubscription) {
+				if (__DEV__) {
+					console.log('♻️ Reusing existing location watcher')
+				}
+				return true
 			}
 
 			this.watchSubscription = await Location.watchPositionAsync(
@@ -118,11 +126,13 @@ export class UserLocationService {
 					distanceInterval: options?.distanceInterval || 10,
 				},
 				location => {
-					// Filtrar ubicaciones con precisión muy baja (> 50 metros)
-					if (location.coords.accuracy && location.coords.accuracy > 50) {
-						console.warn(
-							`⚠️ GPS accuracy too low: ${location.coords.accuracy}m, ignoring update`,
-						)
+					const accuracy = location.coords.accuracy ?? null
+					if (accuracy && accuracy > MAX_ACCEPTABLE_ACCURACY_METERS) {
+						if (__DEV__) {
+							console.warn(
+								`⚠️ GPS accuracy too low: ${accuracy}m, ignoring update`,
+							)
+						}
 						return
 					}
 
@@ -143,6 +153,9 @@ export class UserLocationService {
 			console.log('✅ Location tracking started')
 			return true
 		} catch (error) {
+			if (onLocationUpdate) {
+				this.removeLocationListener(onLocationUpdate)
+			}
 			console.error('❌ Error starting location tracking:', error)
 			return false
 		}

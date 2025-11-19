@@ -12,7 +12,7 @@ import { HierarchicalClusteringService } from '@map/services/hierarchicalCluster
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import { useMapClustersStore } from '@map/stores/mapClustersStore'
 import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
-import type { BinPoint } from '@map/types/mapData'
+import { MapZoomLevels, type BinPoint } from '@map/types/mapData'
 const binCacheWarmup = new Map<BinType, Promise<BinPoint[]>>()
 
 const warmBinCache = (binType: BinType, cache: BinsCache) => {
@@ -188,6 +188,7 @@ export const showIndividualBins = async (
 				bounds,
 				effectiveCenter,
 				route,
+				{ skipSampling: zoom >= MapZoomLevels.BINS },
 			)
 			applyFilteredBins(fallbackFiltered)
 

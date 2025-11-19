@@ -1,19 +1,21 @@
 import { BinPoint, LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { RouteData, RouteGeometryFeature } from '@map/types/navigation'
+import { buffer } from '@turf/buffer'
 import {
-	booleanPointInPolygon,
 	along,
-	length,
+	booleanPointInPolygon,
 	featureCollection,
+	length,
 	lineString,
 	point,
 } from '@turf/turf'
-import { buffer } from '@turf/buffer'
 import {
-	STEP_WALKING_METERS,
-	MAX_POINTS_TO_SHOW_IN_ROOT,
-} from '@map/constants/navigation'
-import { Feature, FeatureCollection, GeoJsonProperties, Geometry, Point } from 'geojson'
+	Feature,
+	FeatureCollection,
+	GeoJsonProperties,
+	Geometry,
+	Point,
+} from 'geojson'
 
 // Cache simple para el corredor de ruta
 let cachedCorridor: { routeId: string; corridor: any } | null = null
@@ -110,7 +112,6 @@ export const calculateRouteBounds = (
 	}
 
 	try {
-
 		const expandedBuffer = buffer(route.geometry, padding, {
 			units: 'meters',
 		})
@@ -150,58 +151,55 @@ const STEP_BY_BUCKET: Record<keyof typeof MapZoomLevels, number> = {
 	GENERAL: 150, // z <= 10 aprox.
 	DISTRICT: 80, // z 11..13
 	NEIGHBORHOOD: 35, // z 14..15
-	CONTAINER: 14, // z >= 16
+	BINS: 14, // z >= 16
 	CLUSTER: 35, // lo obviamos, pero por si alguien lo usa
 }
 
 const zoomToBucket = (zoom: number): keyof typeof MapZoomLevels => {
 	if (zoom < MapZoomLevels.DISTRICT - 0.25) return 'GENERAL'
 	if (zoom < MapZoomLevels.NEIGHBORHOOD - 0.25) return 'DISTRICT'
-	if (zoom < MapZoomLevels.CONTAINER - 0.25) return 'NEIGHBORHOOD'
-	return 'CONTAINER'
+	if (zoom < MapZoomLevels.BINS - 0.25) return 'NEIGHBORHOOD'
+	return 'BINS'
 }
 
 const dotsCache = new Map<
 	string,
 	FeatureCollection<Geometry, GeoJsonProperties>
-	>()
+>()
 
-	const collectPoints = (coords: number[][], stepMeters: number) => {
-		const ls = lineString(coords)
-		const dist = length(ls, { units: 'meters' })
-		const pts: Feature<Point, GeoJsonProperties>[] = []
-		for (let d = 0; d <= dist; d += stepMeters) {
-			pts.push(
-				along(ls, d, { units: 'meters' }),
-			)
-		}
-		return pts
+const collectPoints = (coords: number[][], stepMeters: number) => {
+	const ls = lineString(coords)
+	const dist = length(ls, { units: 'meters' })
+	const pts: Feature<Point, GeoJsonProperties>[] = []
+	for (let d = 0; d <= dist; d += stepMeters) {
+		pts.push(along(ls, d, { units: 'meters' }))
 	}
+	return pts
+}
 
-	const sampleFeature = (
-		feature: RouteGeometryFeature,
-		stepMeters: number,
-	): FeatureCollection<Geometry, GeoJsonProperties> => {
-		const g = feature.geometry
-		if (g.type === 'LineString') {
-			return featureCollection(
-				collectPoints(g.coordinates, stepMeters),
-			) as FeatureCollection<Geometry, GeoJsonProperties>
-		}
-		if (g.type === 'MultiLineString') {
-			const all: Feature<Point, GeoJsonProperties>[] = []
-			for (const seg of g.coordinates)
-				all.push(...collectPoints(seg, stepMeters))
-			return featureCollection(all) as FeatureCollection<
-				Geometry,
-				GeoJsonProperties
-			>
-		}
-		return { type: 'FeatureCollection', features: [] } as FeatureCollection<
+const sampleFeature = (
+	feature: RouteGeometryFeature,
+	stepMeters: number,
+): FeatureCollection<Geometry, GeoJsonProperties> => {
+	const g = feature.geometry
+	if (g.type === 'LineString') {
+		return featureCollection(
+			collectPoints(g.coordinates, stepMeters),
+		) as FeatureCollection<Geometry, GeoJsonProperties>
+	}
+	if (g.type === 'MultiLineString') {
+		const all: Feature<Point, GeoJsonProperties>[] = []
+		for (const seg of g.coordinates) all.push(...collectPoints(seg, stepMeters))
+		return featureCollection(all) as FeatureCollection<
 			Geometry,
 			GeoJsonProperties
 		>
 	}
+	return { type: 'FeatureCollection', features: [] } as FeatureCollection<
+		Geometry,
+		GeoJsonProperties
+	>
+}
 
 export const buildRouteDotsByZoom = (
 	feature: RouteGeometryFeature,

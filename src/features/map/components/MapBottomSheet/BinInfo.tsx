@@ -2,7 +2,6 @@ import {
 	getDistrictNameByCode,
 	getNeighborhoodNameByCode,
 } from '@/shared/utils/locationsUtils'
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
 import { SquareArrowDownRightIcon } from '@hugeicons-pro/core-solid-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
@@ -13,11 +12,12 @@ import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import type { BinPoint, LngLat } from '@map/types/mapData'
-import { MapZoomLevels } from '@map/types/mapData'
+import { MapZoomLevels, MarkerType } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import type { UserLocation } from '@map/types/userLocation'
 import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
@@ -25,7 +25,8 @@ interface BinInfoProps {
 
 const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
-
+	const { deactivateRouteIfActive } = useMapNavigationStore()
+	const { setMarkerType, reset } = useMapBottomSheetStore()
 	const {
 		properties: { address, district_code, neighborhood_code, notes, subtype },
 		geometry: { coordinates },
@@ -119,12 +120,18 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 		fitBoundsToTwoPoints(cameraRef, userCoords, coordinates)
 	}
 
-	const handleClose = () => {
+	const handleCloseBin = () => {
+		deactivateRouteIfActive()
+		setMarkerType(MarkerType.GENERAL)
+		reset()
+	}
+
+	const handleCloseNavigate = () => {
 		if (hasActiveRoute) {
 			clearRoute()
 			setNavigationMode(false)
 			setViewportAnimated({
-				zoom: MapZoomLevels.CONTAINER,
+				zoom: MapZoomLevels.BINS,
 				center: { lng: longitude, lat: latitude },
 			})
 		}
@@ -138,11 +145,24 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	}, [hasActiveRoute])
 
 	return (
-		<BottomSheetScrollView className="w-full px-2 py-6">
-			<Text className="font-lato-semibold text-sm uppercase text-gray-500">
-				Contenedor seleccionado
-			</Text>
-			<Text className="mt-2 font-lato-bold text-2xl text-gray-900">
+		<>
+			<View className="flex-row justify-between items-center">
+				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
+					Contenedor seleccionado
+				</Text>
+				<View className="p-2 rounded-full bg-secondary/10">
+					<HugeiconsIcon
+						icon={Cancel01Icon}
+						size={24}
+						strokeWidth={2}
+						color="gray"
+						accessibilityLabel={`cierra el bottom sheet`}
+						testID={`CloseBottomSheetIcon`}
+						onPress={handleCloseBin}
+					/>
+				</View>
+			</View>
+			<Text className="mt-1 font-lato-bold text-2xl text-gray-900">
 				{address}
 			</Text>
 			<View className="flex-row items-center gap-2">
@@ -156,26 +176,26 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 				)}
 			</View>
 			{subtype && (
-				<Text className="mt-1 font-lato-medium text-sm text-gray-600">
+				<Text className="mt-2 font-lato-medium text-sm text-gray-600">
 					Tipo de contenedor: {subtype}
 				</Text>
 			)}
 			{notes && (
-				<Text className="mt-2 font-lato-regular text-sm text-gray-500">
+				<Text className="mt-4 font-lato-regular text-sm text-gray-500">
 					ℹ️ {notes}
 				</Text>
 			)}
 
-			<View className="mt-4 flex-row justify-between">
+			<View className="mt-2 flex-row justify-start gap-2">
 				<Text className="font-lato-medium text-xs uppercase text-gray-500">
-					Coordenadas
+					Coordenadas:
 				</Text>
-				<Text className="font-lato-medium text-xs text-gray-700">
+				<Text className="font-lato-semibold text-xs text-gray-700">
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
 			<View
-				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-4 flex-row items-center justify-center gap-3 px-5 py-3`}
+				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-6 flex-row items-center justify-center gap-3 px-5 py-3`}
 				accessibilityLabel={'botón de navegación'}
 				testID={`NavigateButton`}
 			>
@@ -187,7 +207,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 					color="white"
 					accessibilityLabel={`comienza la navegación`}
 					testID={`StartNAvigationIcon`}
-					onPress={handleClose}
+					onPress={handleCloseNavigate}
 				/>
 				<Pressable onPress={handleNavigate}>
 					<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
@@ -195,7 +215,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 					</Text>
 				</Pressable>
 			</View>
-		</BottomSheetScrollView>
+		</>
 	)
 }
 
