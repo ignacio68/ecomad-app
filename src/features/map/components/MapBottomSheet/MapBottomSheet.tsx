@@ -3,7 +3,7 @@ import BottomSheet, {
 	SCREEN_WIDTH,
 } from '@gorhom/bottom-sheet'
 import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
-import { BinsService } from '@/db/bins/service'
+import { getTotalCount as getTotalCountFromService } from '@/db/bins/service'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
@@ -43,7 +43,7 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 		const loadTotalCountFromDB = async () => {
 			try {
 				console.log(`🔍 [BOTTOMSHEET] Loading total count from DB for ${selectedEndPoint}`)
-				const count = await BinsService.getTotalCount(selectedEndPoint)
+				const count = await getTotalCountFromService(selectedEndPoint)
 				console.log(`🔍 [BOTTOMSHEET] Total count from DB for ${selectedEndPoint}:`, count)
 				if (count !== null) {
 					setTotalBinsFromDB(count)

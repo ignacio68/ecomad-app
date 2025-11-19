@@ -1,4 +1,4 @@
-import { BinsService } from '@/db/bins/service'
+import { getContainersData } from '@/db/bins/service'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapClustersStore } from '@map/stores/mapClustersStore'
@@ -46,7 +46,7 @@ export const useHierarchicalBins = () => {
 		if (!isUsingNearby || !selectedEndPoint) return
 
 		const checkBackgroundDownload = async () => {
-			const cachedBins = await BinsService.getContainersData(selectedEndPoint)
+			const cachedBins = await getContainersData(selectedEndPoint)
 			if (cachedBins && cachedBins.length > 0) {
 				console.log(
 					`✅ [NEARBY_POLL] Background download complete, disabling nearby mode`,

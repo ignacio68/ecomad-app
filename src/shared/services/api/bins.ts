@@ -9,8 +9,7 @@ import { z } from 'zod'
 import { httpClient } from './httpClient'
 
 // URL base para la API de bins desde variables de entorno
-const BINS_BASE_URL =
-	process.env.EXPO_PUBLIC_API_BINS_BASE_URL as string
+const BINS_BASE_URL = process.env.EXPO_PUBLIC_API_BINS_BASE_URL as string
 
 // Schema para conteos jerárquicos (ahora usa IDs)
 const hierarchyCountSchema = z.object({
@@ -30,23 +29,10 @@ const hierarchyCountsApiResponseSchema = z.object({
 })
 
 export const getAllBins = async (binType: BinType) => {
-	console.log(`🔍 getAllBins called for ${binType}`)
 	const response = await httpClient.get(`${BINS_BASE_URL}/${binType}`)
-
-	// // Debug: ver la estructura exacta de la respuesta
-	// console.log(
-	// 	`🔍 getAllBins raw response.data:`,
-	// 	JSON.stringify(response.data, null, 2),
-	// )
-
-	// Usar la misma lógica que getBinsByNearby - el backend devuelve ServiceResponse
 	const parsed = binsNearbyApiResponseSchema.safeParse(response.data)
 
 	if (parsed.success) {
-		console.log(`✅ getAllBins parsed successfully for ${binType}:`, {
-			dataLength: parsed.data.responseObject.length,
-			firstItem: parsed.data.responseObject[0] || null,
-		})
 		return { ...response, data: parsed.data.responseObject }
 	} else {
 		console.error(`❌ getAllBins failed to parse for ${binType}:`, parsed.error)
@@ -79,9 +65,18 @@ export const getBinsByLocation = async (
 export const getBinsByNearby = async (
 	binType: BinType,
 	coordinates: NearByCoordinates,
+	limit?: number,
 ) => {
+	const params = new URLSearchParams()
+	params.append('lat', coordinates.latitude.toString())
+	params.append('lng', coordinates.longitude.toString())
+	params.append('radius', coordinates.radius.toString())
+	if (limit !== undefined) {
+		params.append('limit', limit.toString())
+	}
+
 	const response = await httpClient.get(
-		`${BINS_BASE_URL}/${binType}/nearby?lat=${coordinates.latitude}&lng=${coordinates.longitude}&radius=${coordinates.radius}`,
+		`${BINS_BASE_URL}/${binType}/nearby?${params.toString()}`,
 	)
 	const parsed = binsNearbyApiResponseSchema.safeParse(response.data)
 
@@ -93,9 +88,33 @@ export const getBinsByNearby = async (
 	}
 }
 
+const binsCountResponseSchema = z.object({
+	success: z.boolean(),
+	message: z.string(),
+	responseObject: z.object({
+		count: z.number(),
+	}),
+	statusCode: z.number(),
+})
+
 export const getBinsCount = async (binType: BinType) => {
 	const response = await httpClient.get(`${BINS_BASE_URL}/${binType}/count`)
-	return response
+	const parsed = binsCountResponseSchema.safeParse(response.data)
+
+	if (parsed.success) {
+		return { ...response, data: parsed.data }
+	} else {
+		console.error('❌ Failed to parse count response:', parsed.error)
+		return {
+			...response,
+			data: {
+				success: false,
+				message: '',
+				responseObject: { count: 0 },
+				statusCode: 0,
+			},
+		}
+	}
 }
 
 export const getBinsCountsHierarchy = async (binType: BinType) => {

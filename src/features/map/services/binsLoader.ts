@@ -1,4 +1,4 @@
-import { BinsService } from '@/db/bins/service'
+import { getContainersData } from '@/db/bins/service'
 import { BinType } from '@/shared/types/bins'
 import { MAX_VISIBLE_POINTS_LOW_ZOOM } from '@map/constants/clustering'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
@@ -7,6 +7,7 @@ import { RouteData } from '@map/types/navigation'
 import {
 	calculateDistance,
 	convertContainersToGeoJSON,
+	getCurrentBoundsArea,
 } from '@map/utils/geoUtils'
 import {
 	createRouteCorridor,
@@ -35,7 +36,7 @@ export const loadContainersAsGeoJSON = async (
 
 		console.log(`📥 Cache miss for ${binType}, loading containers...`)
 
-		const containers = await BinsService.getContainersData(binType)
+		const containers = await getContainersData(binType)
 
 		if (!containers || containers.length === 0) {
 			return []
@@ -153,17 +154,38 @@ const filterPointsByBounds = (
 		})
 	}
 
+	let binsFueraDeBoundsCount = 0
 	const filtered = points.filter(point => {
 		const [lng, lat] = point.geometry.coordinates
-		return (
+		const inBounds =
 			lng >= effectiveMinLng &&
 			lng <= effectiveMaxLng &&
 			lat >= effectiveMinLat &&
 			lat <= effectiveMaxLat
-		)
+
+		return inBounds
 	})
 
 	console.log(`🔍 [FILTERBOUNDS] Result: ${points.length} → ${filtered.length}`)
+
+	// Debug adicional: Verificar distribución geográfica de los bins filtrados
+	if (filtered.length === 0 && points.length > 0) {
+		const samplePoints = points.slice(0, 10)
+		console.warn(`⚠️ [FILTERBOUNDS] No bins in bounds, sample points:`, {
+			bounds: {
+				minLng: effectiveMinLng,
+				maxLng: effectiveMaxLng,
+				minLat: effectiveMinLat,
+				maxLat: effectiveMaxLat,
+			},
+			samplePoints: samplePoints.map(p => ({
+				containerId: p.properties.containerId,
+				coords: p.geometry.coordinates,
+				district_code: p.properties.district_code,
+				address: p.properties.address?.substring(0, 30),
+			})),
+		})
+	}
 
 	return filtered
 }
@@ -184,6 +206,394 @@ const filterPointsByRoute = (
 		zoom,
 	})
 	return filteredPoints
+}
+
+/**
+ * Calcula límite máximo de bins según zoom
+ * Valores restrictivos para forzar al usuario a acercarse y evitar bloqueos
+ */
+const getMaxBinsByZoom = (zoom: number): number => {
+	if (zoom >= 14) return Infinity // Mostrar todos en zoom alto
+	if (zoom >= 13) return 200 // Máximo 200 bins en zoom 13
+	if (zoom >= 12) return 150 // Máximo 150 bins en zoom 12
+	if (zoom >= 11) return 100 // Máximo 100 bins en zoom 11
+	if (zoom >= 10) return 75 // Máximo 75 bins en zoom 10
+	if (zoom >= 9) return 50 // Máximo 50 bins en zoom 9
+	if (zoom >= 8) return 50 // Máximo 50 bins en zoom 8
+	return 50 // Máximo 50 bins en zoom muy bajo (< 8)
+}
+
+/**
+ * Calcula densidad objetivo de bins según zoom (bins por km²)
+ * Valores más restrictivos para forzar al usuario a acercarse
+ */
+const getTargetDensity = (zoom: number): number => {
+	if (zoom >= 14) return Infinity // Mostrar todos en zoom alto
+	if (zoom >= 13) return 150 // ~150 bins/km² en zoom 13
+	if (zoom >= 12) return 80 // ~80 bins/km² en zoom 12
+	if (zoom >= 11) return 40 // ~40 bins/km² en zoom 11
+	if (zoom >= 10) return 20 // ~20 bins/km² en zoom 10
+	if (zoom >= 9) return 10 // ~10 bins/km² en zoom 9
+	if (zoom >= 8) return 5 // ~5 bins/km² en zoom 8
+	return 2 // ~2 bins/km² en zoom muy bajo (< 8)
+}
+
+/**
+ * Calcula radio dinámico necesario para cubrir el viewport completo
+ * @param bounds - Límites del viewport
+ * @returns Radio en kilómetros (entre 0.5 y 10km)
+ */
+export const calculateDynamicRadius = (bounds: LngLatBounds): number => {
+	const [[minLng, minLat], [maxLng, maxLat]] = bounds
+
+	// Calcular dimensiones del bounds
+	const lngDiff = Math.abs(maxLng - minLng)
+	const latDiff = Math.abs(maxLat - minLat)
+
+	// Convertir a km (1 grado ≈ 111 km)
+	const centerLat = (minLat + maxLat) / 2
+	const widthKm = lngDiff * 111 * Math.cos((centerLat * Math.PI) / 180)
+	const heightKm = latDiff * 111
+
+	// Radio = mitad de la diagonal + buffer del 50%
+	const diagonalKm = Math.hypot(widthKm, heightKm)
+	const radius = (diagonalKm / 2) * 1.5
+
+	// Limitar entre 0.5km y 10km
+	return Math.max(0.5, Math.min(10, radius))
+}
+
+/**
+ * Calcula límite de bins según área y densidad objetivo
+ * @param bounds - Límites del viewport
+ * @param zoom - Nivel de zoom
+ * @returns Límite de bins (entre 100 y 1000)
+ */
+export const calculateLimit = (bounds: LngLatBounds, zoom: number): number => {
+	const areaM2 = getCurrentBoundsArea(bounds)
+	const areaKm2 = areaM2 / 1_000_000
+	const targetDensity = getTargetDensity(zoom)
+	const neededBins = Math.ceil(areaKm2 * targetDensity)
+
+	// Limitar entre 100 y 1000 (límite del backend)
+	// Multiplicar por 2 para tener margen antes del muestreo
+	return Math.max(100, Math.min(1000, neededBins * 2))
+}
+
+/**
+ * Encuentra el bin más cercano a un punto que no haya sido usado
+ */
+const findClosestUnusedBin = (
+	points: BinPoint[],
+	target: { lng: number; lat: number },
+	usedIndices: Set<number>,
+): { bin: BinPoint; index: number } | null => {
+	let closestBin: BinPoint | null = null
+	let closestDistance = Infinity
+	let closestIndex = -1
+
+	for (let i = 0; i < points.length; i++) {
+		if (usedIndices.has(i)) continue
+
+		const binCoords = points[i].geometry.coordinates
+		const distance = calculateDistance(
+			{ lat: target.lat, lng: target.lng },
+			{ lat: binCoords[1], lng: binCoords[0] },
+		)
+
+		if (distance < closestDistance) {
+			closestDistance = distance
+			closestBin = points[i]
+			closestIndex = i
+		}
+	}
+
+	return closestBin && closestIndex !== -1
+		? { bin: closestBin, index: closestIndex }
+		: null
+}
+
+/**
+ * Crea una grilla de puntos de referencia para distribución geográfica uniforme
+ */
+const createGridCenters = (
+	bounds: LngLatBounds,
+	gridSize: number,
+): Array<{ lng: number; lat: number }> => {
+	const [[minLng, minLat], [maxLng, maxLat]] = bounds
+	const lngStep = (maxLng - minLng) / gridSize
+	const latStep = (maxLat - minLat) / gridSize
+
+	const gridCenters: Array<{ lng: number; lat: number }> = []
+	for (let i = 0; i < gridSize; i++) {
+		for (let j = 0; j < gridSize; j++) {
+			gridCenters.push({
+				lng: minLng + (i + 0.5) * lngStep,
+				lat: minLat + (j + 0.5) * latStep,
+			})
+		}
+	}
+	return gridCenters
+}
+
+/**
+ * Calcula el centro geográfico de un conjunto de bins
+ */
+const calculateNeighborhoodCenter = (
+	bins: BinPoint[],
+): { lat: number; lng: number } => {
+	if (bins.length === 0) return { lat: 0, lng: 0 }
+
+	const sum = bins.reduce(
+		(acc, bin) => {
+			const [lng, lat] = bin.geometry.coordinates
+			return { lat: acc.lat + lat, lng: acc.lng + lng }
+		},
+		{ lat: 0, lng: 0 },
+	)
+
+	return {
+		lat: sum.lat / bins.length,
+		lng: sum.lng / bins.length,
+	}
+}
+
+/**
+ * Muestrea bins distribuyéndolos por barrios/distritos para mejor distribución geográfica
+ * Prioriza distribución geográfica uniforme en el viewport
+ */
+const sampleBinsByNeighborhoods = (
+	points: BinPoint[],
+	maxBins: number,
+	bounds: LngLatBounds,
+): BinPoint[] => {
+	// Agrupar bins por barrio (neighborhood_code)
+	const binsByNeighborhood = new Map<string, BinPoint[]>()
+
+	for (const point of points) {
+		const neighborhood = point.properties.neighborhood_code || 'unknown'
+		if (!binsByNeighborhood.has(neighborhood)) {
+			binsByNeighborhood.set(neighborhood, [])
+		}
+		binsByNeighborhood.get(neighborhood)!.push(point)
+	}
+
+	// Calcular centro del viewport para distribución geográfica
+	const [[minLng, minLat], [maxLng, maxLat]] = bounds
+	const viewportCenter = {
+		lat: (minLat + maxLat) / 2,
+		lng: (minLng + maxLng) / 2,
+	}
+
+	// Crear lista de barrios con su centro y cantidad de bins
+	const neighborhoodData = Array.from(binsByNeighborhood.entries()).map(
+		([code, bins]) => {
+			const center = calculateNeighborhoodCenter(bins)
+			// Calcular ángulo desde el centro del viewport para distribución circular
+			const angle = Math.atan2(
+				center.lat - viewportCenter.lat,
+				center.lng - viewportCenter.lng,
+			)
+			return {
+				code,
+				bins,
+				center,
+				count: bins.length,
+				angle, // Ángulo para distribución circular uniforme
+			}
+		},
+	)
+
+	// Dividir el viewport en cuadrantes y distribuir barrios equitativamente
+	// Ordenar por ángulo (distribución circular) en lugar de distancia
+	// Esto asegura que los bins se distribuyan por todo el viewport, no solo el centro
+	neighborhoodData.sort((a, b) => {
+		// Primero por cuadrante (N, E, S, W), luego por ángulo dentro del cuadrante
+		const quadrantA = Math.floor((a.angle + Math.PI) / (Math.PI / 2))
+		const quadrantB = Math.floor((b.angle + Math.PI) / (Math.PI / 2))
+
+		if (quadrantA !== quadrantB) {
+			return quadrantA - quadrantB
+		}
+
+		// Dentro del mismo cuadrante, ordenar por ángulo
+		return a.angle - b.angle
+	})
+
+	// Agrupar barrios por cuadrante para distribución round-robin
+	const neighborhoodsByQuadrant = new Map<number, typeof neighborhoodData>()
+	for (const neighborhood of neighborhoodData) {
+		const quadrant = Math.floor((neighborhood.angle + Math.PI) / (Math.PI / 2))
+		if (!neighborhoodsByQuadrant.has(quadrant)) {
+			neighborhoodsByQuadrant.set(quadrant, [])
+		}
+		neighborhoodsByQuadrant.get(quadrant)!.push(neighborhood)
+	}
+
+	// Crear lista intercalada de barrios (round-robin por cuadrante)
+	const interleavedNeighborhoods: typeof neighborhoodData = []
+	const maxPerQuadrant = Math.max(
+		...Array.from(neighborhoodsByQuadrant.values()).map(arr => arr.length),
+	)
+
+	for (let i = 0; i < maxPerQuadrant; i++) {
+		for (const quadrant of [0, 1, 2, 3]) {
+			const quadrantNeighborhoods = neighborhoodsByQuadrant.get(quadrant) || []
+			if (i < quadrantNeighborhoods.length) {
+				interleavedNeighborhoods.push(quadrantNeighborhoods[i])
+			}
+		}
+	}
+
+	const sampledBins: BinPoint[] = []
+	const binsPerNeighborhood = Math.max(
+		1,
+		Math.floor(maxBins / interleavedNeighborhoods.length),
+	)
+
+	console.log(
+		`🔍 [SAMPLING] Distributing across ${interleavedNeighborhoods.length} neighborhoods (${neighborhoodsByQuadrant.size} quadrants), ~${binsPerNeighborhood} bins each`,
+	)
+
+	// Distribuir bins equitativamente por barrio, intercalando cuadrantes
+	for (const { bins: neighborhoodBins } of interleavedNeighborhoods) {
+		if (sampledBins.length >= maxBins) break
+
+		const toTake = Math.min(binsPerNeighborhood, neighborhoodBins.length)
+
+		// Si hay pocos bins en el barrio, tomar todos
+		if (neighborhoodBins.length <= toTake) {
+			sampledBins.push(...neighborhoodBins)
+			continue
+		}
+
+		// Distribuir bins uniformemente en el espacio del viewport
+		// Ordenar por distancia al viewport center para distribución más uniforme global
+		const sortedBins = [...neighborhoodBins].sort((a, b) => {
+			const [lngA, latA] = a.geometry.coordinates
+			const [lngB, latB] = b.geometry.coordinates
+			const distA = calculateDistance(viewportCenter, {
+				lat: latA,
+				lng: lngA,
+			})
+			const distB = calculateDistance(viewportCenter, {
+				lat: latB,
+				lng: lngB,
+			})
+			return distA - distB
+		})
+
+		// Distribución uniforme: tomar bins distribuidos equitativamente
+		// pero intercalando cercanos y lejanos para mejor cobertura espacial
+		const selectedBins: BinPoint[] = []
+		const step = Math.max(1, Math.floor(sortedBins.length / toTake))
+		const selectedIds = new Set<string>()
+
+		// Estrategia: alternar entre bins cercanos (inicio) y lejanos (final)
+		// para distribuir mejor por todo el área del barrio
+		for (let i = 0; i < toTake && sampledBins.length < maxBins; i++) {
+			let index: number
+
+			if (i % 2 === 0) {
+				// Par: tomar del inicio (cercanos al centro)
+				index = Math.floor(i / 2) * step
+			} else {
+				// Impar: tomar del final (lejanos del centro)
+				index = sortedBins.length - 1 - Math.floor(i / 2) * step
+			}
+
+			// Asegurar que el índice sea válido y no duplicado
+			index = Math.max(0, Math.min(index, sortedBins.length - 1))
+			const bin = sortedBins[index]
+			const binId = bin.properties.containerId
+
+			if (!selectedIds.has(binId)) {
+				selectedBins.push(bin)
+				selectedIds.add(binId)
+			}
+		}
+
+		// Si aún no tenemos suficientes, completar con distribución uniforme estándar
+		if (selectedBins.length < toTake) {
+			for (
+				let i = 0;
+				i < sortedBins.length &&
+				selectedBins.length < toTake &&
+				sampledBins.length < maxBins;
+				i += step
+			) {
+				const bin = sortedBins[i]
+				const binId = bin.properties.containerId
+
+				if (!selectedIds.has(binId)) {
+					selectedBins.push(bin)
+					selectedIds.add(binId)
+				}
+			}
+		}
+
+		sampledBins.push(...selectedBins)
+	}
+
+	// Si aún tenemos espacio, llenar con bins restantes distribuidos geográficamente
+	if (sampledBins.length < maxBins) {
+		const sampledIds = new Set(sampledBins.map(b => b.properties.containerId))
+		const remainingBins = points
+			.filter(p => !sampledIds.has(p.properties.containerId))
+			.sort((a, b) => {
+				const [lngA, latA] = a.geometry.coordinates
+				const [lngB, latB] = b.geometry.coordinates
+				const distA = calculateDistance(viewportCenter, {
+					lat: latA,
+					lng: lngA,
+				})
+				const distB = calculateDistance(viewportCenter, {
+					lat: latB,
+					lng: lngB,
+				})
+				return distA - distB
+			})
+
+		const needed = maxBins - sampledBins.length
+		sampledBins.push(...remainingBins.slice(0, needed))
+	}
+
+	return sampledBins
+}
+
+/**
+ * Muestrea bins proporcionalmente al área visible
+ * Usa distribución por barrios para mejor representación geográfica
+ */
+const sampleBinsProportionalToArea = (
+	points: BinPoint[],
+	bounds: LngLatBounds,
+	zoom: number,
+): BinPoint[] => {
+	const maxBinsByZoom = getMaxBinsByZoom(zoom)
+
+	console.log(`🔍 [SAMPLING] Starting sampling:`, {
+		pointsCount: points.length,
+		zoom,
+		maxBinsByZoom,
+	})
+
+	// Si hay menos bins que el máximo permitido, devolver todos
+	if (points.length <= maxBinsByZoom) {
+		console.log(
+			`🔍 [SAMPLING] No sampling needed: ${points.length} <= ${maxBinsByZoom}`,
+		)
+		return points
+	}
+
+	// Distribuir por barrios para mejor representación geográfica
+	const sampledBins = sampleBinsByNeighborhoods(points, maxBinsByZoom, bounds)
+
+	console.log(
+		`🔍 [SAMPLING] Sampled ${points.length} → ${sampledBins.length} bins (zoom: ${zoom}, max: ${maxBinsByZoom})`,
+	)
+
+	return sampledBins
 }
 
 const filterPointsByZoom = (
@@ -238,32 +648,32 @@ export const filterPointsForViewport = (
 	})
 
 	// Si hay ruta activa, usar corredor de ruta en lugar de bounds
-	if (route) return filterPointsByRoute(points, route, zoom)
+	// if (route) return filterPointsByRoute(points, route, zoom)
 
-	// Para todos los zooms, filtrar por bounds. Dejamos que el clustering gestione la agregación.
-	// En zooms altos, el helper mantiene solo bounds, en bajos también usamos bounds sin recorte por distancia.
+	// Zoom alto (>= 14): mostrar todos los bins del viewport
 	if (zoom >= 14) return filterPointsByZoom(points, bounds, zoom)
 
+	// Zoom bajo (< 14): filtrar por bounds y luego muestrear proporcionalmente al área
 	console.log('🔍 [FILTERPOINTS] Applying bounds filter...')
-	const filteredPoints = filterPointsByBounds(points, bounds, zoom)
+	const filteredByBounds = filterPointsByBounds(points, bounds, zoom)
 	console.log('🔍 [FILTERPOINTS] After bounds filter:', {
 		input: points.length,
-		output: filteredPoints.length,
-		ratio: ((filteredPoints.length / points.length) * 100).toFixed(1) + '%',
+		output: filteredByBounds.length,
+		ratio: ((filteredByBounds.length / points.length) * 100).toFixed(1) + '%',
 	})
 
-	// Ya no recortamos por distancia (800). Mostramos todos los puntos dentro de bounds
-	if (__DEV__ && filteredPoints.length < points.length * 0.8) {
-		console.log(
-			`🔍 [FILTERPOINTS] Final filtered ${points.length} → ${filteredPoints.length} points (zoom: ${zoom})`,
-		)
-	}
+	// Muestrear proporcionalmente al área visible
+	const sampledPoints = sampleBinsProportionalToArea(
+		filteredByBounds,
+		bounds,
+		zoom,
+	)
 
 	console.log(
-		'🔍 [FILTERPOINTS] Returning filtered points:',
-		filteredPoints.length,
+		'🔍 [FILTERPOINTS] Returning sampled points:',
+		sampledPoints.length,
 	)
-	return filteredPoints
+	return sampledPoints
 }
 
 export const filteredPointsByNearby = async (

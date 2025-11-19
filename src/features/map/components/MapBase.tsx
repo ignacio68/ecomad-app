@@ -1,14 +1,9 @@
 import {
 	ANIMATION_DURATION_MS,
-	CENTER_THRESHOLD,
 	COMPASS_POSITION,
 	INITIAL_CENTER,
 } from '@map/constants/map'
 import { startBinsViewportSync } from '@map/services/binsViewportSync'
-import {
-	showHierarchicalClusters,
-	showIndividualBins,
-} from '@map/services/clusterDisplayService'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
@@ -29,7 +24,6 @@ const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)
 	const justFinishedAnimationRef = useRef(false)
-	const debounceTimerRef = useRef<number | null>(null)
 
 	const [mapIsLoaded, setMapIsLoaded] = useState(false)
 	const [mapLoadErrorMessage, setMapLoadErrorMessage] = useState<string | null>(
@@ -133,25 +127,12 @@ const MapBase = () => {
 					selectedEndPoint
 				) {
 					// Actualizar viewport validated
+					// binsViewportSync se encargará de actualizar los bins cuando detecte el cambio
 					updateValidatedViewport(
 						viewport.zoom,
 						viewport.bounds,
 						viewport.center,
 					)
-
-					// Mostrar bins o clusters según el zoom
-					const { route } = useMapNavigationStore.getState()
-					if (viewport.zoom >= MapZoomLevels.NEIGHBORHOOD) {
-						showIndividualBins(
-							selectedEndPoint,
-							viewport.zoom,
-							viewport.bounds,
-							viewport.center,
-							route,
-						)
-					} else {
-						showHierarchicalClusters(selectedEndPoint, viewport.zoom)
-					}
 				}
 
 				if (__DEV__)
@@ -178,8 +159,7 @@ const MapBase = () => {
 		// }
 
 		// 🕒 Debounce para pan del usuario (esperar a que termine)
-		const { isProgrammaticMove, shouldAnimate: isAnimating } =
-			useMapViewportStore.getState()
+		const { isProgrammaticMove } = useMapViewportStore.getState()
 		const { isUserLocationFABActivated, isManuallyActivated } =
 			useUserLocationFABStore.getState()
 
@@ -207,91 +187,14 @@ const MapBase = () => {
 			})
 		}
 
-		// Capturar lastValidatedCenter ANTES de que setViewportBatch lo actualice
-		const { lastValidatedZoom: prevZoom, lastValidatedCenter: prevCenter } =
-			useMapViewportStore.getState()
-
 		useMapViewportStore.getState().setViewportBatch({
 			zoom,
 			center: centerLatLng,
 			...(mutableBounds ? { bounds: mutableBounds } : {}),
 		})
 
-		// Mostrar bins/clusters imperativamente cuando el usuario hace pan/zoom
-		// NO ejecutar durante animaciones programáticas (se maneja en el timeout)
-		// PERO sí ejecutar en el primer pan después de una animación
-		const shouldUpdateDisplay =
-			(!isProgrammaticMove && !isAnimating) || justFinishedAnimationRef.current
-
-		if (shouldUpdateDisplay && mutableBounds) {
-			const { selectedEndPoint } = useMapChipsMenuStore.getState()
-			const { route } = useMapNavigationStore.getState()
-			const lastValidatedZoom = prevZoom
-			const lastValidatedCenter = prevCenter
-
-			if (selectedEndPoint) {
-				// Detectar cambios significativos de zoom, center (pan), o cruce del umbral 14
-				const zoomChanged = lastValidatedZoom
-					? Math.abs(lastValidatedZoom - zoom) >= 0.5
-					: true
-				const centerChanged = lastValidatedCenter
-					? Math.abs(lastValidatedCenter.lat - centerLatLng.lat) >=
-							CENTER_THRESHOLD ||
-						Math.abs(lastValidatedCenter.lng - centerLatLng.lng) >=
-							CENTER_THRESHOLD
-					: true
-				const crossedThreshold = lastValidatedZoom
-					? (lastValidatedZoom < MapZoomLevels.NEIGHBORHOOD &&
-							zoom >= MapZoomLevels.NEIGHBORHOOD) ||
-						(lastValidatedZoom >= MapZoomLevels.NEIGHBORHOOD &&
-							zoom < MapZoomLevels.NEIGHBORHOOD)
-					: false
-
-				if (
-					zoomChanged ||
-					centerChanged ||
-					crossedThreshold ||
-					justFinishedAnimationRef.current
-				) {
-					// Limpiar debounce anterior
-					if (debounceTimerRef.current) {
-						clearTimeout(debounceTimerRef.current)
-					}
-
-					// Debounce: esperar 300ms después del último evento de cámara
-					// Esto evita recalcular bins mientras el usuario hace pan
-					debounceTimerRef.current = setTimeout(() => {
-						if (__DEV__) {
-							console.log(
-								'🔄 [CAMERA] User pan/zoom finished, updating display',
-								{
-									zoom,
-									zoomChanged,
-									centerChanged,
-									crossedThreshold,
-									justFinishedAnimation: justFinishedAnimationRef.current,
-								},
-							)
-						}
-
-						if (zoom >= MapZoomLevels.NEIGHBORHOOD) {
-							showIndividualBins(
-								selectedEndPoint,
-								zoom,
-								mutableBounds,
-								centerLatLng,
-								route,
-							)
-						} else {
-							showHierarchicalClusters(selectedEndPoint, zoom)
-						}
-
-						// Resetear flag después de usarlo
-						justFinishedAnimationRef.current = false
-					}, 300) // 300ms de debounce (más tiempo = más fluido)
-				}
-			}
-		}
+		// Los bins se actualizan automáticamente cuando binsViewportSync detecta cambios
+		// significativos en el viewport validado. No necesitamos llamar showIndividualBins aquí.
 	}
 
 	return (
