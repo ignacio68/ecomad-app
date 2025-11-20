@@ -3,10 +3,9 @@ import FABExpanded from '@/shared/components/ui/buttons/FABExpanded'
 import {
 	Gps02Icon,
 	Layers01Icon as Layers01IconDuotone,
-	UserRoadsideIcon,
 } from '@hugeicons-pro/core-duotone-rounded'
 import { Gps02Icon as Gps02IconSolid } from '@hugeicons-pro/core-solid-rounded'
-import { Layers01Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { Layers01Icon, UserRoadsideIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { MAP_FAB_STYLES } from '@map/constants/map'
 import { userLocationService } from '@map/services/userLocationService'
 import { useMapStyleStore } from '@map/stores/mapStyleStore'

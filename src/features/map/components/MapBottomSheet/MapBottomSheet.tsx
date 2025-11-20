@@ -8,7 +8,7 @@ import { getTotalCount as getTotalCountFromService } from '@/db/bins/service'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import BinInfo from './BinInfo'
 // import ClusterInfo from './ClusterInfo'
@@ -25,10 +25,15 @@ interface MapBottomSheetProps {
 const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 	const snapPoints = useMemo(() => BOTTOM_SHEET_SNAP_POINTS, [])
 	const bottomSheetRef = useRef<BottomSheet>(null)
+	const [sheetIndex, setSheetIndex] = useState(-1)
 	const { mapBottomSheetTitle, markerState } = useMapBottomSheetStore()
-	const { selectedChip, selectedEndPoint } = useMapChipsMenuStore()
+	const { selectedChip, selectedEndPoint, clearChip } = useMapChipsMenuStore()
 	const { getTotalCount, setTotalCount } = useBinsCountStore()
 	const [totalBinsFromDB, setTotalBinsFromDB] = useState<number | null>(null)
+	const desiredSheetIndex = useMemo(() => {
+		if (!selectedChip) return -1
+		return markerState.markerType === MarkerType.BIN ? 2 : 1
+	}, [selectedChip, markerState.markerType])
 
 	const isAnyChipSelected = selectedChip !== ''
 	const totalBinsFromStore = selectedEndPoint ? getTotalCount(selectedEndPoint) : null
@@ -65,12 +70,40 @@ useEffect(() => {
 
 
 	useEffect(() => {
-		if (isAnyChipSelected) {
-			markerState.markerType === MarkerType.BIN ? bottomSheetRef.current?.snapToIndex(2) : bottomSheetRef.current?.snapToIndex(1)
-		} else {
-			bottomSheetRef.current?.close()
+		if (!bottomSheetRef.current) {
+			setSheetIndex(desiredSheetIndex)
+			return
 		}
-	}, [isAnyChipSelected])
+
+		if (desiredSheetIndex === -1) {
+			setSheetIndex(-1)
+			bottomSheetRef.current.close()
+			return
+		}
+
+		setSheetIndex(desiredSheetIndex)
+		bottomSheetRef.current.snapToIndex(desiredSheetIndex)
+	}, [desiredSheetIndex])
+
+	const handleSheetChange = useCallback(
+		(index: number) => {
+			if (!isAnyChipSelected) {
+				setSheetIndex(index)
+				return
+			}
+
+			const minIndex =
+				markerState.markerType === MarkerType.BIN ? 2 : 1
+
+			if (index < minIndex) {
+				bottomSheetRef.current?.snapToIndex(minIndex)
+				return
+			}
+
+			setSheetIndex(index)
+		},
+		[isAnyChipSelected, markerState.markerType],
+	)
 
 	const makeStyle = () => {
 		let horizontalMarginBottomSheet = 0
@@ -85,19 +118,20 @@ useEffect(() => {
 		})
 	}
 
-	const styles = makeStyle()
+	// const styles = makeStyle()
 
 
 	return (
 		<BottomSheet
 			ref={bottomSheetRef}
-			index={isAnyChipSelected ? 1 : -1}
+			index={sheetIndex}
 			enablePanDownToClose={false}
 			enableDynamicSizing={true}
 			snapPoints={snapPoints}
 			enableOverDrag={false}
 			keyboardBehavior="extend"
-			containerStyle={styles.bottomSheetContainerStyle}
+			onChange={handleSheetChange}
+			// containerStyle={styles.bottomSheetContainerStyle}
 		>
 			<BottomSheetView>
 				<View className="mx-4 mb-8 flex-1 items-center justify-center">
@@ -106,7 +140,7 @@ useEffect(() => {
 					/>
 					<BottomSheetScrollView className="w-full px-2 py-2">
 					{markerState.markerType === MarkerType.BIN ? (
-						<BinInfo bin={markerState.selectedBin!} />
+						<BinInfo bin={markerState.selectedBin!} onClose={clearChip} />
 					) : (
 						<GeneralInfo
 							mapBottomSheetTitle={mapBottomSheetTitle}

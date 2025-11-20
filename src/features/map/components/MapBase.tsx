@@ -29,6 +29,7 @@ const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)
 	const justFinishedAnimationRef = useRef(false)
+	const hasInitializedRef = useRef(false)
 
 	const [mapIsLoaded, setMapIsLoaded] = useState(false)
 	const [mapLoadErrorMessage, setMapLoadErrorMessage] = useState<string | null>(
@@ -62,19 +63,34 @@ const MapBase = () => {
 		if (__DEV__) {
 			console.log('🗺️ [MapBase] onMapLoaded → startBinsViewportSync()')
 		}
+
+		const { viewport } = useMapViewportStore.getState()
+		const targetCenter =
+			hasInitializedRef.current && viewport.center
+				? [viewport.center.lng, viewport.center.lat]
+				: INITIAL_CENTER
+		const targetZoom =
+			hasInitializedRef.current && viewport.zoom
+				? viewport.zoom
+				: MapZoomLevels.DISTRICT
+
 		if (mapCameraRef.current) {
 			mapCameraRef.current.setCamera({
-				centerCoordinate: INITIAL_CENTER,
-				zoomLevel: MapZoomLevels.DISTRICT,
+				centerCoordinate: targetCenter,
+				zoomLevel: targetZoom,
 				animationDuration: 0,
 				animationMode: 'flyTo',
 			})
 		}
-		useMapViewportStore.getState().setViewportBatch({
-			zoom: MapZoomLevels.DISTRICT,
-			center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
-			bounds: INITIAL_BOUNDS,
-		})
+
+		if (!hasInitializedRef.current) {
+			useMapViewportStore.getState().setViewportBatch({
+				zoom: MapZoomLevels.DISTRICT,
+				center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+				bounds: INITIAL_BOUNDS,
+			})
+			hasInitializedRef.current = true
+		}
 		startBinsViewportSync()
 	}
 

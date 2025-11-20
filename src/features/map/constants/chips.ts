@@ -9,7 +9,7 @@ import {
 	DatabaseRestoreIcon,
 	WasteRestoreIcon,
 	BatteryEmptyIcon,
-} from '@hugeicons-pro/core-duotone-rounded'
+} from '@hugeicons-pro/core-stroke-rounded'
 import {
 	Apple01Icon as Apple01IconSolid,
 	Book02Icon as Book02IconSolid,

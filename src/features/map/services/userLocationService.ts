@@ -68,8 +68,8 @@ export class UserLocationService {
 			}
 
 			const location = await Location.getCurrentPositionAsync({
-				accuracy: options?.accuracy || Location.Accuracy.Balanced,
-				timeInterval: options?.timeInterval || 2000,
+				accuracy: options?.accuracy || Location.Accuracy.Highest,
+				timeInterval: options?.timeInterval || 1000,
 				distanceInterval: options?.distanceInterval || 5,
 			})
 
@@ -121,8 +121,8 @@ export class UserLocationService {
 
 			this.watchSubscription = await Location.watchPositionAsync(
 				{
-					accuracy: options?.accuracy || Location.Accuracy.Balanced,
-					timeInterval: options?.timeInterval || 3000,
+					accuracy: options?.accuracy || Location.Accuracy.Highest,
+					timeInterval: options?.timeInterval || 1000,
 					distanceInterval: options?.distanceInterval || 10,
 				},
 				location => {
