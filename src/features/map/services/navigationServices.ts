@@ -1,6 +1,6 @@
 import {
 	MAPBOX_DIRECTIONS_URL,
-	MAPBOX_DOWNLOADS_TOKEN,
+	MAPBOX_PUBLIC_TOKEN,
 } from '@map/constants/map'
 import { LngLat } from '@map/types/mapData'
 import { RouteProfile, type RouteResponse } from '@map/types/navigation'
@@ -15,7 +15,7 @@ export const getRoute = async (
 ): Promise<RouteResponse | null> => {
 	try {
 		const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`
-		const params = `steps=true&geometries=geojson&overview=full&alternatives=false&access_token=${MAPBOX_DOWNLOADS_TOKEN}`
+		const params = `steps=true&geometries=geojson&overview=full&alternatives=false&access_token=${MAPBOX_PUBLIC_TOKEN}`
 		const url = `${MAPBOX_DIRECTIONS_URL}${profile}/${coords}?${params}`
 
 		const response = await fetch(url)

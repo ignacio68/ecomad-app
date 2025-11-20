@@ -17,14 +17,18 @@ import type { BinPoint, LngLat } from '@map/types/mapData'
 import { MapZoomLevels, MarkerType } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import type { UserLocation } from '@map/types/userLocation'
+import { PermissionStatus } from 'expo-location'
 import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
+// TODO: validar distancia (origen → destino) antes de llamar a Directions API.
+// Si supera el límite de Mapbox, mostrar modal/toast en vez de lanzar la petición.
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
+	onClose?: () => void
 }
 
-const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
+const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
 	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setMarkerType, reset } = useMapBottomSheetStore()
@@ -46,7 +50,8 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 		setIsUserLocationFABActivated,
 		setIsManuallyActivated,
 	} = useUserLocationFABStore()
-	const { requestPermissions, getCurrentLocation } = useUserLocationStore()
+	const { requestPermissions, getCurrentLocation, startTracking } =
+		useUserLocationStore()
 	const { calculateRoute, setNavigationMode, hasActiveRoute, clearRoute } =
 		useMapNavigationStore()
 	const { cameraRef } = useMapCameraStore()
@@ -84,9 +89,17 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 			currentUserLocation = useUserLocationStore.getState().location
 		} else {
 			// Si el FAB no está activado, activarlo primero
-			await requestPermissions()
+			const permissionStatus = await requestPermissions()
+			if (permissionStatus !== PermissionStatus.GRANTED) {
+				console.warn('⚠️ Permisos de ubicación denegados')
+				return
+			}
 			setIsUserLocationFABActivated(true)
 			setIsManuallyActivated(false)
+			await startTracking().catch(error => {
+				console.warn('⚠️ No se pudo iniciar el tracking de ubicación', error)
+				return false
+			})
 
 			// Intentar usar la ubicación del store primero (puede estar disponible aunque el FAB no esté activado)
 			currentUserLocation = useUserLocationStore.getState().location
@@ -125,7 +138,7 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 	}
 
 	const handleCloseBin = () => {
-		deactivateRouteIfActive()
+		handleCloseNavigate()
 		setMarkerType(MarkerType.GENERAL)
 		reset()
 	}
@@ -152,17 +165,17 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
 					Contenedor seleccionado
 				</Text>
-				<View className="rounded-full bg-secondary/10 p-2">
+				<Pressable className="rounded-full bg-secondary/10 p-2" onPress={handleCloseBin}>
 					<HugeiconsIcon
 						icon={Cancel01Icon}
 						size={24}
 						strokeWidth={2}
 						color="gray"
-						accessibilityLabel={`cierra el bottom sheet`}
+						accessibilityLabel={`cierra el bottom sheet deinformación del contenedor`}
 						testID={`CloseBottomSheetIcon`}
-						onPress={handleCloseBin}
+
 					/>
-				</View>
+				</Pressable>
 			</View>
 			<Text className="mt-1 font-lato-bold text-2xl text-gray-900">
 				{address}

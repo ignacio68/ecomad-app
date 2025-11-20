@@ -26,7 +26,7 @@ const Chip = React.memo(
 		const getColor = () => {
 			switch (mode) {
 				case 'primary':
-					return isSelected ? 'bg-primary' : 'bg-surface'
+					return isSelected ? 'bg-primary' : 'bg-white'
 				case 'secondary':
 					return isSelected ? 'bg-secondary' : 'bg-secondary-light'
 				case 'tertiary':
@@ -37,7 +37,7 @@ const Chip = React.memo(
 		const getIconColor = () => (isSelected ? 'white' : '#1D1B20')
 
 		const getTextSize = () => {
-			return 'text-sm ml-2 capitalize'
+			return 'text-md ml-2 capitalize'
 		}
 
 		const getTextColor = () => {
