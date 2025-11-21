@@ -32,6 +32,7 @@ const FABChildren = ({
 	index,
 	childrenAsset,
 	onPress,
+	...props
 }: FABChildrenProps) => {
 	const animatedStyles = useAnimatedStyle(() => {
 		const moveValue = isExpanded ? OFFSET * (index + 1) : 0
@@ -58,14 +59,9 @@ const FABChildren = ({
 		<AnimatedPressable
 			style={[
 				animatedStyles,
-				{
-					position: 'absolute',
-					top: 0,
-					right: 0,
-				},
 			]}
 			className={
-				'h-14 w-14 items-center justify-center rounded-full border-2 border-white bg-white shadow-lg'
+				'h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-white shadow-lg mr-1 absolute right-0 top-0'
 			}
 			accessibilityRole="button"
 			accessibilityLabel={`FAB ${index}`}
@@ -79,8 +75,8 @@ const FABChildren = ({
 				<Image
 					source={childrenAsset.source}
 					style={{
-						width: 44,
-						height: 44,
+						width: 52,
+						height: 52,
 						borderRadius: 9999,
 					}}
 					contentFit="cover"

@@ -1,12 +1,13 @@
 import { z } from 'zod'
 
-// Schema actualizado para coincidir con la estructura del backend
+// Schema actualizado para coincidir con la estructura del backend v2
+// Ahora usa códigos (TEXT) en lugar de IDs numéricos
 export const binSchema = z.object({
 	id: z.number(),
 	category_group_id: z.number(),
 	category_id: z.number(),
-	district_id: z.number(),
-	neighborhood_id: z.number().nullable(),
+	district_code: z.string(),
+	neighborhood_code: z.string().nullable(),
 	address: z.string(),
 	lat: z.number(),
 	lng: z.number(),

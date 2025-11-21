@@ -5,7 +5,10 @@ module.exports = function (api) {
 			['babel-preset-expo', { jsxImportSource: 'nativewind' }],
 			'nativewind/babel',
 		],
-		plugins: ['react-native-reanimated/plugin'],
+		plugins: [
+			['inline-import', { extensions: ['.sql'] }], // Para migraciones de Drizzle
+			'react-native-worklets/plugin',
+		],
 		env: {
 			production: {
 				plugins: ['transform-remove-console'],

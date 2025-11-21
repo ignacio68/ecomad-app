@@ -47,6 +47,7 @@ staging.env
 
 app-example
 mcp.json
+.codex/
 
 
 coverage/**/*

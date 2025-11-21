@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { Easing } from 'react-native' // opcional
-import { CircleLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 import { BinType } from '@/shared/types/bins'
 import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import { HERO_MARKER_SIZE } from '@map/constants/clustering'
+import { CircleLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
+import { useEffect, useMemo, useRef } from 'react'
+import { Easing } from 'react-native' // opcional
 
 interface MapHeroMarkerProps {
 	coordinate: [number, number]
@@ -18,7 +18,7 @@ const MapHeroMarker = ({
 	onPress,
 	id = `hero-${binType}-${coordinate.join(',')}`,
 }: MapHeroMarkerProps) => {
-	const { color, active: ActiveIcon } = BIN_MARKER_ICONS[binType]
+	const { color, default: heroIcon } = BIN_MARKER_ICONS[binType]
 
 	// Refs a los layers para setNativeProps
 	const pulseRef = useRef<any>(null)
@@ -56,7 +56,7 @@ const MapHeroMarker = ({
 
 			const circleRadius = (HERO_MARKER_SIZE / 2) * eased
 			const circleOpacity = eased
-			const iconSize = .8 * eased
+			const iconSize = 0.8 * eased
 			const iconOpacity = eased
 
 			// Capa del círculo principal
@@ -122,7 +122,7 @@ const MapHeroMarker = ({
 		<>
 			<Images
 				images={{
-					['hero-icon-' + id]: ActiveIcon,
+					['hero-icon-' + id]: heroIcon,
 				}}
 			/>
 

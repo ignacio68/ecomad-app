@@ -16,7 +16,7 @@ export const binsHierarchyCache = sqliteTable('bins_hierarchy_cache', {
 		],
 	}).notNull(),
 	distrito: text('distrito').notNull(),
-	barrio: text('barrio').notNull(),
+	barrio: text('barrio'), // Nullable porque algunos bins no tienen neighborhood_code
 	count: integer('count').notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()
@@ -70,8 +70,8 @@ export const binsContainersCache = sqliteTable('bins_containers_cache', {
 	containerId: text('container_id').notNull(), // ID del backend
 	category_group_id: integer('category_group_id').notNull(),
 	category_id: integer('category_id').notNull(),
-	district_id: integer('district_id').notNull(),
-	neighborhood_id: integer('neighborhood_id'),
+	district_code: text('district_code').notNull(),
+	neighborhood_code: text('neighborhood_code'),
 	address: text('address').notNull(),
 	lat: real('lat').notNull(),
 	lng: real('lng').notNull(),

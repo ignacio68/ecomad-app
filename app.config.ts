@@ -4,7 +4,7 @@ import 'dotenv/config'
 const ENV = (process.env.APP_ENV as 'dev' | 'staging' | 'prod') ?? 'dev'
 
 const byEnv = {
-	dev: { name: 'EcoMAD (Dev)', slug: 'ecomad-dev', channel: 'dev' },
+	dev: { name: 'EcoMAD', slug: 'ecomad-dev', channel: 'prod' },
 	staging: {
 		name: 'EcoMAD (Staging)',
 		slug: 'ecomad-staging',
@@ -13,17 +13,15 @@ const byEnv = {
 	prod: { name: 'EcoMAD', slug: 'ecomad-app', channel: 'prod' },
 } as const
 
-
 export default ({ config }: ConfigContext): ExpoConfig => {
-
-	const projectId = "eeb844bb-6337-4cfd-890a-c3414df1da68";
+	const projectId = 'eeb844bb-6337-4cfd-890a-c3414df1da68'
 
 	return {
 		...config,
 		name: byEnv[ENV].name,
 		slug: byEnv[ENV].slug,
-		version: process.env.APP_VERSION ?? '1.0.6',
-		orientation: 'portrait',
+		version: process.env.APP_VERSION ?? '1.1.0',
+		orientation: 'default',
 		icon: './src/assets/images/icon.png',
 		scheme: 'ecomad',
 		userInterfaceStyle: 'light',
@@ -33,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			...(config.ios ?? {}),
 			supportsTablet: true,
 			bundleIdentifier: 'com.ecomad.app',
-			buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.0.6',
+			buildNumber: process.env.IOS_BUILD_NUMBER ?? '1.1.0',
 			requireFullScreen: true,
 			userInterfaceStyle: 'light',
 			infoPlist: {
@@ -50,7 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			// },
 			edgeToEdgeEnabled: true,
 			package: 'com.ecomad.app',
-			versionCode: Number(process.env.ANDROID_VERSION_CODE) || 106,
+			versionCode: Number(process.env.ANDROID_VERSION_CODE) || 10100,
 			userInterfaceStyle: 'light',
 			permissions: [
 				'ACCESS_FINE_LOCATION',
@@ -65,6 +63,24 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			favicon: './src/assets/images/favicon.png',
 		},
 		plugins: [
+			[
+				'expo-build-properties',
+				{
+					// android: {
+					// 	usesCleartextTraffic: true,
+					// 	useAndroidX: true,
+					// 	enableJetifier: true,
+					// 	kotlinVersion: '2.0.21',
+					// 	ndkVersion: '27.1.12297006',
+					// 	agpVersion: '8.11.0',
+					// },
+					ios: {
+						deploymentTarget: '15.5',
+						useFrameworks: 'static',
+						forceStaticLinking: ['RNFBApp'],
+					},
+				},
+			],
 			'expo-router',
 			[
 				'expo-splash-screen',
@@ -77,11 +93,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			],
 			'expo-font',
 			[
+				'expo-sqlite',
+				{
+					enableFTS: true, // Full Text Search
+					useSQLCipher: false, // No necesitamos encriptación por ahora
+				},
+			],
+			[
 				'@rnmapbox/maps',
 				{
 					RNMapboxMapsDownloadToken: process.env
 						.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN as string,
-					RNMapboxMapsVersion: '11.14.4',
+					// RNMapboxMapsVersion: '11.14.1',
 				},
 			],
 			[

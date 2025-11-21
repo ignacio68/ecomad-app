@@ -15,6 +15,8 @@ const Chip = React.memo(
 		mode,
 		icon,
 		iconSelected,
+		bgColor,
+		bgColorSelected,
 		endPoint,
 		isSelected = false,
 		disabled = false,
@@ -24,7 +26,7 @@ const Chip = React.memo(
 		const getColor = () => {
 			switch (mode) {
 				case 'primary':
-					return isSelected ? 'bg-primary' : 'bg-surface'
+					return isSelected ? 'bg-primary' : 'bg-white'
 				case 'secondary':
 					return isSelected ? 'bg-secondary' : 'bg-secondary-light'
 				case 'tertiary':
@@ -35,7 +37,7 @@ const Chip = React.memo(
 		const getIconColor = () => (isSelected ? 'white' : '#1D1B20')
 
 		const getTextSize = () => {
-			return 'text-sm ml-2 capitalize'
+			return 'text-md ml-2 capitalize'
 		}
 
 		const getTextColor = () => {
@@ -90,7 +92,7 @@ const Chip = React.memo(
 			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
-				className={`ios:shadow android:shadow-lg h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
+				className={`ios:shadow-sm android:shadow-md android:shadow-black/80 h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
 				accessibilityRole="button"
 				accessibilityLabel={getAccessibilityLabel()}
 				accessibilityHint={getAccessibilityHint()}

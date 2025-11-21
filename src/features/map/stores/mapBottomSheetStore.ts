@@ -53,8 +53,8 @@ export const useMapBottomSheetStore = create<MapBottomSheetStore>(
 				markerState: {
 					...state.markerState,
 					selectedBin: bin,
-					markerType: bin ? MarkerType.BIN : state.markerState.markerType,
-					selectedCluster: bin ? null : state.markerState.selectedCluster,
+					markerType: MarkerType.BIN ,
+					selectedCluster:  null
 				},
 			})),
 		setSelectedCluster: cluster =>
@@ -62,10 +62,8 @@ export const useMapBottomSheetStore = create<MapBottomSheetStore>(
 				markerState: {
 					...state.markerState,
 					selectedCluster: cluster,
-					markerType: cluster
-						? MarkerType.CLUSTER
-						: state.markerState.markerType,
-					selectedBin: cluster ? null : state.markerState.selectedBin,
+					markerType: MarkerType.CLUSTER,
+					selectedBin: null ,
 				},
 			})),
 		reset: () =>

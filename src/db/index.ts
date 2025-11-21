@@ -1,4 +1,5 @@
 import { sqlite } from './connection'
+import { binsModule } from './bins'
 
 // Sistema de módulos registrados
 interface DatabaseModule {
@@ -19,14 +20,9 @@ export const registerModule = (module: DatabaseModule) => {
 	)
 }
 
-// Re-exportar la conexión para compatibilidad
-export { db } from './connection'
-
-// Exportar esquemas y servicios (se cargan dinámicamente)
-export * from './bins'
 
 // Auto-registrar módulos
-import { binsModule } from './bins'
+
 registerModule(binsModule)
 
 // Función para inicializar la base de datos (crear tablas si no existen)
@@ -35,13 +31,45 @@ export const initializeDatabase = async () => {
 		console.log('🗄️ Initializing database...')
 		console.log(`📦 Found ${registeredModules.length} registered modules`)
 
+		// Crear tabla de control de versiones de migraciones si no existe
+		await sqlite.execAsync(`
+			CREATE TABLE IF NOT EXISTS __drizzle_migrations (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				hash TEXT NOT NULL UNIQUE,
+				created_at INTEGER NOT NULL
+			);
+		`)
+
 		// Ejecutar migraciones de todos los módulos registrados
 		for (const module of registeredModules) {
 			console.log(`🔧 Running migrations for module: ${module.name}`)
 			const migrations = await module.migrations()
 
-			for (const migration of migrations) {
+			for (let i = 0; i < migrations.length; i++) {
+				const migration = migrations[i]
+				const migrationHash = `${module.name}_v${i + 1}`
+
+				// Verificar si la migración ya se aplicó
+				const existingMigration = await sqlite.getFirstAsync(
+					'SELECT * FROM __drizzle_migrations WHERE hash = ?',
+					[migrationHash],
+				)
+
+				if (existingMigration) {
+					console.log(`⏭️ Migration ${migrationHash} already applied, skipping`)
+					continue
+				}
+
+				console.log(`▶️ Applying migration: ${migrationHash}`)
 				await sqlite.execAsync(migration)
+
+				// Registrar la migración como aplicada
+				await sqlite.runAsync(
+					'INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)',
+					[migrationHash, Date.now()],
+				)
+
+				console.log(`✅ Migration ${migrationHash} applied successfully`)
 			}
 		}
 
@@ -99,3 +127,10 @@ export const getDatabaseInfo = async () => {
 		return {}
 	}
 }
+
+
+// Re-exportar la conexión para compatibilidad
+export { db } from './connection'
+
+// Exportar esquemas y servicios (se cargan dinámicamente)
+export * from './bins'

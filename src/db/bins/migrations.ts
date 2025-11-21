@@ -50,8 +50,8 @@ export const binsMigrations = [
 		container_id TEXT NOT NULL,
 		category_group_id INTEGER NOT NULL,
 		category_id INTEGER NOT NULL,
-		district_id INTEGER NOT NULL,
-		neighborhood_id INTEGER,
+		district_code INTEGER NOT NULL,
+		neighborhood_code INTEGER,
 		address TEXT NOT NULL,
 		lat REAL NOT NULL,
 		lng REAL NOT NULL,
@@ -62,6 +62,52 @@ export const binsMigrations = [
 		notes TEXT,
 		bus_stop TEXT,
 		interurban_node TEXT,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	);
+	`,
+
+	`
+	-- Eliminar tabla antigua (Schema v2: códigos en lugar de IDs)
+	DROP TABLE IF EXISTS bins_containers_cache;
+	`,
+	`
+	-- Crear tabla con códigos (TEXT) en lugar de IDs (INTEGER)
+	CREATE TABLE IF NOT EXISTS bins_containers_cache (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		bin_type TEXT NOT NULL,
+		container_id TEXT NOT NULL,
+		category_group_id INTEGER NOT NULL,
+		category_id INTEGER NOT NULL,
+		district_code TEXT NOT NULL,
+		neighborhood_code TEXT,
+		address TEXT NOT NULL,
+		lat REAL NOT NULL,
+		lng REAL NOT NULL,
+		load_type TEXT,
+		direction TEXT,
+		subtype TEXT,
+		placement_type TEXT,
+		notes TEXT,
+		bus_stop TEXT,
+		interurban_node TEXT,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	);
+	`,
+	// Migración 4: Hacer barrio nullable en bins_hierarchy_cache (para oil_bins y otros sin neighborhood_code)
+	`
+	-- Eliminar tabla antigua
+	DROP TABLE IF EXISTS bins_hierarchy_cache;
+	`,
+	`
+	-- Recrear con barrio nullable
+	CREATE TABLE IF NOT EXISTS bins_hierarchy_cache (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		bin_type TEXT NOT NULL,
+		distrito TEXT NOT NULL,
+		barrio TEXT,
+		count INTEGER NOT NULL,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);

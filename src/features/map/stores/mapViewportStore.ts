@@ -1,5 +1,6 @@
 import {
 	CENTER_THRESHOLD,
+	CENTER_THRESHOLD_FOLLOW,
 	INITIAL_BOUNDS,
 	INITIAL_CENTER,
 	ZOOM_THRESHOLD,
@@ -11,6 +12,7 @@ import {
 	hasSignificantZoomChange,
 } from '@map/utils/mapUtils'
 import { create } from 'zustand'
+import { useUserLocationFABStore } from './userLocationFABStore'
 
 interface State {
 	zoom: number
@@ -148,9 +150,11 @@ export const useMapViewportStore = create<State & Action>(set => ({
 
 			// Actualizar zoom si se proporciona
 			if (updates.zoom !== undefined) {
-				if (
-					Math.abs((state.viewport.zoom ?? 0) - updates.zoom) >= ZOOM_THRESHOLD
-				) {
+				// Durante animaciones, NO aplicar threshold para capturar el zoom final
+				const isAnimating = state.shouldAnimate || state.isProgrammaticMove
+				const zoomDiff = Math.abs((state.viewport.zoom ?? 0) - updates.zoom)
+
+				if (isAnimating || zoomDiff >= ZOOM_THRESHOLD) {
 					newViewport.zoom = updates.zoom
 					hasChanges = true
 				}
@@ -159,10 +163,24 @@ export const useMapViewportStore = create<State & Action>(set => ({
 			// Actualizar center si se proporciona
 			if (updates.center) {
 				const current = state.viewport.center
+				const {
+					isUserLocationFABActivated,
+					isManuallyActivated,
+					isUserLocationCentered,
+				} = useUserLocationFABStore.getState()
+				const isFollowingUser =
+					isUserLocationFABActivated &&
+					isManuallyActivated &&
+					isUserLocationCentered &&
+					!state.isProgrammaticMove
+				const centerThreshold = isFollowingUser
+					? CENTER_THRESHOLD_FOLLOW
+					: CENTER_THRESHOLD
+
 				if (
 					!current ||
-					Math.abs(current.lat - updates.center.lat) >= CENTER_THRESHOLD ||
-					Math.abs(current.lng - updates.center.lng) >= CENTER_THRESHOLD
+					Math.abs(current.lat - updates.center.lat) >= centerThreshold ||
+					Math.abs(current.lng - updates.center.lng) >= centerThreshold
 				) {
 					newViewport.center = updates.center
 					hasChanges = true

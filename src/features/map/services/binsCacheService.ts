@@ -1,32 +1,18 @@
-import { BinsService } from '@/db/bins/service'
-import { BinsDownloadService } from '@/shared/services/binsDownloadService'
+import { clearCache as clearCacheFromService } from '@/db/bins/service'
+import {
+	loadInitialData,
+	scheduleBackgroundDownload,
+} from '@/shared/services/binsDownloadService'
 import { BinType } from '@/shared/types/bins'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
+import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
 
 const loadingMutex = new Map<BinType, Promise<void>>()
 
 /**
- * Verifica si hay datos en cache (solo conteo inicial)
- */
-export const isDataCached = async (binType: BinType): Promise<boolean> => {
-	return await BinsDownloadService.hasCachedData(binType)
-}
-
-/**
- * @deprecated Use BinsDownloadService.downloadAllBinsNow() instead
- * Esta función se mantiene por compatibilidad pero internamente usa el nuevo servicio
- */
-export const downloadAndCacheData = async (binType: BinType): Promise<void> => {
-	const result = await BinsDownloadService.downloadAllBinsNow(binType)
-	if (!result.success) {
-		throw new Error(`Failed to download and cache data for ${binType}`)
-	}
-}
-
-/**
  * Estrategia de carga híbrida:
- * 1. Carga inicial rápida (conteos jerárquicos)
- * 2. Descarga background inteligente (si hay WiFi + batería)
+ * 1. Carga inicial rápida (conteo total)
+ * 2. Descarga background automática (todos los bins para uso offline)
  */
 const getNewOperation = async (binType: BinType): Promise<void> => {
 	try {
@@ -35,16 +21,17 @@ const getNewOperation = async (binType: BinType): Promise<void> => {
 		}
 
 		// FASE 1: Carga inicial rápida (siempre)
-		const initialData = await BinsDownloadService.loadInitialData(binType)
-		
+		const initialData = await loadInitialData(binType)
+
 		if (initialData.success && initialData.count > 0) {
 			// Actualizar store con el conteo
 			useBinsCountStore.getState().setTotalCount(binType, initialData.count)
 		}
 
-		// FASE 2: Programar descarga background (si condiciones son adecuadas)
+		// FASE 2: Programar descarga background
+		// skipCheck=true porque loadInitialData ya verificó getTotalCount
 		// Esto NO bloquea, se ejecuta en background
-		BinsDownloadService.scheduleBackgroundDownload(binType)
+		scheduleBackgroundDownload(binType, true)
 
 		console.log(`✅ Completed ensureDataAvailable for ${binType}`)
 	} catch (error) {
@@ -72,7 +59,8 @@ export const ensureDataAvailable = async (binType: BinType): Promise<void> => {
 
 export const clearCache = async (binType: BinType): Promise<void> => {
 	try {
-		await BinsService.clearCache(binType)
+		await clearCacheFromService(binType)
+		await clearGeoJsonCache(binType)
 		console.log(`✅ Cleared cache for ${binType}`)
 	} catch (error) {
 		console.error(`❌ Error clearing cache for ${binType}:`, error)

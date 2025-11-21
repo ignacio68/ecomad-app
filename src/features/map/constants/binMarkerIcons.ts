@@ -5,8 +5,8 @@ import {
 	CardiganIcon as CardiganIconSolid,
 	MilkBottleIcon as MilkBottleIconSolid,
 	MilkCartonIcon as MilkCartonIconSolid,
-	OilBarrelIcon as OilBarrelIconSolid,
-	BatteryFullIcon as BatteryFullIconSolid,
+	DatabaseRestoreIcon as DatabaseRestoreIconSolid,
+	BatteryCharging01Icon as BatteryCharging01IconSolid,
 	WasteRestoreIcon as WasteRestoreIconSolid,
 } from '@hugeicons-pro/core-solid-rounded'
 import { IconSvgElement } from '@hugeicons/react-native'
@@ -16,64 +16,64 @@ type BinMarkerIconSet = {
 	active: IconSvgElement
 	color: string
 	mediumColor: string
-	hightcolor: string
+	highColor: string
 }
 
 export const BIN_MARKER_ICONS: Record<BinType, BinMarkerIconSet> = {
 	clothing_bins: {
-		default: require('@map/assets/icons/cardigan.png'),
+		default: require('@map/assets/icons/clothing-bins-small.png'),
 		active: CardiganIconSolid,
 		color: '#d3003b',
 		mediumColor: '#9F002A',
-		hightcolor: '#70001B',
+		highColor: '#70001B',
 	},
 	oil_bins: {
-		default: require('@map/assets/icons/oil-barrel.png'),
-		active: OilBarrelIconSolid,
+		default: require('@map/assets/icons/oil-bins-small.png'),
+		active: DatabaseRestoreIconSolid,
 		color: '#F59E0B',
-		mediumColor: '#09855C',
-		hightcolor: '#056444',
+		mediumColor: '#C27C07',
+		highColor: '#8F5A04',
 	},
 	glass_bins: {
-		default: require('@map/assets/icons/milk-bottle.png'),
+		default: require('@map/assets/icons/glass-bins-small.png'),
 		active: MilkBottleIconSolid,
 		color: '#10B981',
 		mediumColor: '#059669',
-		hightcolor: '#047857',
+		highColor: '#047857',
 	},
 	paper_bins: {
-		default: require('@map/assets/icons/book-02.png'),
+		default: require('@map/assets/icons/paper-bins-small.png'),
 		active: Book02IconSolid,
 		color: '#3B82F6',
 		mediumColor: '#2168CD',
-		hightcolor: '#174E9C',
+		highColor: '#174E9C',
 	},
 	plastic_bins: {
-		default: require('@map/assets/icons/cardigan.png'),
+		default: require('@map/assets/icons/plastic-bins-small.png'),
 		active: MilkCartonIconSolid,
 		color: '#F6DD57',
 		mediumColor: '#CEB948',
-		hightcolor: '#AA993A',
+		highColor: '#AA993A',
 	},
 	organic_bins: {
-		default: require('@map/assets/icons/apple-01.png'),
+		default: require('@map/assets/icons/organic-bins-small.png'),
 		active: Apple01IconSolid,
-		color: '#A26B0B',
-		mediumColor: '#825507',
-		hightcolor: '#633F04',
+		color: '#AD6F06',
+		mediumColor: '#8B5804',
+		highColor: '#684002',
 	},
 	battery_bins: {
-		default: require('@map/assets/icons/battery-full.png'),
-		active: BatteryFullIconSolid,
+		default: require('@map/assets/icons/battery-bins-small.png'),
+		active: BatteryCharging01IconSolid,
 		color: '#817B87',
 		mediumColor: '#67616C',
-		hightcolor: '#64E4A52',
+		highColor: '#4E4A52',
 	},
 	other_bins: {
-		default: require('@map/assets/icons/waste-restore.png'),
+		default: require('@map/assets/icons/other-bins-small.png'),
 		active: WasteRestoreIconSolid,
 		color: '#7A49A0',
 		mediumColor: '#613981',
-		hightcolor: '#4B2B64',
+		highColor: '#4B2B64',
 	},
 }

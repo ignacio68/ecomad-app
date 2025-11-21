@@ -1,7 +1,11 @@
-import { calculatePoints, createFallbackBounds } from '@map/services/mapService'
+import { showIndividualBins } from '@map/services/clusterDisplayService'
+import { createFallbackBounds } from '@map/services/mapService'
 import { isViewportSyncPaused } from '@map/services/viewportSyncController'
+import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
+import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
 import type { LngLatBounds, MapViewport } from '@map/types/mapData'
 import {
 	hasSignificantCenterChange,
@@ -9,6 +13,7 @@ import {
 } from '@map/utils/mapUtils'
 
 let started = false
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 export const startBinsViewportSync = () => {
 	if (started) return
@@ -18,7 +23,7 @@ export const startBinsViewportSync = () => {
 		console.log('🟢 [SYNC] startBinsViewportSync called')
 	}
 
-	useMapViewportStore.subscribe((state, prevState) => {
+	useMapViewportStore.subscribe(async (state, prevState) => {
 		if (__DEV__) {
 			console.log('🪝 [SYNC] subscribe tick')
 		}
@@ -45,20 +50,35 @@ export const startBinsViewportSync = () => {
 		const viewport: MapViewport = state.viewport
 		const prevViewport: MapViewport | null = prevState?.viewport ?? null
 
+		// Comparar con el último zoom validado para detectar cambios reales
+		const { lastValidatedZoom, lastValidatedCenter } =
+			useMapViewportStore.getState()
+
 		const zoomChanged = hasSignificantZoomChange(
-			prevViewport?.zoom ?? null,
-			viewport.zoom,
+			lastValidatedZoom,
+			viewport.zoom ?? 11,
 		)
 
 		const centerChanged = hasSignificantCenterChange(
-			prevViewport?.center ?? null,
+			lastValidatedCenter,
 			viewport.center!,
 		)
+
+		// Detectar cruce del umbral de zoom 14 (clusters <-> bins individuales)
+		const INDIVIDUAL_BINS_ZOOM_THRESHOLD = 14
+		const prevZoom = lastValidatedZoom ?? 11
+		const currZoom = viewport.zoom ?? 11
+		const crossedThreshold =
+			(prevZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD &&
+				currZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD) ||
+			(prevZoom >= INDIVIDUAL_BINS_ZOOM_THRESHOLD &&
+				currZoom < INDIVIDUAL_BINS_ZOOM_THRESHOLD)
 
 		if (__DEV__) {
 			console.log('🔍 [SYNC] Checking viewport changes:', {
 				zoomChanged,
 				centerChanged,
+				crossedThreshold,
 				prevZoom: prevViewport?.zoom,
 				currZoom: viewport.zoom,
 				prevCenter: prevViewport?.center,
@@ -66,7 +86,68 @@ export const startBinsViewportSync = () => {
 			})
 		}
 
-		if (!zoomChanged && !centerChanged) {
+		// En zoom bajo (< 11), ignorar cambios de center (pan) para evitar recálculos innecesarios
+		// Solo actualizar cuando cambia el zoom o se cruza el umbral
+		const LOW_ZOOM_THRESHOLD = 11
+		const isLowZoom = (viewport.zoom ?? 11) < LOW_ZOOM_THRESHOLD
+
+		// Si es zoom bajo y solo cambió el center (pan), ignorar
+		if (isLowZoom && !zoomChanged && !crossedThreshold && centerChanged) {
+			if (__DEV__) {
+				console.log('⏭️ [SYNC] Low zoom pan ignored, skipping recalculation', {
+					zoom: viewport.zoom,
+					centerChanged,
+				})
+			}
+			return
+		}
+
+		// Si solo cambió el center (pan) y ya tenemos todos los bins descargados,
+		// ignorar para evitar recálculos innecesarios (el filtrado por bounds es suficiente)
+		if (!zoomChanged && !crossedThreshold && centerChanged) {
+			const { selectedEndPoint } = useMapChipsMenuStore.getState()
+			if (selectedEndPoint) {
+				const { getPointsCache } = useSuperclusterCacheStore.getState()
+				const cachedBins = getPointsCache(selectedEndPoint)
+
+				// Verificar si tenemos todos los bins descargados usando el store síncrono
+				if (cachedBins && cachedBins.length > 0) {
+					const totalCount = useBinsCountStore
+						.getState()
+						.getTotalCount(selectedEndPoint)
+					// Si tenemos más de 5000 bins o el 95% del total, asumimos que tenemos todos
+					const hasAllBins =
+						cachedBins.length > 5000 ||
+						(totalCount !== null && cachedBins.length >= totalCount * 0.95)
+
+					const isHighZoom =
+						(viewport.zoom ?? 11) >= INDIVIDUAL_BINS_ZOOM_THRESHOLD
+
+					if (hasAllBins && !isHighZoom) {
+						if (__DEV__) {
+							console.log('⏭️ [SYNC] Pan ignored, all bins already cached', {
+								zoom: viewport.zoom,
+								cachedBins: cachedBins.length,
+								totalCount,
+							})
+						}
+						// Actualizar viewport validado pero no recalcular bins
+						const safeBounds: LngLatBounds =
+							viewport.bounds ??
+							createFallbackBounds(
+								viewport.center!.lng,
+								viewport.center!.lat,
+								viewport.zoom,
+							)
+						updateValidatedViewport(viewport.zoom, safeBounds, viewport.center!)
+						return
+					}
+				}
+			}
+		}
+
+		// Actualizar si hay cambios significativos O si cruzamos el umbral de zoom 14
+		if (!zoomChanged && !centerChanged && !crossedThreshold) {
 			if (__DEV__) {
 				console.log('⏭️ [SYNC] No significant changes, skipping', {
 					prevViewport,
@@ -85,29 +166,39 @@ export const startBinsViewportSync = () => {
 				viewport.zoom,
 			)
 
-		// ✅ Actualiza SIEMPRE los valores validados, incluso sin chip seleccionado
+		// ✅ Actualiza SIEMPRE los valores validados
+		// El clustering jerárquico se maneja reactivamente en useHierarchicalBins
 		updateValidatedViewport(viewport.zoom, safeBounds, viewport.center!)
 
-		// Si no hay chip, no calculamos puntos, pero dejamos los validados al día
+		// Actualizar bins cuando hay cambios significativos
 		const { selectedEndPoint } = useMapChipsMenuStore.getState()
-		if (!selectedEndPoint) {
-			if (__DEV__) {
-				console.log('⏭️ [SYNC] No endpoint selected')
+		const { route } = useMapNavigationStore.getState()
+
+		if (selectedEndPoint && viewport.center) {
+			// Limpiar debounce anterior
+			if (debounceTimer) {
+				clearTimeout(debounceTimer)
 			}
-			return
+
+			// Usar debounce para evitar llamadas excesivas durante pan continuo
+			// Pero permitir actualizaciones más rápidas para zoom
+			const debounceDelay = zoomChanged || crossedThreshold ? 50 : 200
+
+			debounceTimer = setTimeout(() => {
+				showIndividualBins(
+					selectedEndPoint,
+					viewport.zoom ?? 11,
+					safeBounds,
+					viewport.center!,
+					route,
+				).catch(error => {
+					console.error(
+						'❌ [SYNC] Error showing bins after viewport change:',
+						error,
+					)
+				})
+				debounceTimer = null
+			}, debounceDelay)
 		}
-
-		// ✅ Asegura bounds no nulos al negocio
-		const viewportWithBounds: MapViewport = { ...viewport, bounds: safeBounds }
-
-		if (__DEV__) {
-			console.log('✅ [SYNC] Calculating points', {
-				zoom: viewport.zoom,
-				hasBounds: !!viewport.bounds,
-				center: viewport.center,
-			})
-		}
-
-		calculatePoints(viewportWithBounds)
 	})
 }

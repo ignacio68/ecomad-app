@@ -9,6 +9,8 @@ export interface BaseButtonProps {
 	iconSelected?: IconSvgElement
 	disabled?: boolean
 	loading?: boolean
+	bgColor?: string
+	bgColorSelected?: string
 	onPress: () => void
 	testID?: string
 }

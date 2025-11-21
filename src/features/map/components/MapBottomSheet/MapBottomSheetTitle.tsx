@@ -1,6 +1,4 @@
-import {
-	InformationCircleIcon,
-} from '@hugeicons-pro/core-stroke-rounded'
+import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
@@ -51,7 +49,7 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 					testID={'contenedor_foto'}
 				/>
 			</View> */}
-			<View className="flex-row items-center justify-between py-4">
+			<View className="flex-row items-center justify-between py-4 px-2">
 				<View className="flex-1 flex-row items-center">
 					<Text className="font-lato-semibold text-2xl text-gray-900">
 						{title}
@@ -79,14 +77,12 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 						</View>
 					</Popover>
 				</View>
-			<Pressable
-					onPress={handleClose}
-					className="p-2"
-				>
-					<Text className="text-secondary font-lato-semibold text-base text-center">
+				{markerState.markerType != MarkerType.BIN && (
+					<Pressable onPress={handleClose} className="p-2">
+					<Text className="text-center font-lato-semibold text-base text-secondary">
 						Cancelar
 					</Text>
-				</Pressable>
+				</Pressable>)}
 			</View>
 		</View>
 	)

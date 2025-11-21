@@ -1,6 +1,7 @@
+import type { CameraProps, MapViewProps } from '@map/types/mapConfig'
+import type { LngLat, LngLatBounds } from '@map/types/mapData'
 import { StyleURL } from '@rnmapbox/maps'
-import { CameraProps, MapViewProps } from '../types/mapConfig'
-import { LngLat, LngLatBounds } from '../types/mapData'
+import { Platform } from 'react-native'
 
 export const MAPBOX_DOWNLOADS_TOKEN = process.env
 	.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN as string
@@ -28,7 +29,7 @@ export const INITIAL_BOUNDS: LngLatBounds = [
 
 export const DEFAULT_CAMERA: CameraProps = {
 	centerCoordinate: INITIAL_CENTER,
-	zoomLevel: 12,
+	zoomLevel: 11,
 	animationDuration: 1000,
 	animationMode: 'flyTo',
 }
@@ -37,16 +38,18 @@ export const DEFAULT_MAP_VIEW_PROPS: MapViewProps = {
 	styleURL: StyleURL.Outdoors,
 }
 
-export const COMPASS_POSITION = { top: 80, right: 18 }
+export const COMPASS_POSITION =
+	Platform.OS === 'ios' ? { top: 80, right: 18 } : { top: 120, right: 16 }
 
-export const BOTTOM_SHEET_SNAP_POINTS = ['35%', '60%', '90%']
+export const BOTTOM_SHEET_SNAP_POINTS = ['25%', '50%', '90%']
 
 export const IDLE_THROTTLE_MS = 300
 
 export const ANIMATION_PAUSE_BUFFER_MS = 150
 
 // Thresholds para comparaciones de viewport (optimizados para performance)
-export const CENTER_THRESHOLD = 0.0005 // ~10 metros de diferencia - evita recálculos innecesarios
+export const CENTER_THRESHOLD = 0.001 // ~100 metros de diferencia - evita recálculos innecesarios
+export const CENTER_THRESHOLD_FOLLOW = 0.00005 // ~5 metros cuando seguimos al usuario
 export const ZOOM_THRESHOLD = 1 // 1 nivel de zoom de diferencia - mejora la reactividad del zoom
 
 export interface MapFABStyle {

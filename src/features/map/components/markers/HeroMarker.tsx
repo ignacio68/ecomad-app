@@ -8,6 +8,7 @@ import {
 	HERO_MARKER_SIZE,
 	HERO_MARKER_TRIANGLE_MARGIN_BOTTOM,
 	HERO_MARKER_TRIANGLE_MARGIN_TOP,
+	HERO_MARKER_TRIANGLE_SIZE,
 } from '@map/constants/clustering'
 import { MarkerView } from '@rnmapbox/maps'
 import React, { useEffect, useMemo, useRef } from 'react'
@@ -45,18 +46,14 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 	}, [heroScale])
 
 	return (
-		<MarkerView
-			coordinate={coordinate}
-			anchor={{ x: 0.5, y: 1 }}
-			allowOverlap={true}
-		>
+		<MarkerView coordinate={coordinate} anchor={{ x: 0.5, y: 0.8 }}>
 			<Pressable onPress={onPress}>
 				<Animated.View
 					className="items-center"
 					style={[
 						heroAnimatedStyle,
 						{
-							paddingBottom: 15, // Espacio para el triángulo y sus márgenes negativos
+							paddingBottom: 15,
 						},
 					]}
 				>
@@ -65,14 +62,17 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 							width: HERO_MARKER_SIZE,
 							height: HERO_MARKER_SIZE,
 							backgroundColor: color,
-							borderRadius: 9999,
+							borderRadius: '100%',
+							borderWidth: 3,
+							borderColor: '#fff',
+							alignItems: 'center',
+							justifyContent: 'center',
+							zIndex: 10,
 							shadowColor: '#000',
 							shadowOffset: { width: 0, height: 8 },
 							shadowOpacity: HERO_MARKER_SHADOW_OPACITY,
 							shadowRadius: HERO_MARKER_SHADOW_RADIUS,
 							elevation: HERO_MARKER_ELEVATION,
-							alignItems: 'center',
-							justifyContent: 'center',
 						}}
 					>
 						<HugeiconsIcon
@@ -84,9 +84,9 @@ const HeroMarker: React.FC<HeroMarkerProps> = ({
 					</Animated.View>
 					<View
 						style={{
-							width: 8,
-							height: 8,
-							backgroundColor: color,
+							width: HERO_MARKER_TRIANGLE_SIZE,
+							height: HERO_MARKER_TRIANGLE_SIZE,
+							backgroundColor: '#fff',
 							transform: [{ rotate: '45deg' }],
 							marginTop: HERO_MARKER_TRIANGLE_MARGIN_TOP,
 							marginBottom: HERO_MARKER_TRIANGLE_MARGIN_BOTTOM,

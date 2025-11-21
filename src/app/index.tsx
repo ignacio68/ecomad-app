@@ -4,6 +4,7 @@ import {
 	ReanimatedLogLevel,
 } from 'react-native-reanimated'
 
+
 configureReanimatedLogger({
 	level: ReanimatedLogLevel.error,
 	strict: false,
@@ -17,6 +18,7 @@ if (!__DEV__) {
 }
 
 const Home = () => {
+
 	return <Redirect href="/(app)/map" />
 }
 

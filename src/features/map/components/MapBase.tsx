@@ -1,11 +1,10 @@
 import {
 	ANIMATION_DURATION_MS,
 	COMPASS_POSITION,
-	IDLE_THROTTLE_MS,
+	INITIAL_BOUNDS,
 	INITIAL_CENTER,
 } from '@map/constants/map'
 import { startBinsViewportSync } from '@map/services/binsViewportSync'
-// (removed immediate recalc helpers)
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
@@ -18,27 +17,37 @@ import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { Camera, MapView, type MapState } from '@rnmapbox/maps'
 import { memo, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import MapBinsLayer from './MapBinsLayer'
+import MapBinsLayerV2 from './MapBinsLayerV2'
 import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
 import UserLocationMarker from './markers/UserLocationMarker'
+
+const FOLLOWING_CAMERA_THROTTLE_MS = 250
+const ZOOM_EPSILON = 0.01
+const FOLLOW_CENTER_EPSILON = 0.00001
 
 const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)
+	const justFinishedAnimationRef = useRef(false)
+	const hasInitializedRef = useRef(false)
 
 	const [mapIsLoaded, setMapIsLoaded] = useState(false)
 	const [mapLoadErrorMessage, setMapLoadErrorMessage] = useState<string | null>(
 		null,
 	)
 
-	const { isUserLocationFABActivated, isManuallyActivated } =
-		useUserLocationFABStore()
+	const {
+		isUserLocationFABActivated,
+		isManuallyActivated,
+		isUserLocationCentered,
+	} = useUserLocationFABStore()
 	const { route, hasActiveRoute } = useMapNavigationStore()
 	const { selectedEndPoint } = useMapChipsMenuStore()
 	const { setCameraRef: registerCameraRef } = useMapCameraStore()
 	const { currentStyle } = useMapStyleStore()
 	const { markerState } = useMapBottomSheetStore()
 	const lastCameraEmitRef = useRef(0)
+	const lastFollowCenterRef = useRef<{ lat: number; lng: number } | null>(null)
 
 	const {
 		shouldAnimate,
@@ -54,11 +63,53 @@ const MapBase = () => {
 		if (__DEV__) {
 			console.log('🗺️ [MapBase] onMapLoaded → startBinsViewportSync()')
 		}
+
+		const { viewport } = useMapViewportStore.getState()
+		const targetCenter =
+			hasInitializedRef.current && viewport.center
+				? [viewport.center.lng, viewport.center.lat]
+				: INITIAL_CENTER
+		const targetZoom =
+			hasInitializedRef.current && viewport.zoom
+				? viewport.zoom
+				: MapZoomLevels.DISTRICT
+
+		if (mapCameraRef.current) {
+			mapCameraRef.current.setCamera({
+				centerCoordinate: targetCenter,
+				zoomLevel: targetZoom,
+				animationDuration: 0,
+				animationMode: 'flyTo',
+			})
+		}
+
+		if (!hasInitializedRef.current) {
+			useMapViewportStore.getState().setViewportBatch({
+				zoom: MapZoomLevels.DISTRICT,
+				center: { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] },
+				bounds: INITIAL_BOUNDS,
+			})
+			hasInitializedRef.current = true
+		}
 		startBinsViewportSync()
 	}
 
 	const onMapLoadingError = () => {
 		setMapLoadErrorMessage('Error al cargar el mapa. Intenta de nuevo.')
+	}
+
+	const onTouchStart = () => {
+		// Desanclar seguimiento cuando el usuario interactúa con el mapa (similar a Google/Apple Maps)
+		const {
+			isUserLocationFABActivated: activated,
+			isUserLocationCentered,
+			setIsUserLocationCentered,
+		} = useUserLocationFABStore.getState()
+
+		if (activated && isUserLocationCentered) {
+			console.log('👆 [MAP] User touch detected, pausing user follow mode')
+			setIsUserLocationCentered(false)
+		}
 	}
 
 	useEffect(() => {
@@ -67,62 +118,97 @@ const MapBase = () => {
 		const { center, zoom } = viewport
 		if (!center || !mapCameraRef.current) return
 
-		// Pausamos el sync durante la animación para no cruzar estados
-		// pauseViewportSync(ANIMATION_DURATION_MS + ANIMATION_PAUSE_BUFFER_MS)
 		if (__DEV__)
-			console.log(
-				'[MapBase] 🎬 Starting camera animation:: shouldAnimate',
+			console.log('[MapBase] 🎬 Starting camera animation:', {
 				shouldAnimate,
-			)
+				targetZoom: zoom,
+				targetCenter: center,
+			})
 
-		mapCameraRef.current.setCamera({
-			centerCoordinate: [center.lng, center.lat],
-			zoomLevel: zoom,
-			animationMode: 'flyTo',
-			animationDuration: ANIMATION_DURATION_MS,
-		})
+		try {
+			mapCameraRef.current.setCamera({
+				centerCoordinate: [center.lng, center.lat],
+				zoomLevel: zoom,
+				animationMode: 'flyTo',
+				animationDuration: ANIMATION_DURATION_MS,
+			})
 
-		setTimeout(() => {
+			// Resetear flags y mostrar bins/clusters después de la animación
+			setTimeout(() => {
+				if (__DEV__)
+					console.log('[MapBase] ⏰ Animation timeout reached, resetting flags')
+
+				resetAnimation()
+				resetProgrammaticMove()
+				justFinishedAnimationRef.current = true
+				// Resetear throttle para permitir pans inmediatos después de la animación
+				lastCameraEmitRef.current = 0
+
+				// Mostrar bins/clusters imperativamente según el zoom final
+				const { viewport, updateValidatedViewport } =
+					useMapViewportStore.getState()
+				const { selectedEndPoint } = useMapChipsMenuStore.getState()
+
+				if (__DEV__)
+					console.log('[MapBase] 🔄 Showing bins/clusters after animation:', {
+						zoom: viewport.zoom,
+						center: viewport.center,
+						hasBounds: !!viewport.bounds,
+						selectedEndPoint,
+					})
+
+				if (
+					viewport.zoom &&
+					viewport.bounds &&
+					viewport.center &&
+					selectedEndPoint
+				) {
+					// Actualizar viewport validated
+					// binsViewportSync se encargará de actualizar los bins cuando detecte el cambio
+					updateValidatedViewport(
+						viewport.zoom,
+						viewport.bounds,
+						viewport.center,
+					)
+				}
+
+				if (__DEV__)
+					console.log(
+						'[MapBase] ✅ Animation finished, bins/clusters displayed',
+					)
+			}, ANIMATION_DURATION_MS + 100)
+		} catch (error) {
+			console.error('❌ [MapBase] Error setting camera:', error)
 			resetAnimation()
 			resetProgrammaticMove()
-			if (__DEV__) console.log('[MapBase] ✅ Animation finished, flags cleared')
-		}, ANIMATION_DURATION_MS + 100)
-
-		// const timeoutId = setTimeout(() => {
-		// 	resetAnimation()
-		// 	resetProgrammaticMove()
-		//   if (__DEV__) console.log('[MapBase] ✅ Animation finished, flags cleared')
-		// }, ANIMATION_DURATION_MS + 100)
-
-		// return () => clearTimeout(timeoutId)
+		}
 	}, [shouldAnimate, resetAnimation, resetProgrammaticMove])
 
 	const onCameraChanged = (event: MapState) => {
+		if (!mapIsLoaded) {
+			return
+		}
 		const { zoom, center, bounds } = event.properties
 		if (zoom == null || !center) return
 
-		// Failsafe: si hubo un movimiento programático previo pero ya no estamos animando,
-		// cualquier cambio de cámara indica interacción del usuario → limpiar flag
-		const viewportState = useMapViewportStore.getState()
-		if (viewportState.isProgrammaticMove && !viewportState.shouldAnimate) {
-			resetProgrammaticMove()
-		}
-
-		// 🕒 Throttle dinámico
+		// 🕒 Debounce para pan del usuario (esperar a que termine)
 		const { isProgrammaticMove } = useMapViewportStore.getState()
-		const { isUserLocationFABActivated, isManuallyActivated } =
-			useUserLocationFABStore.getState()
+		const {
+			isUserLocationFABActivated,
+			isManuallyActivated,
+			isUserLocationCentered,
+		} = useUserLocationFABStore.getState()
 
 		const isFollowingUser =
-			isUserLocationFABActivated && isManuallyActivated && !isProgrammaticMove
+			isUserLocationFABActivated &&
+			isManuallyActivated &&
+			isUserLocationCentered &&
+			!isProgrammaticMove
 
-		const throttleMs = isFollowingUser ? IDLE_THROTTLE_MS * 5 : IDLE_THROTTLE_MS
-		const now = Date.now()
-		const elapsed = now - lastCameraEmitRef.current
-
-		if (elapsed < throttleMs) return
-
-		lastCameraEmitRef.current = now
+		if (!isFollowingUser) {
+			lastCameraEmitRef.current = 0
+			lastFollowCenterRef.current = null
+		}
 
 		// ✅ center mutable
 		const centerLatLng = { lat: center[1], lng: center[0] }
@@ -134,6 +220,42 @@ const MapBase = () => {
 				[bounds.sw[0], bounds.sw[1]],
 				[bounds.ne[0], bounds.ne[1]],
 			]
+		}
+
+		const prevViewport = useMapViewportStore.getState().viewport
+		const zoomChangedSignificantly =
+			prevViewport.zoom == null ||
+			Math.abs((prevViewport.zoom ?? 0) - zoom) >= ZOOM_EPSILON
+
+		let shouldSkip = false
+		if (isFollowingUser) {
+			const prevCenter = lastFollowCenterRef.current
+			const now = Date.now()
+
+			if (!zoomChangedSignificantly) {
+				if (
+					prevCenter &&
+					Math.abs(prevCenter.lat - centerLatLng.lat) < FOLLOW_CENTER_EPSILON &&
+					Math.abs(prevCenter.lng - centerLatLng.lng) < FOLLOW_CENTER_EPSILON
+				) {
+					shouldSkip = true
+				} else if (
+					lastCameraEmitRef.current !== 0 &&
+					now - lastCameraEmitRef.current < FOLLOWING_CAMERA_THROTTLE_MS
+				) {
+					shouldSkip = true
+				}
+			}
+
+			lastFollowCenterRef.current = centerLatLng
+
+			if (!shouldSkip) {
+				lastCameraEmitRef.current = now
+			}
+		}
+
+		if (shouldSkip) {
+			return
 		}
 
 		if (__DEV__) {
@@ -179,6 +301,7 @@ const MapBase = () => {
 				onMapLoadingError={onMapLoadingError}
 				onDidFinishLoadingMap={onMapLoaded}
 				onCameraChanged={onCameraChanged}
+				onTouchStart={onTouchStart}
 				zoomEnabled
 				rotateEnabled
 			>
@@ -193,15 +316,19 @@ const MapBase = () => {
 					followUserLocation={
 						isUserLocationFABActivated &&
 						isManuallyActivated &&
+						isUserLocationCentered &&
 						!isProgrammaticMove
 					}
 					followZoomLevel={
-						hasActiveRoute || markerState.selectedBin ? undefined : 15
+						hasActiveRoute ||
+						markerState.selectedBin ||
+						(isUserLocationFABActivated && isManuallyActivated)
+							? undefined
+							: 15
 					}
 				/>
-
+				{selectedEndPoint && <MapBinsLayerV2 />}
 				{route && <MapWalkingRouteLayer route={route} />}
-				{selectedEndPoint && <MapBinsLayer />}
 				{isUserLocationFABActivated && <UserLocationMarker />}
 			</MapView>
 		</View>

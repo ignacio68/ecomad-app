@@ -1,77 +1,113 @@
 import {
-	getDistrictNameById,
+	getDistrictNameByCode,
 	getNeighborhoodNameByCode,
 } from '@/shared/utils/locationsUtils'
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import { Cancel01Icon } from '@hugeicons-pro/core-duotone-rounded'
-import { SquareArrowUpLeftIcon } from '@hugeicons-pro/core-solid-rounded'
+import { SquareArrowDownRightIcon } from '@hugeicons-pro/core-solid-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { fitBoundsToTwoPoints } from '@map/services/mapService'
+import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapCameraStore } from '@map/stores/mapCameraStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
+import { useNavigationBottomSheetStore } from '@map/stores/navigationBottomSheetStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import type { BinPoint, LngLat } from '@map/types/mapData'
-import { MapZoomLevels } from '@map/types/mapData'
+import { MapZoomLevels, MarkerType } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
-import { useCallback } from 'react'
+import type { UserLocation } from '@map/types/userLocation'
+import { PermissionStatus } from 'expo-location'
+import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
-
+// TODO: validar distancia (origen → destino) antes de llamar a Directions API.
+// Si supera el límite de Mapbox, mostrar modal/toast en vez de lanzar la petición.
 interface BinInfoProps {
 	bin: BinPoint
 	onNavigate?: (bin: BinPoint) => void
+	onClose?: () => void
 }
 
-const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
+const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
-
+	const { deactivateRouteIfActive } = useMapNavigationStore()
+	const { setMarkerType, reset } = useMapBottomSheetStore()
+	const { setIsNavigationBottomSheetOpen } = useNavigationBottomSheetStore()
 	const {
-		properties: {
-			address,
-			district_id,
-			neighborhood_id,
-			binType,
-			notes,
-			subtype,
-		},
+		properties: { address, district_code, neighborhood_code, notes, subtype },
 		geometry: { coordinates },
 	} = bin
 
 	const [longitude, latitude] = coordinates
 
-	// Convertir IDs a nombres usando las funciones helper
-	const districtName = getDistrictNameById(district_id)
-	const neighborhoodName = neighborhood_id
-		? getNeighborhoodNameByCode(neighborhood_id)
-		: 'N/A'
-
+	// Convertir códigos a nombres usando las funciones helper
+	const districtName = getDistrictNameByCode(district_code)
+	const neighborhoodName = neighborhood_code
+		? getNeighborhoodNameByCode(neighborhood_code)
+		: null
 	const {
 		isUserLocationFABActivated,
 		setIsUserLocationFABActivated,
 		setIsManuallyActivated,
 	} = useUserLocationFABStore()
-	const {
-		location: userLocation,
-		requestPermissions,
-		getCurrentLocation,
-	} = useUserLocationStore()
+	const { requestPermissions, getCurrentLocation, startTracking } =
+		useUserLocationStore()
 	const { calculateRoute, setNavigationMode, hasActiveRoute, clearRoute } =
 		useMapNavigationStore()
 	const { cameraRef } = useMapCameraStore()
 
+	const binIdRef = useRef<string | number | null>(null)
+
+	// Limpiar ruta cuando cambia el bin seleccionado
+	useEffect(() => {
+		const currentBinId = bin.properties.containerId
+		if (binIdRef.current !== null && binIdRef.current !== currentBinId) {
+			if (hasActiveRoute) {
+				clearRoute()
+				setNavigationMode(false)
+			}
+		}
+		binIdRef.current = currentBinId
+	}, [
+		bin.properties.containerId,
+		hasActiveRoute,
+		clearRoute,
+		setNavigationMode,
+	])
+
 	const handleNavigate = async () => {
+		// setIsNavigationBottomSheetOpen(true)
 		if (!cameraRef || hasActiveRoute) {
+			handleCloseNavigate()
 			return
 		}
 
-		let currentUserLocation = userLocation
+		let currentUserLocation: UserLocation | null = null
 
-		if (!isUserLocationFABActivated) {
-			await requestPermissions()
+		if (isUserLocationFABActivated) {
+			// Si el FAB ya está activado, leer directamente del store (más rápido)
+			currentUserLocation = useUserLocationStore.getState().location
+		} else {
+			// Si el FAB no está activado, activarlo primero
+			const permissionStatus = await requestPermissions()
+			if (permissionStatus !== PermissionStatus.GRANTED) {
+				console.warn('⚠️ Permisos de ubicación denegados')
+				return
+			}
 			setIsUserLocationFABActivated(true)
 			setIsManuallyActivated(false)
-			currentUserLocation = await getCurrentLocation()
+			await startTracking().catch(error => {
+				console.warn('⚠️ No se pudo iniciar el tracking de ubicación', error)
+				return false
+			})
+
+			// Intentar usar la ubicación del store primero (puede estar disponible aunque el FAB no esté activado)
+			currentUserLocation = useUserLocationStore.getState().location
+
+			// Solo llamar a getCurrentLocation() si realmente no hay ubicación disponible
+			if (!currentUserLocation) {
+				currentUserLocation = await getCurrentLocation()
+			}
 		}
 
 		if (!currentUserLocation) {
@@ -101,15 +137,19 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 		fitBoundsToTwoPoints(cameraRef, userCoords, coordinates)
 	}
 
-	const handleClose = () => {
-		if (hasActiveRoute) {
-			clearRoute()
-			setNavigationMode(false)
-			setViewportAnimated({
-				zoom: MapZoomLevels.CONTAINER,
-				center: { lng: longitude, lat: latitude },
-			})
-		}
+	const handleCloseBin = () => {
+		handleCloseNavigate()
+		setMarkerType(MarkerType.GENERAL)
+		reset()
+	}
+
+	const handleCloseNavigate = () => {
+		clearRoute()
+		setNavigationMode(false)
+		setViewportAnimated({
+			zoom: MapZoomLevels.BINS,
+			center: { lng: longitude, lat: latitude },
+		})
 	}
 
 	const getNavigationButtonColor = useCallback(() => {
@@ -119,63 +159,76 @@ const BinInfo = ({ bin, onNavigate }: BinInfoProps) => {
 		return 'bg-secondary'
 	}, [hasActiveRoute])
 
-	const getNavigationIconRotation = useCallback(() => {
-		return hasActiveRoute ? 0 : 135
-	}, [hasActiveRoute])
-
 	return (
-		<BottomSheetScrollView className="w-full px-2 py-6">
-			<Text className="font-lato-semibold text-sm uppercase text-gray-500">
-				Contenedor seleccionado
-			</Text>
-			<Text className="mt-2 font-lato-bold text-2xl text-gray-900">
+		<>
+			<View className="flex-row items-center justify-between">
+				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
+					Contenedor seleccionado
+				</Text>
+				<Pressable className="rounded-full bg-secondary/10 p-2" onPress={handleCloseBin}>
+					<HugeiconsIcon
+						icon={Cancel01Icon}
+						size={24}
+						strokeWidth={2}
+						color="gray"
+						accessibilityLabel={`cierra el bottom sheet deinformación del contenedor`}
+						testID={`CloseBottomSheetIcon`}
+
+					/>
+				</Pressable>
+			</View>
+			<Text className="mt-1 font-lato-bold text-2xl text-gray-900">
 				{address}
 			</Text>
-			<Text className="mt-1 font-lato-medium text-base text-gray-700">
-				{districtName} · {neighborhoodName}
-			</Text>
+			<View className="flex-row items-center gap-2">
+				<Text className="font-lato-medium text-base text-gray-700">
+					{districtName}
+				</Text>
+				{!!neighborhoodName && (
+					<Text className="font-lato-medium text-base text-gray-700">
+						· {neighborhoodName}
+					</Text>
+				)}
+			</View>
 			{subtype && (
-				<Text className="mt-1 font-lato-medium text-sm text-gray-600">
-					{subtype}
+				<Text className="mt-2 font-lato-medium text-sm text-gray-600">
+					Tipo de contenedor: {subtype}
 				</Text>
 			)}
 			{notes && (
-				<Text className="mt-2 font-lato-regular text-sm text-gray-500">
+				<Text className="mt-4 font-lato-regular text-sm text-gray-500">
 					ℹ️ {notes}
 				</Text>
 			)}
 
-			<View className="mt-4 flex-row justify-between">
+			<View className="mt-2 flex-row justify-start gap-2">
 				<Text className="font-lato-medium text-xs uppercase text-gray-500">
-					Coordenadas
+					Coordenadas:
 				</Text>
-				<Text className="font-lato-medium text-xs text-gray-700">
+				<Text className="font-lato-semibold text-xs text-gray-700">
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
-			<View
-				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-4 flex-row items-center justify-center gap-3 px-5 py-3`}
+			<Pressable
+				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-6 flex-row items-center justify-center gap-3 px-5 py-3`}
 				accessibilityLabel={'botón de navegación'}
 				testID={`NavigateButton`}
+				onPress={handleNavigate}
 			>
 				<HugeiconsIcon
-					transform={getNavigationIconRotation}
-					icon={SquareArrowUpLeftIcon}
+					icon={SquareArrowDownRightIcon}
 					altIcon={Cancel01Icon}
 					showAlt={hasActiveRoute}
 					size={24}
 					color="white"
 					accessibilityLabel={`comienza la navegación`}
 					testID={`StartNAvigationIcon`}
-					onPress={handleClose}
 				/>
-				<Pressable onPress={handleNavigate}>
-					<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
-						Cómo llegar
-					</Text>
-				</Pressable>
-			</View>
-		</BottomSheetScrollView>
+				<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
+					Cómo llegar
+				</Text>
+			</Pressable>
+		</>
 	)
 }
 

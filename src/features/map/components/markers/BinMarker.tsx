@@ -1,10 +1,9 @@
 import { BinType } from '@/shared/types/bins'
-import { HugeiconsIcon } from '@hugeicons/react-native'
 import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
-import { BIN_MARKER_ICON_SIZE } from '@map/constants/clustering'
-import { MarkerView } from '@rnmapbox/maps'
+// TODO: MarkerView comentado temporalmente - no compatible con Nueva Arquitectura (Fabric)
+// import { MarkerView } from '@rnmapbox/maps'
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Animated, Pressable } from 'react-native'
+import { Animated } from 'react-native'
 
 interface BinMarkerProps {
 	point: any
@@ -43,29 +42,28 @@ const BinMarker: React.FC<BinMarkerProps> = ({ point, onPress, isActive }) => {
 
 	const handleBinMarkerPress = () => onPress?.(point)
 
-	return (
-		<MarkerView
-			coordinate={[longitude, latitude]}
-			anchor={{ x: 0.5, y: 0.5 }}
-			allowOverlap={true}
-		>
-			<Pressable onPress={handleBinMarkerPress}>
-				<Animated.View
-					className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white"
-					style={[{ backgroundColor: color }, markerAnimatedStyle]}
-				>
-					{!isActive && (
-						<HugeiconsIcon
-							icon={DefaultIcon}
-							size={BIN_MARKER_ICON_SIZE}
-							color="white"
-							strokeWidth={1.5}
-						/>
-					)}
-				</Animated.View>
-			</Pressable>
-		</MarkerView>
-	)
+	// TODO: MarkerView comentado temporalmente - no compatible con Nueva Arquitectura (Fabric)
+	// Usar MapBinMarker o ShapeSource en su lugar
+	return null
+	// return (
+	// 	<MarkerView coordinate={[longitude, latitude]} anchor={{ x: 0.5, y: 0.5 }}>
+	// 		<Pressable onPress={handleBinMarkerPress}>
+	// 			<Animated.View
+	// 				className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white"
+	// 				style={[{ backgroundColor: color }, markerAnimatedStyle]}
+	// 			>
+	// 				{!isActive && (
+	// 					<HugeiconsIcon
+	// 						icon={DefaultIcon}
+	// 						size={BIN_MARKER_ICON_SIZE}
+	// 						color="white"
+	// 						strokeWidth={1.5}
+	// 					/>
+	// 				)}
+	// 			</Animated.View>
+	// 		</Pressable>
+	// 	</MarkerView>
+	// )
 }
 
 export default BinMarker

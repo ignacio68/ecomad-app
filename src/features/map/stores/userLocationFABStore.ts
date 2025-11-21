@@ -5,57 +5,75 @@ interface UserLocationFABStore {
 	isUserLocationFABActivated: boolean
 	isManuallyActivated: boolean
 	isMapStylesFABActivated: boolean
+	isUserLocationCentered: boolean
 
 	activateUserLocation: (opts?: { manual?: boolean }) => void
-	deactivateUserLocation: () => void
+	deactivateUserLocation: (opts?: { keepRoute?: boolean }) => void
 	setIsUserLocationFABActivated: (
 		active: boolean,
 		opts?: { manual?: boolean },
 	) => void
 	setIsManuallyActivated: (manual: boolean) => void
+	setIsUserLocationCentered: (centered: boolean) => void
 
 	setIsMapStylesFABActivated: (active: boolean) => void
 	// setIsUserLocationFABActivated: (active: boolean) => void
 	// setIsManuallyActivated: (manual: boolean) => void
 }
 
-export const useUserLocationFABStore = create<UserLocationFABStore>((set, get) => ({
-	isUserLocationFABActivated: false,
-	isManuallyActivated: false,
-	isMapStylesFABActivated: false,
+export const useUserLocationFABStore = create<UserLocationFABStore>(
+	(set, get) => ({
+		isUserLocationFABActivated: false,
+		isManuallyActivated: false,
+		isMapStylesFABActivated: false,
+		isUserLocationCentered: false,
 
-	activateUserLocation: ({ manual = true } = {}) => {
-		if (get().isUserLocationFABActivated) return
-		set({ isUserLocationFABActivated: true, isManuallyActivated: manual })
-	},
+		activateUserLocation: ({ manual = true } = {}) => {
+			if (get().isUserLocationFABActivated) return
+			set({
+				isUserLocationFABActivated: true,
+				isManuallyActivated: manual,
+				isUserLocationCentered: true,
+			})
+		},
 
-	deactivateUserLocation: () => {
-		if (!get().isUserLocationFABActivated) return
+		deactivateUserLocation: ({ keepRoute = false } = {}) => {
+			if (!get().isUserLocationFABActivated) return
 
-		// Lógica de navegación al desactivar la localización
-		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
-		deactivateRouteIfActive()
+			// Lógica de navegación al desactivar la localización
+			// Solo desactivar ruta si keepRoute es false (comportamiento por defecto)
+			if (!keepRoute) {
+				const { deactivateRouteIfActive } = useMapNavigationStore.getState()
+				deactivateRouteIfActive()
+			}
 
-		set({ isUserLocationFABActivated: false, isManuallyActivated: false })
-	},
-
-	setIsUserLocationFABActivated: active => {
-		if (!active) {
-			const { deactivateRouteIfActive } = useMapNavigationStore.getState()
-			deactivateRouteIfActive()
-			// Limpiar el flag manual al desactivar
 			set({
 				isUserLocationFABActivated: false,
 				isManuallyActivated: false,
+				isUserLocationCentered: false,
 			})
-			return
-		}
-		set({ isUserLocationFABActivated: true })
-	},
+		},
 
-	setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
+		setIsUserLocationFABActivated: active => {
+			if (!active) {
+				const { deactivateRouteIfActive } = useMapNavigationStore.getState()
+				deactivateRouteIfActive()
+				// Limpiar el flag manual al desactivar
+				set({
+					isUserLocationFABActivated: false,
+					isManuallyActivated: false,
+					isUserLocationCentered: false,
+				})
+				return
+			}
+			set({ isUserLocationFABActivated: true, isUserLocationCentered: true })
+		},
 
-	setIsMapStylesFABActivated: active => {
-		set({ isMapStylesFABActivated: active })
-	},
-}))
+		setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
+		setIsUserLocationCentered: centered => set({ isUserLocationCentered: centered }),
+
+		setIsMapStylesFABActivated: active => {
+			set({ isMapStylesFABActivated: active })
+		},
+	}),
+)

@@ -1,28 +1,22 @@
 import { Pressable, Text, View } from 'react-native'
-import { filteredPointsByNearby } from '@map/services/binsLoader'
 
-const NearbyButton = ({
-}) => {
+const NearbyButton = ({}) => {
 	const handleNearby = async () => {
-	// await filteredPointsByNearby(points, center, maxDistance)
-
-  console.log('🔍 [NEARBY] Nearby button pressed')
-
+		// await filteredPointsByNearby(points, center, maxDistance)
 	}
 
-  return (
-    <View className="flex-1 items-center justify-center mb-4">
-		<Pressable
-			onPress={handleNearby}
-			className="rounded-full bg-secondary px-4 py-3 w-full"
-		>
-			<Text className="text-white font-lato-semibold text-base text-center">
-				{`Cerca de mí`}
-			</Text>
-		</Pressable>
-
-    </View>
-  )
+	return (
+		<View className="mb-4 flex-1 items-center justify-center">
+			<Pressable
+				onPress={handleNearby}
+				className="w-full rounded-full bg-secondary px-4 py-3"
+			>
+				<Text className="text-center font-lato-semibold text-base text-white">
+					{`Cerca de mí`}
+				</Text>
+			</Pressable>
+		</View>
+	)
 }
 
 export default NearbyButton
