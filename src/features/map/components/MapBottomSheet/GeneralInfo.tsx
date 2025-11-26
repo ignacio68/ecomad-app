@@ -1,12 +1,11 @@
 import { Text, View } from 'react-native'
 
-const GeneralInfo = ({
-	mapBottomSheetTitle,
-	totalBins,
-}: {
+interface GeneralInfoProps {
 	mapBottomSheetTitle: string
 	totalBins: number | null
-}) => {
+}
+
+const GeneralInfo = ({ mapBottomSheetTitle, totalBins }: GeneralInfoProps) => {
 	const getTotalCountText = (totalBins: number | null) => {
 		if (totalBins == null) {
 			return `Cargando información de contenedores de ${mapBottomSheetTitle}...`

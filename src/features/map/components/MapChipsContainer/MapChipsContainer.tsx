@@ -1,31 +1,21 @@
-import { getContainersData } from '@/db/bins/service'
+import { getBinsData } from '@/db/bins/service'
 import ChipsContainer, {
 	ChipsContainerProps,
 } from '@/shared/components/ui/ChipsContainer'
 import { loadNearbyBins } from '@/shared/services/binsDownloadService'
-import type { IconSvgElement } from '@hugeicons/react-native'
 import { INITIAL_CENTER } from '@map/constants/map'
 import { ensureDataAvailable } from '@map/services/binsCacheService'
 import {
 	showIndividualBins,
 	showNearbyBins,
-} from '@map/services/clusterDisplayService'
+} from '@map/services/binsDisplayService'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
+import { useBinsCacheStore } from '@map/stores/binsCacheStore'
 import { convertContainersToGeoJSON } from '@map/utils/geoUtils'
 import React, { memo, useCallback, useState } from 'react'
-
-interface Chip {
-	id: string
-	title: string
-	icon?: IconSvgElement
-	iconSelected?: IconSvgElement
-	isSelected?: boolean
-	onPress: () => void
-}
 
 const MapChipsContainer = memo(
 	({
@@ -90,7 +80,7 @@ const MapChipsContainer = memo(
 						})
 
 						// Verificar primero el cache del store (más rápido)
-						const { getPointsCache } = useSuperclusterCacheStore.getState()
+						const { getPointsCache } = useBinsCacheStore.getState()
 						const storeCacheBins = getPointsCache(endPoint)
 						const hasStoreCache = storeCacheBins && storeCacheBins.length > 0
 
@@ -98,12 +88,12 @@ const MapChipsContainer = memo(
 						let hasCachedBins = hasStoreCache
 						let sqliteContainers: any[] | null = null
 						if (!hasStoreCache) {
-							sqliteContainers = await getContainersData(endPoint)
+							sqliteContainers = await getBinsData(endPoint)
 							hasCachedBins = sqliteContainers && sqliteContainers.length > 0
 
 							// Si hay datos en SQLite, precargar el cache del store para evitar doble verificación
 							if (hasCachedBins && sqliteContainers) {
-								const { setPointsCache } = useSuperclusterCacheStore.getState()
+								const { setPointsCache } = useBinsCacheStore.getState()
 								const geoJsonBins = convertContainersToGeoJSON(
 									sqliteContainers,
 									endPoint,
@@ -118,8 +108,11 @@ const MapChipsContainer = memo(
 						// En zoom bajo (< 11), usar el centro de la ciudad en lugar del center del viewport
 						const LOW_ZOOM_THRESHOLD = 11
 						const isLowZoom = effectiveZoom < LOW_ZOOM_THRESHOLD
-						const fallbackCenter =
-							lastValidatedCenter ?? viewport.center ?? center
+						const fallbackCenter = lastValidatedCenter ??
+							viewport.center ?? {
+								lat: INITIAL_CENTER[1],
+								lng: INITIAL_CENTER[0],
+							}
 						const effectiveCenter = isLowZoom
 							? { lat: INITIAL_CENTER[1], lng: INITIAL_CENTER[0] }
 							: fallbackCenter

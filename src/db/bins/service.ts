@@ -155,33 +155,33 @@ export const getTotalCount = async (
 /**
  * Guardar datos de contenedores individuales
  */
-export const saveContainersData = async (
+export const saveBinsData = async (
 	binType: BinType,
-	containers: any[],
+	bins: any[],
 ): Promise<void> => {
 	try {
-		if (containers.length === 0) {
-			console.log(`⚠️ No container data to save for ${binType}`)
+		if (bins.length === 0) {
+			console.log(`⚠️ No bin data to save for ${binType}`)
 			return
 		}
 
-		const records = containers.map(container => ({
+		const records = bins.map(bin => ({
 			binType,
-			containerId: container.id.toString(),
-			category_group_id: container.category_group_id,
-			category_id: container.category_id,
-			district_code: container.district_code,
-			neighborhood_code: container.neighborhood_code,
-			address: container.address || 'Dirección no disponible',
-			lat: container.lat,
-			lng: container.lng,
-			load_type: container.load_type,
-			direction: container.direction,
-			subtype: container.subtype,
-			placement_type: container.placement_type,
-			notes: container.notes,
-			bus_stop: container.bus_stop,
-			interurban_node: container.interurban_node,
+			binId: bin.id.toString(),
+			category_group_id: bin.category_group_id,
+			category_id: bin.category_id,
+			district_code: bin.district_code,
+			neighborhood_code: bin.neighborhood_code,
+			address: bin.address || 'Dirección no disponible',
+			lat: bin.lat,
+			lng: bin.lng,
+			load_type: bin.load_type,
+			direction: bin.direction,
+			subtype: bin.subtype,
+			placement_type: bin.placement_type,
+			notes: bin.notes,
+			bus_stop: bin.bus_stop,
+			interurban_node: bin.interurban_node,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		}))
@@ -218,7 +218,7 @@ export const saveContainersData = async (
 				for (const record of records) {
 					await insertStmt.executeAsync([
 						record.binType,
-						record.containerId,
+						record.binId,
 						record.category_group_id,
 						record.category_id,
 						record.district_code,
@@ -256,16 +256,14 @@ export const saveContainersData = async (
 /**
  * Obtener datos de contenedores del cache
  */
-export const getContainersData = async (
+export const getBinsData = async (
 	binType: BinType,
 	limit?: number,
 ): Promise<BinsContainersCacheRecord[] | null> => {
 	try {
 		console.time(`⏱️ [GETCONTAINERSDATA] total-${binType}`)
 		const limitText = limit ? ` (limit: ${limit})` : ' (no limit)'
-		console.log(
-			`🔍 BinsService.getContainersData called for ${binType}${limitText}`,
-		)
+		console.log(`🔍 BinsService.getBinsData called for ${binType}${limitText}`)
 
 		// Verificar primero el total en la base de datos usando SQL directo
 		const countResult = await sqlite.getFirstAsync<{ count: number }>(
@@ -318,7 +316,7 @@ export const getContainersData = async (
 		console.timeEnd(`⏱️ [GETCONTAINERSDATA] total-${binType}`)
 		return records
 	} catch (error) {
-		console.error(`❌ Error getting containers data for ${binType}:`, error)
+		console.error(`❌ Error getting bins data for ${binType}:`, error)
 		return null
 	}
 }
@@ -326,7 +324,7 @@ export const getContainersData = async (
 const mapSqlRecordToCacheRecord = (r: any): BinsContainersCacheRecord => ({
 	id: r.id,
 	binType: r.bin_type,
-	containerId: r.container_id,
+	binId: r.container_id,
 	category_group_id: r.category_group_id,
 	category_id: r.category_id,
 	district_code: r.district_code,

@@ -33,16 +33,16 @@ module.exports = defineConfig([
 			// 'react-native/platform-colors': 'warn',
 			// Puedes añadir aquí reglas personalizadas adicionales
 		},
-		overrides: [
-			{
-				// Test files only
-				files: [
-					'**/__tests__/**/*.[jt]s?(x)',
-					'**/?(*.)+(spec|test).[jt]s?(x)',
-				],
-				extends: ['plugin:testing-library/react'],
-			},
-		],
+		// overrides: [
+		// 	{
+		// 		// Test files only
+		// 		files: [
+		// 			'**/__tests__/**/*.[jt]s?(x)',
+		// 			'**/?(*.)+(spec|test).[jt]s?(x)',
+		// 		],
+		// 		extends: ['plugin:testing-library/react'],
+		// 	},
+		// ],
 		ignores: [
 			'node_modules',
 			'android',

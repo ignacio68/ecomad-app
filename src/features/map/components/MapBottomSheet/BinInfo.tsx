@@ -24,13 +24,10 @@ import { Pressable, Text, View } from 'react-native'
 // Si supera el límite de Mapbox, mostrar modal/toast en vez de lanzar la petición.
 interface BinInfoProps {
 	bin: BinPoint
-	onNavigate?: (bin: BinPoint) => void
-	onClose?: () => void
 }
 
-const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
+const BinInfo = ({ bin}: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
-	const { deactivateRouteIfActive } = useMapNavigationStore()
 	const { setMarkerType, reset } = useMapBottomSheetStore()
 	const { setIsNavigationBottomSheetOpen } = useNavigationBottomSheetStore()
 	const {
@@ -60,7 +57,7 @@ const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 
 	// Limpiar ruta cuando cambia el bin seleccionado
 	useEffect(() => {
-		const currentBinId = bin.properties.containerId
+		const currentBinId = bin.properties.binId
 		if (binIdRef.current !== null && binIdRef.current !== currentBinId) {
 			if (hasActiveRoute) {
 				clearRoute()
@@ -68,12 +65,7 @@ const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 			}
 		}
 		binIdRef.current = currentBinId
-	}, [
-		bin.properties.containerId,
-		hasActiveRoute,
-		clearRoute,
-		setNavigationMode,
-	])
+	}, [bin.properties.binId, hasActiveRoute, clearRoute, setNavigationMode])
 
 	const handleNavigate = async () => {
 		// setIsNavigationBottomSheetOpen(true)
@@ -165,7 +157,10 @@ const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
 					Contenedor seleccionado
 				</Text>
-				<Pressable className="rounded-full bg-secondary/10 p-2" onPress={handleCloseBin}>
+				<Pressable
+					className="rounded-full bg-secondary/10 p-2"
+					onPress={handleCloseBin}
+				>
 					<HugeiconsIcon
 						icon={Cancel01Icon}
 						size={24}
@@ -173,7 +168,6 @@ const BinInfo = ({ bin, onNavigate, onClose }: BinInfoProps) => {
 						color="gray"
 						accessibilityLabel={`cierra el bottom sheet deinformación del contenedor`}
 						testID={`CloseBottomSheetIcon`}
-
 					/>
 				</Pressable>
 			</View>

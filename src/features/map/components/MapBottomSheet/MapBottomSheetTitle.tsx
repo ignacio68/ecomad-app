@@ -40,15 +40,6 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 
 	return (
 		<View className="w-full">
-			{/* <View className="flex-">
-				<Image
-					source={require('../../assets/images/clothes_bin_small_02.png')}
-					className="w-full bg-green-500"
-					resizeMode="contain"
-					accessibilityLabel={'`foto de un contenedor`'}
-					testID={'contenedor_foto'}
-				/>
-			</View> */}
 			<View className="flex-row items-center justify-between py-4 px-2">
 				<View className="flex-1 flex-row items-center">
 					<Text className="font-lato-semibold text-2xl text-gray-900">
