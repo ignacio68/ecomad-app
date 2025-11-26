@@ -1,11 +1,10 @@
+import { BINS_CACHE_DURATION_MS } from '@/features/map/constants/markers'
 import { BinType } from '@/shared/types/bins'
-import { BINS_CACHE_DURATION_MS } from '@map/constants/clustering'
 import { create } from 'zustand'
 
 interface BinsCountStore {
 	// Cache de conteos totales por tipo de contenedor
 	totalCounts: Record<BinType, number>
-	totalClusterCounts: Record<BinType, number>
 
 	// Cache de datos jerárquicos (distritos/barrios)
 	hierarchyData: Record<
@@ -25,13 +24,11 @@ interface BinsCountStore {
 
 	// Acciones
 	setTotalCount: (binType: BinType, count: number) => void
-	setTotalClusterCount: (binType: BinType, count: number) => void
 	setHierarchyData: (
 		binType: BinType,
 		data: Array<{ distrito: string; barrio: string; count: number }>,
 	) => void
 	getTotalCount: (binType: BinType) => number | null
-	getTotalClusterCount: (binType: BinType) => number | null
 	getHierarchyData: (
 		binType: BinType,
 	) => Array<{ distrito: string; barrio: string; count: number }> | null
@@ -41,7 +38,6 @@ interface BinsCountStore {
 
 export const useBinsCountStore = create<BinsCountStore>()((set, get) => ({
 	totalCounts: {} as Record<BinType, number>,
-	totalClusterCounts: {} as Record<BinType, number>,
 	hierarchyData: {} as Record<
 		BinType,
 		Array<{ distrito: string; barrio: string; count: number }>
@@ -53,19 +49,6 @@ export const useBinsCountStore = create<BinsCountStore>()((set, get) => ({
 		set(state => ({
 			totalCounts: {
 				...state.totalCounts,
-				[binType]: count,
-			},
-			lastUpdated: {
-				...state.lastUpdated,
-				[binType]: Date.now(),
-			},
-		}))
-	},
-
-	setTotalClusterCount: (binType, count) => {
-		set(state => ({
-			totalClusterCounts: {
-				...state.totalClusterCounts,
 				[binType]: count,
 			},
 			lastUpdated: {
@@ -92,14 +75,6 @@ export const useBinsCountStore = create<BinsCountStore>()((set, get) => ({
 		const state = get()
 		if (state.isCacheValid(binType)) {
 			return state.totalCounts[binType] || null
-		}
-		return null
-	},
-
-	getTotalClusterCount: binType => {
-		const state = get()
-		if (state.isCacheValid(binType)) {
-			return state.totalClusterCounts[binType] || null
 		}
 		return null
 	},
@@ -141,7 +116,6 @@ export const useBinsCountStore = create<BinsCountStore>()((set, get) => ({
 			// Limpiar todo el cache
 			set({
 				totalCounts: {} as Record<BinType, number>,
-				totalClusterCounts: {} as Record<BinType, number>,
 				hierarchyData: {} as Record<
 					BinType,
 					Array<{ distrito: string; barrio: string; count: number }>

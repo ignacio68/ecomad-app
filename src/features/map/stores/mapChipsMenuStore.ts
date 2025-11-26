@@ -2,7 +2,6 @@ import type { BinType } from '@/shared/types/bins'
 import { create } from 'zustand'
 import { useMapBinsStore } from './mapBinsStore'
 import { useMapBottomSheetStore } from './mapBottomSheetStore'
-import { useMapClustersStore } from './mapClustersStore'
 import { useMapNavigationStore } from './mapNavigationStore'
 
 interface MapChipsMenuStore {
@@ -26,18 +25,14 @@ export const useMapChipsMenuStore = create<MapChipsMenuStore>((set, get) => ({
 			clearTimeout(currentTimeoutId)
 		}
 
-		// Limpiar bins, clusters y ruta del mapa INMEDIATAMENTE de forma síncrona
+		// Limpiar bins y ruta del mapa INMEDIATAMENTE de forma síncrona
 		// Esto evita race conditions con Mapbox
 		const { clearBins } = useMapBinsStore.getState()
-		const { clearClusters } = useMapClustersStore.getState()
 		const { reset } = useMapBottomSheetStore.getState()
 		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
 
-		console.log(
-			'🧹 [CHIP_CHANGE] Clearing bins, clusters and route synchronously',
-		)
+		console.log('🧹 [CHIP_CHANGE] Clearing bins and route synchronously')
 		clearBins()
-		clearClusters()
 		deactivateRouteIfActive() // Desactivar ruta si está activa
 		reset() // Limpiar bin seleccionado y cerrar bottom sheet
 
@@ -52,13 +47,10 @@ export const useMapChipsMenuStore = create<MapChipsMenuStore>((set, get) => ({
 		const { deactivateRouteIfActive } = useMapNavigationStore.getState()
 		const { reset } = useMapBottomSheetStore.getState()
 		const { clearBins } = useMapBinsStore.getState()
-		const { clearClusters } = useMapClustersStore.getState()
 
 		deactivateRouteIfActive()
 
-		// Limpiar bins y clusters del mapa
 		clearBins()
-		clearClusters()
 
 		set({ selectedChip: '', selectedEndPoint: null })
 		reset()

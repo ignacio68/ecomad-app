@@ -1,7 +1,6 @@
 import BottomSheet, {
 	BottomSheetScrollView,
 	BottomSheetView,
-	SCREEN_WIDTH,
 } from '@gorhom/bottom-sheet'
 import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
 import { getTotalCount as getTotalCountFromService } from '@/db/bins/service'
@@ -9,9 +8,9 @@ import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import BinInfo from './BinInfo'
-// import ClusterInfo from './ClusterInfo'
+
 import { MarkerType } from '@map/types/mapData'
 import GeneralInfo from './GeneralInfo'
 import MapBottomSheetTitle from './MapBottomSheetTitle'
@@ -105,22 +104,6 @@ useEffect(() => {
 		[isAnyChipSelected, markerState.markerType],
 	)
 
-	const makeStyle = () => {
-		let horizontalMarginBottomSheet = 0
-		if (SCREEN_WIDTH > 500) {
-			horizontalMarginBottomSheet = (SCREEN_WIDTH - 500) / 2
-		}
-
-		return StyleSheet.create({
-			bottomSheetContainerStyle: {
-				marginHorizontal: horizontalMarginBottomSheet,
-			},
-		})
-	}
-
-	// const styles = makeStyle()
-
-
 	return (
 		<BottomSheet
 			ref={bottomSheetRef}
@@ -131,7 +114,6 @@ useEffect(() => {
 			enableOverDrag={false}
 			keyboardBehavior="extend"
 			onChange={handleSheetChange}
-			// containerStyle={styles.bottomSheetContainerStyle}
 		>
 			<BottomSheetView>
 				<View className="mx-4 mb-8 flex-1 items-center justify-center">

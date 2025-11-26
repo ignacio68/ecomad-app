@@ -1,26 +1,28 @@
-import { getHierarchyData, getTotalCount } from '@/db/bins/service'
+import { getTotalCount } from '@/db/bins/service'
 import { loadNearbyBins } from '@/shared/services/binsDownloadService'
 import type { BinType } from '@/shared/types/bins'
 import { INITIAL_CENTER } from '@map/constants/map'
 import {
 	filterPointsForViewport,
-	loadContainersAsGeoJSON,
+	loadBinsAsGeoJSON,
 	loadViewportBinsFromDatabase,
 	type BinsCache,
-} from '@map/services/binsLoader'
-import { HierarchicalClusteringService } from '@map/services/hierarchicalClusteringService'
+} from '@/features/map/services/binsLoaderService'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
-import { useMapClustersStore } from '@map/stores/mapClustersStore'
-import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
+import { useBinsCacheStore } from '@map/stores/binsCacheStore'
 import { MapZoomLevels, type BinPoint } from '@map/types/mapData'
+
 const binCacheWarmup = new Map<BinType, Promise<BinPoint[]>>()
 
 const warmBinCache = (binType: BinType, cache: BinsCache) => {
 	if (binCacheWarmup.has(binType)) return
 
-	const promise = loadContainersAsGeoJSON(binType, cache)
+	const promise = loadBinsAsGeoJSON(binType, cache)
 		.catch(error =>
-			console.error(`❌ [BINS_DISPLAY] Failed to warm cache for ${binType}`, error),
+			console.error(
+				`❌ [BINS_DISPLAY] Failed to warm cache for ${binType}`,
+				error,
+			),
 		)
 		.finally(() => binCacheWarmup.delete(binType))
 
@@ -28,57 +30,7 @@ const warmBinCache = (binType: BinType, cache: BinsCache) => {
 }
 
 /**
- * Servicio para mostrar clusters o bins en el mapa
- * Separa la lógica de visualización de la lógica de carga de datos
- */
-
-/**
- * Muestra clusters jerárquicos (distritos o barrios) según el zoom
- * @param binType - Tipo de contenedor
- * @param zoom - Nivel de zoom actual
- */
-export const showHierarchicalClusters = async (
-	binType: BinType,
-	zoom: number,
-): Promise<void> => {
-	try {
-		console.log(
-			`🎯 [CLUSTER_DISPLAY] Showing hierarchical clusters for ${binType} at zoom ${zoom}`,
-		)
-
-		// Obtener hierarchyData de BD (ya debe estar cacheada)
-		const hierarchyData = await getHierarchyData(binType)
-
-		if (!hierarchyData || hierarchyData.length === 0) {
-			console.warn(
-				`⚠️ [CLUSTER_DISPLAY] No hierarchy data available for ${binType}`,
-			)
-			return
-		}
-
-		// Crear clusters según zoom
-		const clusters = HierarchicalClusteringService.createClusters(
-			hierarchyData,
-			zoom,
-			binType,
-		)
-
-		console.log(
-			`✅ [CLUSTER_DISPLAY] Created ${clusters.length} clusters (zoom: ${zoom})`,
-		)
-
-		// Actualizar store
-		const { setDisplayClusters } = useMapClustersStore.getState()
-		const clusterPoints = clusters as unknown as BinPoint[]
-		setDisplayClusters(clusterPoints)
-	} catch (error) {
-		console.error(`❌ [CLUSTER_DISPLAY] Error showing clusters:`, error)
-	}
-}
-
-/**
  * Muestra bins individuales filtrados por viewport
- * Se usa cuando zoom >= 14
  * @param binType - Tipo de contenedor
  * @param zoom - Nivel de zoom actual
  * @param bounds - Límites del viewport
@@ -114,8 +66,7 @@ export const showIndividualBins = async (
 		}
 
 		// Obtener cache persistente del store
-		const { getPointsCache, setPointsCache } =
-			useSuperclusterCacheStore.getState()
+		const { getPointsCache, setPointsCache } = useBinsCacheStore.getState()
 
 		// Verificar si ya tenemos los bins en cache
 		const cachedBins = getPointsCache(binType)
@@ -153,7 +104,7 @@ export const showIndividualBins = async (
 			}
 
 			if (!allBins || allBins.length === 0) {
-				allBins = await loadContainersAsGeoJSON(binType, binsCache)
+				allBins = await loadBinsAsGeoJSON(binType, binsCache)
 				setPointsCache(binType, allBins)
 				console.log(
 					`📦 [BINS_DISPLAY] Loaded and cached ${allBins.length} bins`,
@@ -170,10 +121,8 @@ export const showIndividualBins = async (
 
 		const applyFilteredBins = (filtered: BinPoint[]) => {
 			const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
-			const { setDisplayClusters } = useMapClustersStore.getState()
 			setAllPoints(resolvedBins)
 			setFilteredPoints(filtered)
-			setDisplayClusters(filtered)
 		}
 
 		let filteredBins: BinPoint[] | null = null
@@ -265,7 +214,7 @@ export const showIndividualBins = async (
 		// Debug: Mostrar muestra de coordenadas
 		if (filteredBins.length > 0) {
 			const sample = filteredBins.slice(0, 5).map(b => ({
-				id: b.properties.containerId,
+				id: b.properties.binId,
 				coords: b.geometry.coordinates,
 			}))
 			console.log('📍 [BINS_DISPLAY] Sample coordinates:', sample)
@@ -310,7 +259,7 @@ export const showNearbyBins = (
 				coordinates: [bin.lng, bin.lat] as [number, number],
 			},
 			properties: {
-				containerId: `bin-${bin.id}`,
+				binId: `bin-${bin.id}`,
 				binType: binType,
 				cluster: false,
 				category_group_id: bin.category_group_id,
@@ -331,7 +280,6 @@ export const showNearbyBins = (
 		})) as BinPoint[]
 
 		// Aplicar muestreo proporcional al área visible
-		const { filterPointsForViewport } = require('@map/services/binsLoader')
 		const sampledBins = filterPointsForViewport(
 			geoJsonBins,
 			zoom,
@@ -346,15 +294,13 @@ export const showNearbyBins = (
 
 		// Actualizar stores (solo en memoria)
 		const { setAllPoints, setFilteredPoints } = useMapBinsStore.getState()
-		const { setDisplayClusters } = useMapClustersStore.getState()
-		const { setPointsCache } = useSuperclusterCacheStore.getState()
+		const { setPointsCache } = useBinsCacheStore.getState()
 
-		// Guardar en superclusterCacheStore para que showIndividualBins los encuentre
+		// Guardar para que showIndividualBins los encuentre
 		setPointsCache(binType, geoJsonBins)
 
 		setAllPoints(geoJsonBins)
 		setFilteredPoints(sampledBins)
-		setDisplayClusters(sampledBins)
 	} catch (error) {
 		console.error(`❌ [NEARBY_DISPLAY] Error showing nearby bins:`, error)
 	}
