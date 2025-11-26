@@ -58,9 +58,7 @@ const FABChildren = ({
 	return (
 		<AnimatedPressable
 			style={[animatedStyles]}
-			className={
-				'h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-white shadow-lg mr-1 absolute right-0 top-0'
-			}
+			className="absolute·top-0·right-0·mr-1·h-16·w-16·items-center·justify-center·rounded-full·border-2·border-white·bg-white·shadow-lg"
 			accessibilityRole="button"
 			accessibilityLabel={`FAB ${index}`}
 			accessibilityHint={`FAB ${index}`}
