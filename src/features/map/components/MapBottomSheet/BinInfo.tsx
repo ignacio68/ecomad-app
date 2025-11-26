@@ -94,7 +94,8 @@ const BinInfo = ({ bin }: BinInfoProps) => {
 			})
 
 			// Intentar usar la ubicación del store primero (puede estar disponible aunque el FAB no esté activado)
-			currentUserLocation = useUserLocationStore.getState().location ?? (await getCurrentLocation())
+			currentUserLocation =
+				useUserLocationStore.getState().location ?? (await getCurrentLocation())
 		}
 
 		if (!currentUserLocation) {

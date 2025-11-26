@@ -26,7 +26,7 @@
     "lint": "biome lint ./src",
     "lint:fix": "biome lint --write ./src",
     "format": "biome format ./src",
-    "format:write": "biome format --write ./src",
+    "format:fix": "biome format --write ./src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "eas:build:dev": "eas build --profile dev --platform all",
     "eas:build:staging": "eas build --profile staging --platform all",
