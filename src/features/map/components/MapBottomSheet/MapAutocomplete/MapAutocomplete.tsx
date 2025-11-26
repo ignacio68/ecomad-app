@@ -38,7 +38,7 @@ const MapAutocomplete = () => {
 			/>
 			<BottomSheetTextInput
 				ref={setInputRef}
-				className=" mx-2 flex-1 py-2 font-lato-regular text-xl leading-6 text-gray-900"
+				className="mx-2 flex-1 py-2 font-lato-regular text-gray-900 text-xl leading-6"
 				textAlign="left"
 				placeholder="Introduce una dirección"
 				placeholderTextColor="#9e9e9e"

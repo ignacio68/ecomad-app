@@ -1,4 +1,3 @@
-import type { CameraProps, MapViewProps } from '@map/types/mapConfig'
 import type { LngLat, LngLatBounds } from '@map/types/mapData'
 import { StyleURL } from '@rnmapbox/maps'
 import { Platform } from 'react-native'

@@ -123,7 +123,7 @@ const MapFABsRightContainer = () => {
 	}
 
 	return (
-		<View className="flex-column absolute right-4 top-52 w-14  flex-1 items-start justify-center gap-4">
+		<View className="absolute top-52 right-4 w-14 flex-1 flex-column items-start justify-center gap-4">
 			<FABExpanded
 				name="mapStyles"
 				icon={Layers01Icon}

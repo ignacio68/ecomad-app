@@ -13,7 +13,7 @@ interface RouteLayerProps {
 
 const MapRouteLayer = ({
 	route,
-	stepMeters = 30,
+	// stepMeters = 30,
 	maxPoints = 1000,
 }: RouteLayerProps) => {
 	const zoom = useMapViewportStore(s => s.viewport.zoom)

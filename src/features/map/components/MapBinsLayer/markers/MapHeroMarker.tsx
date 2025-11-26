@@ -21,9 +21,9 @@ const MapHeroMarker = ({
 	const { color, default: heroIcon } = BIN_MARKER_ICONS[binType]
 
 	// Refs a los layers para setNativeProps
-	const pulseRef = useRef<any>(null)
-	const circleRef = useRef<any>(null)
-	const iconRef = useRef<any>(null)
+	const pulseRef = useRef<CircleLayer>(null)
+	const circleRef = useRef<CircleLayer>(null)
+	const iconRef = useRef<SymbolLayer>(null)
 
 	// GeoJSON fijo (no lo tocaremos para evitar flicker)
 	const heroGeoJSON = useMemo(
@@ -74,7 +74,7 @@ const MapHeroMarker = ({
 			// Capa del icono
 			iconRef.current?.setNativeProps({
 				style: {
-					iconImage: 'hero-icon-' + id, // lo definimos abajo en <Images/>
+					iconImage: `hero-icon-${id}`, // lo definimos abajo en <Images/>
 					iconSize,
 					iconAllowOverlap: true,
 					iconIgnorePlacement: true,
@@ -122,7 +122,7 @@ const MapHeroMarker = ({
 		<>
 			<Images
 				images={{
-					['hero-icon-' + id]: heroIcon,
+					[`hero-icon-${id}`]: heroIcon,
 				}}
 			/>
 
@@ -161,7 +161,7 @@ const MapHeroMarker = ({
 					ref={iconRef}
 					id={`hero-icon-${id}`}
 					style={{
-						iconImage: 'hero-icon-' + id,
+						iconImage: `hero-icon-${id}`,
 						iconSize: 0, // arranca en 0 → sube en efecto
 						iconAllowOverlap: true,
 						iconIgnorePlacement: true,

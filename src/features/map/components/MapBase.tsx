@@ -25,8 +25,6 @@ const FOLLOWING_CAMERA_THROTTLE_MS = 250
 const ZOOM_EPSILON = 0.01
 const FOLLOW_CENTER_EPSILON = 0.00001
 
-const PRUEBA = 'prueba'
-
 const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
 	const mapCameraRef = useRef<Camera | null>(null)

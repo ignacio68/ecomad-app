@@ -92,6 +92,7 @@ const Chip = React.memo(
 			<Pressable
 				onPress={onPress}
 				disabled={disabled || loading}
+				// biome-ignore lint: sorted classes
 				className={`ios:shadow-sm android:shadow-md android:shadow-black/80 h-10 w-auto flex-row items-center justify-center self-start rounded-full pl-2 pr-4 ${getColor()}`}
 				accessibilityRole="button"
 				accessibilityLabel={getAccessibilityLabel()}

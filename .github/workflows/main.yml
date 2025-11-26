@@ -2,6 +2,7 @@ name: code-quality
 on:
   push:
   pull_request:
+    branches: [ developer, main ]
 
 jobs:
   quality:
