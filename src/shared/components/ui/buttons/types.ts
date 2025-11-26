@@ -1,7 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react-native'
 
 export interface BaseButtonProps {
-
 	title: string
 	mode?: 'primary' | 'secondary' | 'tertiary'
 	isSelected?: boolean

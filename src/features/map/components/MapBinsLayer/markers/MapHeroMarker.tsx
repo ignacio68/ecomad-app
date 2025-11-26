@@ -1,5 +1,5 @@
 import { HERO_MARKER_SIZE } from '@/features/map/constants/markers'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import { CircleLayer, Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 import { useEffect, useMemo, useRef } from 'react'

@@ -16,7 +16,7 @@ const GeneralInfo = ({ mapBottomSheetTitle, totalBins }: GeneralInfoProps) => {
 	}
 	return (
 		<View className="flex-1 items-center justify-center">
-			<Text className="font-lato-regular text-center text-lg">
+			<Text className="text-center font-lato-regular text-lg">
 				{getTotalCountText(totalBins)}
 			</Text>
 		</View>

@@ -18,15 +18,15 @@ import { MapZoomLevels, MarkerType } from '@map/types/mapData'
 import { RouteProfile } from '@map/types/navigation'
 import type { UserLocation } from '@map/types/userLocation'
 import { PermissionStatus } from 'expo-location'
-import { useCallback, useEffect, useRef } from 'react'
 import { Pressable, Text, View } from 'react-native'
+import { useCallback, useEffect, useRef } from 'react'
 // TODO: validar distancia (origen → destino) antes de llamar a Directions API.
 // Si supera el límite de Mapbox, mostrar modal/toast en vez de lanzar la petición.
 interface BinInfoProps {
 	bin: BinPoint
 }
 
-const BinInfo = ({ bin}: BinInfoProps) => {
+const BinInfo = ({ bin }: BinInfoProps) => {
 	const { setViewportAnimated } = useMapViewportStore()
 	const { setMarkerType, reset } = useMapBottomSheetStore()
 	const { setIsNavigationBottomSheetOpen } = useNavigationBottomSheetStore()
@@ -94,12 +94,7 @@ const BinInfo = ({ bin}: BinInfoProps) => {
 			})
 
 			// Intentar usar la ubicación del store primero (puede estar disponible aunque el FAB no esté activado)
-			currentUserLocation = useUserLocationStore.getState().location
-
-			// Solo llamar a getCurrentLocation() si realmente no hay ubicación disponible
-			if (!currentUserLocation) {
-				currentUserLocation = await getCurrentLocation()
-			}
+			currentUserLocation = useUserLocationStore.getState().location ?? (await getCurrentLocation())
 		}
 
 		if (!currentUserLocation) {
@@ -154,7 +149,7 @@ const BinInfo = ({ bin}: BinInfoProps) => {
 	return (
 		<>
 			<View className="flex-row items-center justify-between">
-				<Text className="font-lato-semibold text-sm uppercase text-gray-500">
+				<Text className="font-lato-semibold text-gray-500 text-sm uppercase">
 					Contenedor seleccionado
 				</Text>
 				<Pressable
@@ -166,7 +161,7 @@ const BinInfo = ({ bin}: BinInfoProps) => {
 						size={24}
 						strokeWidth={2}
 						color="gray"
-						accessibilityLabel={`cierra el bottom sheet deinformación del contenedor`}
+						accessibilityLabel={`cierra el bottom sheet de información del contenedor`}
 						testID={`CloseBottomSheetIcon`}
 					/>
 				</Pressable>
@@ -185,26 +180,26 @@ const BinInfo = ({ bin}: BinInfoProps) => {
 				)}
 			</View>
 			{subtype && (
-				<Text className="mt-2 font-lato-medium text-sm text-gray-600">
+				<Text className="mt-2 font-lato-medium text-gray-600 text-sm">
 					Tipo de contenedor: {subtype}
 				</Text>
 			)}
 			{notes && (
-				<Text className="mt-4 font-lato-regular text-sm text-gray-500">
+				<Text className="mt-4 font-lato-regular text-gray-500 text-sm">
 					ℹ️ {notes}
 				</Text>
 			)}
 
 			<View className="mt-2 flex-row justify-start gap-2">
-				<Text className="font-lato-medium text-xs uppercase text-gray-500">
+				<Text className="font-lato-medium text-gray-500 text-xs uppercase">
 					Coordenadas:
 				</Text>
-				<Text className="font-lato-semibold text-xs text-gray-700">
+				<Text className="font-lato-semibold text-gray-700 text-xs">
 					{latitude.toFixed(5)} / {longitude.toFixed(5)}
 				</Text>
 			</View>
 			<Pressable
-				className={`self-center rounded-full ${getNavigationButtonColor()} mb-5 mt-6 flex-row items-center justify-center gap-3 px-5 py-3`}
+				className={`self-center rounded-full ${getNavigationButtonColor()} mt-6 mb-5 flex-row items-center justify-center gap-3 px-5 py-3`}
 				accessibilityLabel={'botón de navegación'}
 				testID={`NavigateButton`}
 				onPress={handleNavigate}
@@ -218,7 +213,7 @@ const BinInfo = ({ bin}: BinInfoProps) => {
 					accessibilityLabel={`comienza la navegación`}
 					testID={`StartNAvigationIcon`}
 				/>
-				<Text className=" text-center font-lato-semibold text-xl leading-5 text-white">
+				<Text className="text-center font-lato-semibold text-white text-xl leading-5">
 					Cómo llegar
 				</Text>
 			</Pressable>

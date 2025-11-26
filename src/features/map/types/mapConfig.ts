@@ -4,7 +4,7 @@ export interface MapViewProps {
 
 export interface CameraProps {
 	centerCoordinate: [number, number]
-  zoomLevel: number
-  animationDuration: number
-  animationMode: 'flyTo' | 'easeTo' | 'none'
+	zoomLevel: number
+	animationDuration: number
+	animationMode: 'flyTo' | 'easeTo' | 'none'
 }

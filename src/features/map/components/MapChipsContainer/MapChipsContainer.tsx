@@ -1,6 +1,6 @@
 import { getBinsData } from '@/db/bins/service'
 import ChipsContainer, {
-	ChipsContainerProps,
+	type ChipsContainerProps,
 } from '@/shared/components/ui/ChipsContainer'
 import { loadNearbyBins } from '@/shared/services/binsDownloadService'
 import { INITIAL_CENTER } from '@map/constants/map'
@@ -15,7 +15,7 @@ import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useBinsCacheStore } from '@map/stores/binsCacheStore'
 import { convertContainersToGeoJSON } from '@map/utils/geoUtils'
-import React, { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 
 const MapChipsContainer = memo(
 	({
@@ -37,7 +37,7 @@ const MapChipsContainer = memo(
 		const [isLoading, setIsLoading] = useState(false)
 
 		const handleChipPress = useCallback(
-			async (chipId: string, title: string, originalOnPress?: () => void) => {
+			async (chipId: string, title: string) => {
 				// Prevenir múltiples clicks mientras carga
 				if (isLoading) {
 					console.log(`⏳ [CHIP_PRESS] Already loading, ignoring press`)
@@ -173,9 +173,7 @@ const MapChipsContainer = memo(
 							)
 
 							if (!displayedNearby) {
-								console.log(
-									`⚠️ [CHIP_PRESS] Nearby endpoint returned empty set`,
-								)
+								console.log(`⚠️ [CHIP_PRESS] Nearby endpoint returned empty set`)
 							}
 						} else {
 							console.log(

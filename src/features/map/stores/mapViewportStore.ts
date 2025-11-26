@@ -6,7 +6,11 @@ import {
 	ZOOM_THRESHOLD,
 } from '@map/constants/map'
 import { expandBoundsWithBuffer } from '@map/services/mapService'
-import { LngLatBounds, MapViewport, MapZoomLevels } from '@map/types/mapData'
+import {
+	type LngLatBounds,
+	type MapViewport,
+	MapZoomLevels,
+} from '@map/types/mapData'
 import {
 	hasSignificantCenterChange,
 	hasSignificantZoomChange,

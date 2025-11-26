@@ -1,6 +1,6 @@
 import { getRoute } from '@map/services/navigationServices'
-import { LngLat } from '@map/types/mapData'
-import { RouteData, RouteProfile } from '@map/types/navigation'
+import type { LngLat } from '@map/types/mapData'
+import { type RouteData, RouteProfile } from '@map/types/navigation'
 import { clearRouteCorridorCache } from '@map/utils/routeUtils'
 import { create } from 'zustand'
 import { randomUUID } from 'expo-crypto'

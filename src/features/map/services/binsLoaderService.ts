@@ -1,29 +1,27 @@
 import { getBinsData, getContainersDataInBounds } from '@/db/bins/service'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import {
 	readGeoJsonCache,
 	writeGeoJsonCache,
 } from '@map/services/geoJsonCacheService'
 import { useMapBinsStore } from '@map/stores/mapBinsStore'
-import { BinPoint,  type LngLatBounds } from '@map/types/mapData'
-import { RouteData } from '@map/types/navigation'
+import type { BinPoint, LngLatBounds } from '@map/types/mapData'
+import type { RouteData } from '@map/types/navigation'
 import {
 	calculateDistance,
 	convertContainersToGeoJSON,
 	convertContainersToGeoJSONChunked,
 	getMaxBinsByZoom,
 	sampleBinsByNeighborhoods,
-	filterPointsByBounds
+	filterPointsByBounds,
 } from '@map/utils/geoUtils'
 import { expandBoundsWithBuffer } from './mapService'
-
 
 export interface BinsCache {
 	get: (key: BinType) => BinPoint[] | null
 	set: (key: BinType, value: BinPoint[]) => void
 	clear: (key?: BinType) => void
 }
-
 
 export const loadBinsAsGeoJSON = async (
 	binType: BinType,
@@ -183,7 +181,6 @@ export const filterPointsForViewport = (
 		hasRoute: !!route,
 		routeDistance: route ? `${route.distance}m` : 'null',
 	})
-
 
 	// Zoom alto (>= 14): mostrar todos los bins del viewport
 	if (zoom >= 14) return filterPointsByZoom(points, bounds, zoom)

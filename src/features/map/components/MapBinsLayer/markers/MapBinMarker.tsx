@@ -1,5 +1,5 @@
 import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
-import { BinPoint } from '@map/types/mapData'
+import type { BinPoint } from '@map/types/mapData'
 import { CircleLayer, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 
 interface MapBinMarkerProps {

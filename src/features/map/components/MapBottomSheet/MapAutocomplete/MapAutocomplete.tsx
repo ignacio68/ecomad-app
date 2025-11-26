@@ -5,24 +5,15 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { getAutocompletedirections } from '@map/services/autocompleteServices'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Pressable, View } from 'react-native'
 
 const MapAutocomplete = () => {
 	const [searchText, setSearchText] = useState<string>('')
-	const [suggestions, setSuggestions] = useState<any[]>([])
 	const inputRef = useRef<{ clear?: () => void } | null>(null)
 	const setInputRef = (instance: any) => {
 		inputRef.current = instance
 	}
-
-	// Temporary no-op effects to keep variables referenced until implementation
-	useEffect(() => {
-		// planned implementation will consume suggestions
-	}, [suggestions])
-	useEffect(() => {
-		// planned implementation will update suggestions via setter
-	}, [setSuggestions])
 
 	const handleSearchText = (text: string) => {
 		setSearchText(text)

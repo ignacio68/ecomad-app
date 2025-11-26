@@ -8,5 +8,4 @@ export type BinType =
 	| 'battery_bins'
 	| 'other_bins'
 
-
-export type LocationType = 'district' | 'neighborhood';
+export type LocationType = 'district' | 'neighborhood'

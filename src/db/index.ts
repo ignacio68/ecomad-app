@@ -20,7 +20,6 @@ export const registerModule = (module: DatabaseModule) => {
 	)
 }
 
-
 // Auto-registrar módulos
 
 registerModule(binsModule)
@@ -127,7 +126,6 @@ export const getDatabaseInfo = async () => {
 		return {}
 	}
 }
-
 
 // Re-exportar la conexión para compatibilidad
 export { db } from './connection'

@@ -1,5 +1,5 @@
 import { db, sqlite } from '@/db/connection'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import type { LngLatBounds } from '@map/types/mapData'
 import { eq } from 'drizzle-orm'
 import {

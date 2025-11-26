@@ -1,4 +1,4 @@
-import { RouteData } from '@map/types/navigation'
+import type { RouteData } from '@map/types/navigation'
 import { LineLayer, ShapeSource } from '@rnmapbox/maps'
 
 interface RouteLayerProps {
@@ -12,10 +12,9 @@ const MapRouteLayer = ({ route, visible = true }: RouteLayerProps) => {
 		return null
 	}
 
-
 	return (
-			<ShapeSource id="route-source" shape={route.geometry} lineMetrics={true}>
-				<LineLayer
+		<ShapeSource id="route-source" shape={route.geometry} lineMetrics={true}>
+			<LineLayer
 				id="route-line"
 				style={{
 					lineColor: '#0074d9',
@@ -25,7 +24,7 @@ const MapRouteLayer = ({ route, visible = true }: RouteLayerProps) => {
 					lineJoin: 'round',
 				}}
 			/>
-			</ShapeSource>
+		</ShapeSource>
 	)
 }
 

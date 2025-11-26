@@ -4,7 +4,7 @@ import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { MarkerType } from '@map/types/mapData'
-import React, { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import Popover from 'react-native-popover-view'
 
@@ -68,12 +68,13 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 						</View>
 					</Popover>
 				</View>
-				{markerState.markerType != MarkerType.BIN && (
+				{markerState.markerType !== MarkerType.BIN && (
 					<Pressable onPress={handleClose} className="p-2">
-					<Text className="text-center font-lato-semibold text-base text-secondary">
-						Cancelar
-					</Text>
-				</Pressable>)}
+						<Text className="text-center font-lato-semibold text-base text-secondary">
+							Cancelar
+						</Text>
+					</Pressable>
+				)}
 			</View>
 		</View>
 	)

@@ -11,14 +11,15 @@ import { useMemo, useRef } from 'react'
 interface NavigationBottomSheetProps {
 	isOpen: boolean
 }
-const NavigationBottomSheet = ({ isOpen, ...props }: NavigationBottomSheetProps) => {
+const NavigationBottomSheet = ({
+	isOpen,
+	...props
+}: NavigationBottomSheetProps) => {
+	const { setIsMapBottomSheetOpen } = useMapBottomSheetStore()
 
-  const { setIsMapBottomSheetOpen } =
-		useMapBottomSheetStore()
+	const snapPoints = useMemo(() => ['50%', '90%'], [])
 
-  const snapPoints = useMemo(() => ['50%', '90%'], [])
-
-  const makeStyle = () => {
+	const makeStyle = () => {
 		let horizontalMarginBottomSheet = 0
 		if (SCREEN_WIDTH > 500) {
 			horizontalMarginBottomSheet = (SCREEN_WIDTH - 500) / 2
@@ -29,22 +30,22 @@ const NavigationBottomSheet = ({ isOpen, ...props }: NavigationBottomSheetProps)
 				marginHorizontal: horizontalMarginBottomSheet,
 			},
 		})
-  }
+	}
 
-  const styles = makeStyle()
+	const styles = makeStyle()
 
-  const bottomSheetRef = useRef<BottomSheet>(null)
+	const bottomSheetRef = useRef<BottomSheet>(null)
 	return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={isOpen ? 1 : -1}
-      enablePanDownToClose={false}
-      enableDynamicSizing={true}
-      snapPoints={snapPoints}
-      enableOverDrag={false}
-      keyboardBehavior="extend"
-      containerStyle={styles.bottomSheetContainerStyle}
-    >
+		<BottomSheet
+			ref={bottomSheetRef}
+			index={isOpen ? 1 : -1}
+			enablePanDownToClose={false}
+			enableDynamicSizing={true}
+			snapPoints={snapPoints}
+			enableOverDrag={false}
+			keyboardBehavior="extend"
+			containerStyle={styles.bottomSheetContainerStyle}
+		>
 			<View>
 				<Text className="font-lato-bold text-2xl">Navegación</Text>
 			</View>
