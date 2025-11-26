@@ -31,7 +31,8 @@ const FAB = ({
 		<Pressable
 			onPress={onPress}
 			disabled={disabled || loading}
-			className={`ios:shadow-sm android:shadow-md android:shadow-black/80 h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl border-[0.5px] border-gray-300 bg-white`}
+			// biome-ignore lint: sorted classes
+			className="ios:shadow-sm android:shadow-md android:shadow-black/80 h-14 w-14 flex-1 flex-row items-center justify-center rounded-xl border-[0.5px] border-gray-300 bg-white"
 			accessibilityRole="button"
 			accessibilityLabel="Fab"
 			accessibilityHint="Presiona para abrir la pantalla de mapa"

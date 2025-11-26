@@ -30,7 +30,7 @@ export const SearchBar = ({
 				testID={`MagnifyingGlassIcon`}
 			/>
 			<TextInput
-				className="ml-2 flex-1 font-lato-regular text-xl text-gray-900"
+				className="ml-2 flex-1 font-lato-regular text-gray-900 text-xl"
 				placeholder={placeholder}
 				value={value}
 				onChangeText={onChangeText}
