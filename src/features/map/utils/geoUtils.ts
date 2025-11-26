@@ -1,5 +1,5 @@
-import { BinsContainersCacheRecord } from '@/db/bins/schema'
-import { BinType } from '@/shared/types/bins'
+import type { BinsContainersCacheRecord } from '@/db/bins/schema'
+import type { BinType } from '@/shared/types/bins'
 import {
 	COORDINATE_PRECISION,
 	MOVEMENT_THRESHOLD_ZOOM_10,
@@ -9,8 +9,16 @@ import {
 	MOVEMENT_THRESHOLD_ZOOM_18,
 	MOVEMENT_THRESHOLD_ZOOM_EXTREME,
 } from '@map/constants/geolocation'
-import { CHUNK_SIZE, DEFAULT_NEIGHBORHOOD, MAX_VISIBLE_POINTS_LOW_ZOOM } from '@map/constants/markers'
-import { BinPoint, LngLatBounds, MapZoomLevels } from '@map/types/mapData'
+import {
+	CHUNK_SIZE,
+	DEFAULT_NEIGHBORHOOD,
+	MAX_VISIBLE_POINTS_LOW_ZOOM,
+} from '@map/constants/markers'
+import {
+	type BinPoint,
+	type LngLatBounds,
+	MapZoomLevels,
+} from '@map/types/mapData'
 import { area, bboxPolygon, distance, point, type Units } from '@turf/turf'
 import { degreesToRadians } from '@turf/helpers'
 import { expandBoundsWithBuffer } from '../services/mapService'
@@ -26,7 +34,6 @@ type NeighborhoodGroup = {
 	center: { lat: number; lng: number }
 	angle: number
 }
-
 
 /**
  * Calcula la distancia entre dos puntos en metros usando Turf.js

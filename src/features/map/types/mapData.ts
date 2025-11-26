@@ -1,4 +1,4 @@
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 
 export interface BinPoint {
 	type: 'Feature'

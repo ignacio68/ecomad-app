@@ -1,5 +1,5 @@
 import MapContainer from '@map/screens/MapContainer'
-import {memo} from 'react'
+import { memo } from 'react'
 
 const MapScreen = () => <MapContainer />
 

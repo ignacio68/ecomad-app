@@ -7,7 +7,7 @@ import {
 	HERO_MARKER_TRIANGLE_MARGIN_TOP,
 	HERO_MARKER_TRIANGLE_SIZE,
 } from '@/features/map/constants/markers'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import { MarkerView } from '@rnmapbox/maps'

@@ -1,5 +1,5 @@
 import { BINS_CACHE_DURATION_MS } from '@/features/map/constants/markers'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import { create } from 'zustand'
 
 interface BinsCountStore {

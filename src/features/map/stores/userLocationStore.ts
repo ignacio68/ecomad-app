@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { userLocationService } from '@map/services/userLocationService'
-import { LocationOptions, UserLocation } from '@map/types/userLocation'
+import type { LocationOptions, UserLocation } from '@map/types/userLocation'
 import { PermissionStatus } from 'expo-location'
 
 interface UserLocationStore {

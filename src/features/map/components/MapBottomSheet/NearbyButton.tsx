@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
 
-const NearbyButton = ({}) => {
+const NearbyButton = () => {
 	const handleNearby = async () => {
 		// await filteredPointsByNearby(points, center, maxDistance)
 	}

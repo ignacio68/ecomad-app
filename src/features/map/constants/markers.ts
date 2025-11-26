@@ -18,7 +18,7 @@ export const BIN_MARKER_ICON_SIZE = 16 // Tamaño del icono del marcador
 export const HERO_MARKER_SIZE = 56 // Tamaño del marcador hero (14 * 4 = 56)
 export const HERO_MARKER_ELEVATION = 8 // Elevación del marcador hero
 export const HERO_MARKER_BORDER_WIDTH = 2 // Ancho del borde del marcador hero
-export const HERO_MARKER_BORDER_COLOR = "#ffffff" // Color del borde del marcador hero
+export const HERO_MARKER_BORDER_COLOR = '#ffffff' // Color del borde del marcador hero
 export const HERO_MARKER_BORDER_RADIUS = 9999 // Radio del borde del marcador hero
 export const HERO_MARKER_SHADOW_RADIUS = 8 // Radio de sombra del marcador hero
 export const HERO_MARKER_SHADOW_OPACITY = 0.25 // Opacidad de sombra del marcador hero

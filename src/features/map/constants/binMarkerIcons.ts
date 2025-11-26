@@ -1,4 +1,4 @@
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import {
 	Apple01Icon as Apple01IconSolid,
 	Book02Icon as Book02IconSolid,
@@ -9,7 +9,7 @@ import {
 	BatteryCharging01Icon as BatteryCharging01IconSolid,
 	WasteRestoreIcon as WasteRestoreIconSolid,
 } from '@hugeicons-pro/core-solid-rounded'
-import { IconSvgElement } from '@hugeicons/react-native'
+import type { IconSvgElement } from '@hugeicons/react-native'
 
 type BinMarkerIconSet = {
 	default: string

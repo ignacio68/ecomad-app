@@ -1,4 +1,4 @@
-import { ChipProps } from '@/shared/components/ui/buttons/Chip'
+import type { ChipProps } from '@/shared/components/ui/buttons/Chip'
 
 import {
 	Apple01Icon,

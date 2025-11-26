@@ -1,4 +1,4 @@
-import { BinPoint } from '@map/types/mapData'
+import type { BinPoint } from '@map/types/mapData'
 import { create } from 'zustand'
 
 interface MapBinsStore {
@@ -28,4 +28,3 @@ export const useMapBinsStore = create<MapBinsStore>(set => ({
 		set({ allPoints: [], filteredPoints: [] })
 	},
 }))
-

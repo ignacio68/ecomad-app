@@ -13,7 +13,7 @@ import { useMapStyleStore } from '@map/stores/mapStyleStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { mapStyles } from '@map/styles/mapStyles'
-import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
+import { type LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { Camera, MapView, type MapState } from '@rnmapbox/maps'
 import { memo, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
@@ -24,6 +24,8 @@ import MapWalkingRouteLayer from '@map/components/MapRouteLayer/MapWalkingRouteL
 const FOLLOWING_CAMERA_THROTTLE_MS = 250
 const ZOOM_EPSILON = 0.01
 const FOLLOW_CENTER_EPSILON = 0.00001
+
+const PRUEBA = 'prueba'
 
 const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
@@ -173,9 +175,7 @@ const MapBase = () => {
 				}
 
 				if (__DEV__)
-					console.log(
-						'[MapBase] ✅ Animation finished, bins displayed',
-					)
+					console.log('[MapBase] ✅ Animation finished, bins displayed')
 			}, ANIMATION_DURATION_MS + 100)
 		} catch (error) {
 			console.error('❌ [MapBase] Error setting camera:', error)

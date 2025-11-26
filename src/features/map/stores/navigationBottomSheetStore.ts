@@ -6,8 +6,9 @@ interface NavigationBottomSheetStore {
 }
 
 export const useNavigationBottomSheetStore = create<NavigationBottomSheetStore>(
-	(set) => ({
+	set => ({
 		isNavigationBottomSheetOpen: false,
-		setIsNavigationBottomSheetOpen: (isOpen) => set({ isNavigationBottomSheetOpen: isOpen }),
+		setIsNavigationBottomSheetOpen: isOpen =>
+			set({ isNavigationBottomSheetOpen: isOpen }),
 	}),
 )

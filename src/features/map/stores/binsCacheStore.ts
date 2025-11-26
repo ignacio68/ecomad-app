@@ -1,5 +1,5 @@
-import { BinType } from '@/shared/types/bins'
-import { type BinPoint } from '@map/types/mapData'
+import type { BinType } from '@/shared/types/bins'
+import type { BinPoint } from '@map/types/mapData'
 import { create } from 'zustand'
 
 interface BinsCacheState {

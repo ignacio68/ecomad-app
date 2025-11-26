@@ -1,4 +1,4 @@
-import { type LocationAccuracy } from "expo-location"
+import type { LocationAccuracy } from 'expo-location'
 
 export interface UserLocation {
 	latitude: number

@@ -12,8 +12,7 @@ import { View } from 'react-native'
 const MapContainer = memo(() => {
 	const { isMapBottomSheetOpen, setIsMapBottomSheetOpen } =
 		useMapBottomSheetStore()
-	const { isNavigationBottomSheetOpen} =
-		useNavigationBottomSheetStore()
+	const { isNavigationBottomSheetOpen } = useNavigationBottomSheetStore()
 	const chipsList = useMemo(() => createChipsList(), [])
 
 	const handleChipPress = () => setIsMapBottomSheetOpen(true)

@@ -1,4 +1,4 @@
-import { UserLocation, UpdateStrategy } from '@map/types/userLocation'
+import type { UserLocation, UpdateStrategy } from '@map/types/userLocation'
 
 export const haversineMeters = (a: UserLocation, b: UserLocation) => {
 	const R = 6371000

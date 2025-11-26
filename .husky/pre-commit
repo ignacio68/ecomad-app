@@ -1,0 +1,3 @@
+# biome check --files-ignore-unknown=true --no-errors-on-unmatched
+
+# bun test

@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite'
-import { openDatabaseSync  } from 'expo-sqlite'
+import { openDatabaseSync } from 'expo-sqlite'
 // import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 
 // Configuración de la base de datos
@@ -26,9 +26,12 @@ const ensureSpatialIndexes = () => {
 		)
 		console.log('🗄️ SQLite spatial indexes ensured')
 	} catch (error) {
-		console.warn('⚠️ Unable to ensure SQLite indexes (likely before migrations)', {
-			error,
-		})
+		console.warn(
+			'⚠️ Unable to ensure SQLite indexes (likely before migrations)',
+			{
+				error,
+			},
+		)
 	}
 }
 
