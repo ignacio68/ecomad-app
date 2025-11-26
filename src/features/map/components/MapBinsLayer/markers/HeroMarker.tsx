@@ -1,6 +1,3 @@
-import { BinType } from '@/shared/types/bins'
-import { HugeiconsIcon } from '@hugeicons/react-native'
-import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import {
 	HERO_MARKER_ELEVATION,
 	HERO_MARKER_SHADOW_OPACITY,
@@ -8,30 +5,22 @@ import {
 	HERO_MARKER_SIZE,
 	HERO_MARKER_TRIANGLE_MARGIN_BOTTOM,
 	HERO_MARKER_TRIANGLE_MARGIN_TOP,
-} from '@map/constants/clustering'
+	HERO_MARKER_TRIANGLE_SIZE,
+} from '@/features/map/constants/markers'
+import type { BinType } from '@/shared/types/bins'
+import { HugeiconsIcon } from '@hugeicons/react-native'
+import { BIN_MARKER_ICONS } from '@map/constants/binMarkerIcons'
 import { MarkerView } from '@rnmapbox/maps'
-import React, { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Animated, Pressable, View } from 'react-native'
 
-interface HeroMarkerTestProps {
+interface HeroMarkerProps {
 	coordinate: [number, number]
 	binType: BinType
 	onPress?: () => void
 }
 
-const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
-	coordinate,
-	binType,
-	onPress,
-}) => {
-	console.log('🧪 [HERO_MARKER_TEST] Renderizando con coordinate:', {
-		coordinate,
-		type: typeof coordinate,
-		isArray: Array.isArray(coordinate),
-		length: Array.isArray(coordinate) ? coordinate.length : 'N/A',
-		binType,
-	})
-
+const HeroMarker = ({ coordinate, binType, onPress }: HeroMarkerProps) => {
 	const { color, active: ActiveIcon } = BIN_MARKER_ICONS[binType]
 	const heroScale = useRef(new Animated.Value(0)).current
 
@@ -52,8 +41,6 @@ const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
 		}).start()
 	}, [heroScale])
 
-	console.log('🧪 [HERO_MARKER_TEST] Antes de renderizar MarkerView')
-
 	return (
 		<MarkerView coordinate={coordinate} anchor={{ x: 0.5, y: 0.8 }}>
 			<Pressable onPress={onPress}>
@@ -71,14 +58,17 @@ const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
 							width: HERO_MARKER_SIZE,
 							height: HERO_MARKER_SIZE,
 							backgroundColor: color,
-							borderRadius: 9999,
+							borderRadius: '100%',
+							borderWidth: 3,
+							borderColor: '#fff',
+							alignItems: 'center',
+							justifyContent: 'center',
+							zIndex: 10,
 							shadowColor: '#000',
 							shadowOffset: { width: 0, height: 8 },
 							shadowOpacity: HERO_MARKER_SHADOW_OPACITY,
 							shadowRadius: HERO_MARKER_SHADOW_RADIUS,
 							elevation: HERO_MARKER_ELEVATION,
-							alignItems: 'center',
-							justifyContent: 'center',
 						}}
 					>
 						<HugeiconsIcon
@@ -90,9 +80,9 @@ const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
 					</Animated.View>
 					<View
 						style={{
-							width: 8,
-							height: 8,
-							backgroundColor: color,
+							width: HERO_MARKER_TRIANGLE_SIZE,
+							height: HERO_MARKER_TRIANGLE_SIZE,
+							backgroundColor: '#fff',
 							transform: [{ rotate: '45deg' }],
 							marginTop: HERO_MARKER_TRIANGLE_MARGIN_TOP,
 							marginBottom: HERO_MARKER_TRIANGLE_MARGIN_BOTTOM,
@@ -104,4 +94,4 @@ const HeroMarkerTest: React.FC<HeroMarkerTestProps> = ({
 	)
 }
 
-export default HeroMarkerTest
+export default HeroMarker

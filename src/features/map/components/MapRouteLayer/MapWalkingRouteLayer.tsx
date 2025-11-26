@@ -1,9 +1,9 @@
-import { RouteData } from '@map/types/navigation'
+import type { RouteData } from '@map/types/navigation'
 import { buildRouteDotsByZoom } from '@map/utils/routeUtils'
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps'
 import { useMemo, memo } from 'react'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson'
+import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson'
 
 interface RouteLayerProps {
 	route: RouteData
@@ -16,18 +16,14 @@ const MapRouteLayer = ({
 	stepMeters = 30,
 	maxPoints = 1000,
 }: RouteLayerProps) => {
-
 	const zoom = useMapViewportStore(s => s.viewport.zoom)
 
-	 const dots: FeatureCollection<Geometry, GeoJsonProperties> = useMemo(() => {
-			return buildRouteDotsByZoom(route.geometry, zoom, route.id, { maxPoints })
-		}, [route.id, zoom, maxPoints])
+	const dots: FeatureCollection<Geometry, GeoJsonProperties> = useMemo(() => {
+		return buildRouteDotsByZoom(route.geometry, zoom, route.id, { maxPoints })
+	}, [route.id, zoom, maxPoints, route.geometry])
 
 	return (
-		<ShapeSource
-			id={`route-dots-${route.id}`}
-			shape={dots}
-		>
+		<ShapeSource id={`route-dots-${route.id}`} shape={dots}>
 			<CircleLayer
 				id={`route-dots-layer-${route.id}`}
 				style={{

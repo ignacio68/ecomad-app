@@ -1,11 +1,11 @@
-import { showIndividualBins } from '@map/services/clusterDisplayService'
+import { showIndividualBins } from '@map/services/binsDisplayService'
 import { createFallbackBounds } from '@map/services/mapService'
 import { isViewportSyncPaused } from '@map/services/viewportSyncController'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
-import { useSuperclusterCacheStore } from '@map/stores/superclusterCacheStore'
+import { useBinsCacheStore } from '@map/stores/binsCacheStore'
 import type { LngLatBounds, MapViewport } from '@map/types/mapData'
 import {
 	hasSignificantCenterChange,
@@ -64,7 +64,7 @@ export const startBinsViewportSync = () => {
 			viewport.center!,
 		)
 
-		// Detectar cruce del umbral de zoom 14 (clusters <-> bins individuales)
+		// Detectar cruce del umbral de zoom 14 para ajustar carga de bins
 		const INDIVIDUAL_BINS_ZOOM_THRESHOLD = 14
 		const prevZoom = lastValidatedZoom ?? 11
 		const currZoom = viewport.zoom ?? 11
@@ -107,7 +107,7 @@ export const startBinsViewportSync = () => {
 		if (!zoomChanged && !crossedThreshold && centerChanged) {
 			const { selectedEndPoint } = useMapChipsMenuStore.getState()
 			if (selectedEndPoint) {
-				const { getPointsCache } = useSuperclusterCacheStore.getState()
+				const { getPointsCache } = useBinsCacheStore.getState()
 				const cachedBins = getPointsCache(selectedEndPoint)
 
 				// Verificar si tenemos todos los bins descargados usando el store síncrono
@@ -167,7 +167,7 @@ export const startBinsViewportSync = () => {
 			)
 
 		// ✅ Actualiza SIEMPRE los valores validados
-		// El clustering jerárquico se maneja reactivamente en useHierarchicalBins
+		// El cálculo de bins visibles se maneja en useHierarchicalBins
 		updateValidatedViewport(viewport.zoom, safeBounds, viewport.center!)
 
 		// Actualizar bins cuando hay cambios significativos

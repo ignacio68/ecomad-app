@@ -73,8 +73,8 @@ export const createFallbackBounds = (
 	lat: number,
 	zoom: number,
 ): LngLatBounds => {
-	const latDelta = 180 / Math.pow(2, zoom)
-	const lngDelta = 360 / Math.pow(2, zoom)
+	const latDelta = 180 / 2 ** zoom
+	const lngDelta = 360 / 2 ** zoom
 	const buffer = getDynamicBuffer(zoom)
 
 	return [

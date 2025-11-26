@@ -1,9 +1,9 @@
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import React from 'react'
 import { ActivityIndicator, Pressable, Text } from 'react-native'
-import { CustomButtonProps } from './types'
+import type { CustomButtonProps } from './types'
 
- const CustomButton = React.memo(
+const CustomButton = React.memo(
 	({
 		title,
 		mode,

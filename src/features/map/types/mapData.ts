@@ -1,4 +1,4 @@
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 
 export interface BinPoint {
 	type: 'Feature'
@@ -6,7 +6,7 @@ export interface BinPoint {
 		cluster: boolean
 		point_count?: number
 		binType: BinType
-		containerId: string
+		binId: string
 		category_group_id: number
 		category_id: number
 		district_code: string
@@ -32,12 +32,11 @@ export interface BinPoint {
 export enum MapLocationType {
 	DISTRICTS = 'districts',
 	NEIGHBORHOODS = 'neighborhoods',
-	CONTAINERS = 'containers',
+	BINS = 'bins',
 }
 
 export enum MarkerType {
 	GENERAL = 'general',
-	CLUSTER = 'cluster',
 	BIN = 'bin',
 }
 
@@ -45,26 +44,9 @@ export type LngLat = [number, number]
 export type LngLatBounds = [LngLat, LngLat]
 export type LngLatBoundsLike = LngLatBounds | [number, number, number, number]
 
-export interface ClusterFeatureProperties {
-	cluster: true
-	cluster_id?: number
-	point_count: number
-	point_count_abbreviated?: number
-	binType?: BinType
-}
-
-export interface ClusterFeature {
-	id: number
-	geometry: {
-		coordinates: LngLat
-	}
-	properties: ClusterFeatureProperties
-}
-
 export interface BottomSheetState {
 	markerType: MarkerType
 	selectedBin: BinPoint | null
-	selectedCluster: ClusterFeature | null
 }
 
 export interface MapDataItem {
@@ -100,7 +82,6 @@ export enum MapZoomLevels {
 	DISTRICT = 11, // Zoom inicial para ver toda Madrid
 	NEIGHBORHOOD = 13,
 	BINS = 16,
-	CLUSTER = 15,
 }
 
 export interface MapViewport {

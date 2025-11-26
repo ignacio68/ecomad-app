@@ -1,7 +1,6 @@
 import BottomSheet, {
 	BottomSheetScrollView,
 	BottomSheetView,
-	SCREEN_WIDTH,
 } from '@gorhom/bottom-sheet'
 import { BOTTOM_SHEET_SNAP_POINTS } from '@map/constants/map'
 import { getTotalCount as getTotalCountFromService } from '@/db/bins/service'
@@ -9,9 +8,9 @@ import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import BinInfo from './BinInfo'
-// import ClusterInfo from './ClusterInfo'
+
 import { MarkerType } from '@map/types/mapData'
 import GeneralInfo from './GeneralInfo'
 import MapBottomSheetTitle from './MapBottomSheetTitle'
@@ -36,38 +35,39 @@ const MapBottomSheet = ({ isOpen, ...props }: MapBottomSheetProps) => {
 	}, [selectedChip, markerState.markerType])
 
 	const isAnyChipSelected = selectedChip !== ''
-	const totalBinsFromStore = selectedEndPoint ? getTotalCount(selectedEndPoint) : null
+	const totalBinsFromStore = selectedEndPoint
+		? getTotalCount(selectedEndPoint)
+		: null
 	const totalBins = totalBinsFromStore ?? totalBinsFromDB
 
 	// Cargar total count desde SQLite si no está en el store
-useEffect(() => {
-	if (!selectedEndPoint) {
-		setTotalBinsFromDB(null)
-		return
-	}
-
-	if (totalBinsFromStore != null) {
-		setTotalBinsFromDB(totalBinsFromStore)
-		return
-	}
-
-	const load = async () => {
-		try {
-			const count = await getTotalCountFromService(selectedEndPoint)
-			setTotalBinsFromDB(count)
-			if (count != null) setTotalCount(selectedEndPoint, count)
-		} catch (error) {
-			console.error(
-				`❌ Error loading total count for ${selectedEndPoint}:`,
-				error,
-			)
+	useEffect(() => {
+		if (!selectedEndPoint) {
 			setTotalBinsFromDB(null)
+			return
 		}
-	}
 
-	load()
-}, [selectedEndPoint, totalBinsFromStore, setTotalCount])
+		if (totalBinsFromStore != null) {
+			setTotalBinsFromDB(totalBinsFromStore)
+			return
+		}
 
+		const load = async () => {
+			try {
+				const count = await getTotalCountFromService(selectedEndPoint)
+				setTotalBinsFromDB(count)
+				if (count != null) setTotalCount(selectedEndPoint, count)
+			} catch (error) {
+				console.error(
+					`❌ Error loading total count for ${selectedEndPoint}:`,
+					error,
+				)
+				setTotalBinsFromDB(null)
+			}
+		}
+
+		load()
+	}, [selectedEndPoint, totalBinsFromStore, setTotalCount])
 
 	useEffect(() => {
 		if (!bottomSheetRef.current) {
@@ -92,8 +92,7 @@ useEffect(() => {
 				return
 			}
 
-			const minIndex =
-				markerState.markerType === MarkerType.BIN ? 2 : 1
+			const minIndex = markerState.markerType === MarkerType.BIN ? 2 : 1
 
 			if (index < minIndex) {
 				bottomSheetRef.current?.snapToIndex(minIndex)
@@ -105,22 +104,6 @@ useEffect(() => {
 		[isAnyChipSelected, markerState.markerType],
 	)
 
-	const makeStyle = () => {
-		let horizontalMarginBottomSheet = 0
-		if (SCREEN_WIDTH > 500) {
-			horizontalMarginBottomSheet = (SCREEN_WIDTH - 500) / 2
-		}
-
-		return StyleSheet.create({
-			bottomSheetContainerStyle: {
-				marginHorizontal: horizontalMarginBottomSheet,
-			},
-		})
-	}
-
-	// const styles = makeStyle()
-
-
 	return (
 		<BottomSheet
 			ref={bottomSheetRef}
@@ -131,7 +114,6 @@ useEffect(() => {
 			enableOverDrag={false}
 			keyboardBehavior="extend"
 			onChange={handleSheetChange}
-			// containerStyle={styles.bottomSheetContainerStyle}
 		>
 			<BottomSheetView>
 				<View className="mx-4 mb-8 flex-1 items-center justify-center">
@@ -139,14 +121,14 @@ useEffect(() => {
 						title={`Contenedores de ${mapBottomSheetTitle}`}
 					/>
 					<BottomSheetScrollView className="w-full px-2 py-2">
-					{markerState.markerType === MarkerType.BIN ? (
-						<BinInfo bin={markerState.selectedBin!} onClose={clearChip} />
-					) : (
-						<GeneralInfo
-							mapBottomSheetTitle={mapBottomSheetTitle}
-							totalBins={totalBins}
-						/>
-					)}
+						{markerState.markerType === MarkerType.BIN ? (
+							<BinInfo bin={markerState.selectedBin!} onClose={clearChip} />
+						) : (
+							<GeneralInfo
+								mapBottomSheetTitle={mapBottomSheetTitle}
+								totalBins={totalBins}
+							/>
+						)}
 					</BottomSheetScrollView>
 				</View>
 			</BottomSheetView>

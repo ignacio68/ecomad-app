@@ -1,12 +1,8 @@
-import {
-	MAPBOX_DIRECTIONS_URL,
-	MAPBOX_PUBLIC_TOKEN,
-} from '@map/constants/map'
-import { LngLat } from '@map/types/mapData'
+import { MAPBOX_DIRECTIONS_URL, MAPBOX_PUBLIC_TOKEN } from '@map/constants/map'
+import type { LngLat } from '@map/types/mapData'
 import { RouteProfile, type RouteResponse } from '@map/types/navigation'
 import { fetch } from 'expo/fetch'
 export { RouteProfile } from '@map/types/navigation'
-
 
 export const getRoute = async (
 	profile: RouteProfile,

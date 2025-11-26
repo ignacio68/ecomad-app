@@ -18,7 +18,7 @@ interface ApiError {
 // Configuración por defecto
 const defaultHeaders = {
 	'Content-Type': 'application/json',
-	'Accept': 'application/json',
+	Accept: 'application/json',
 }
 
 // Cliente HTTP principal

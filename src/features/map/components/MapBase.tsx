@@ -13,17 +13,19 @@ import { useMapStyleStore } from '@map/stores/mapStyleStore'
 import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { mapStyles } from '@map/styles/mapStyles'
-import { LngLatBounds, MapZoomLevels } from '@map/types/mapData'
+import { type LngLatBounds, MapZoomLevels } from '@map/types/mapData'
 import { Camera, MapView, type MapState } from '@rnmapbox/maps'
 import { memo, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
-import MapBinsLayerV2 from './MapBinsLayerV2'
-import MapWalkingRouteLayer from './MapRouteLayer/MapWalkingRouteLayer'
-import UserLocationMarker from './markers/UserLocationMarker'
+import MapBinsLayer from '@map/components/MapBinsLayer/MapBinsLayer'
+import UserLocationMarker from '@map/components/MapBinsLayer/markers/UserLocationMarker'
+import MapWalkingRouteLayer from '@map/components/MapRouteLayer/MapWalkingRouteLayer'
 
 const FOLLOWING_CAMERA_THROTTLE_MS = 250
 const ZOOM_EPSILON = 0.01
 const FOLLOW_CENTER_EPSILON = 0.00001
+
+const PRUEBA = 'prueba'
 
 const MapBase = () => {
 	const mapViewRef = useRef<MapView | null>(null)
@@ -133,7 +135,7 @@ const MapBase = () => {
 				animationDuration: ANIMATION_DURATION_MS,
 			})
 
-			// Resetear flags y mostrar bins/clusters después de la animación
+			// Resetear flags y mostrar bins después de la animación
 			setTimeout(() => {
 				if (__DEV__)
 					console.log('[MapBase] ⏰ Animation timeout reached, resetting flags')
@@ -144,13 +146,13 @@ const MapBase = () => {
 				// Resetear throttle para permitir pans inmediatos después de la animación
 				lastCameraEmitRef.current = 0
 
-				// Mostrar bins/clusters imperativamente según el zoom final
+				// Mostrar bins imperativamente según el zoom final
 				const { viewport, updateValidatedViewport } =
 					useMapViewportStore.getState()
 				const { selectedEndPoint } = useMapChipsMenuStore.getState()
 
 				if (__DEV__)
-					console.log('[MapBase] 🔄 Showing bins/clusters after animation:', {
+					console.log('[MapBase] 🔄 Showing bins after animation:', {
 						zoom: viewport.zoom,
 						center: viewport.center,
 						hasBounds: !!viewport.bounds,
@@ -173,9 +175,7 @@ const MapBase = () => {
 				}
 
 				if (__DEV__)
-					console.log(
-						'[MapBase] ✅ Animation finished, bins/clusters displayed',
-					)
+					console.log('[MapBase] ✅ Animation finished, bins displayed')
 			}, ANIMATION_DURATION_MS + 100)
 		} catch (error) {
 			console.error('❌ [MapBase] Error setting camera:', error)
@@ -327,7 +327,7 @@ const MapBase = () => {
 							: 15
 					}
 				/>
-				{selectedEndPoint && <MapBinsLayerV2 />}
+				{selectedEndPoint && <MapBinsLayer />}
 				{route && <MapWalkingRouteLayer route={route} />}
 				{isUserLocationFABActivated && <UserLocationMarker />}
 			</MapView>

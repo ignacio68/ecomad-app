@@ -1,8 +1,8 @@
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import { HugeiconsIcon } from '@hugeicons/react-native'
 import React from 'react'
 import { Pressable, Text } from 'react-native'
-import { BaseButtonProps } from './types'
+import type { BaseButtonProps } from './types'
 
 export interface ChipProps extends BaseButtonProps {
 	id: string

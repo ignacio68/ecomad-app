@@ -1,6 +1,6 @@
 import { getRoute } from '@map/services/navigationServices'
-import { LngLat } from '@map/types/mapData'
-import { RouteData, RouteProfile } from '@map/types/navigation'
+import type { LngLat } from '@map/types/mapData'
+import { type RouteData, RouteProfile } from '@map/types/navigation'
 import { clearRouteCorridorCache } from '@map/utils/routeUtils'
 import { create } from 'zustand'
 import { randomUUID } from 'expo-crypto'
@@ -10,7 +10,6 @@ interface MapNavigationStore {
 	hasActiveRoute: boolean
 	isLoading: boolean
 	isError: boolean
-	shouldHideClusters: boolean
 	calculateRoute: (
 		origin: LngLat,
 		destination: LngLat,
@@ -26,26 +25,19 @@ export const useMapNavigationStore = create<MapNavigationStore>(set => ({
 	hasActiveRoute: false,
 	isLoading: false,
 	isError: false,
-	shouldHideClusters: false,
 	calculateRoute: async (
 		origin,
 		destination,
 		profile = RouteProfile.WALKING,
 	) => {
 		console.log('🚀 [ROUTE] Starting route calculation...')
-		// HARD STOP: Ocultar todos los clusters
-		set({ shouldHideClusters: true, isLoading: true })
+		set({ isLoading: true })
 		try {
 			const routeGeometry = await getRoute(profile, origin, destination)
 
 			if (!routeGeometry) {
 				console.log('❌ [ROUTE] No route found')
-				set({
-					isError: true,
-					isLoading: false,
-					hasActiveRoute: false,
-					shouldHideClusters: false,
-				})
+				set({ isError: true, isLoading: false, hasActiveRoute: false })
 				return null
 			}
 
@@ -68,48 +60,39 @@ export const useMapNavigationStore = create<MapNavigationStore>(set => ({
 				coordinatesCount: routeData.geometry.geometry.coordinates.length,
 			})
 
-			// NO desactivar shouldHideClusters aquí, se hace después del zoom en BinInfo
 			set({
 				route: routeData,
 				isLoading: false,
 				hasActiveRoute: true,
-				// shouldHideClusters sigue en true
 			})
 
 			return routeData
 		} catch (err) {
 			console.error('❌ [ROUTE] Error calculating route:', err)
-			set({
-				isError: true,
-				isLoading: false,
-				hasActiveRoute: false,
-				shouldHideClusters: false,
-			})
+			set({ isError: true, isLoading: false, hasActiveRoute: false })
 			return null
 		}
 	},
 	clearRoute: () => {
 		clearRouteCorridorCache()
-		console.log('✅ [ROUTE] Clearing route, showing clusters again')
+		console.log('✅ [ROUTE] Clearing route')
 		set({
 			route: null,
 			isError: false,
 			isLoading: false,
 			hasActiveRoute: false,
-			shouldHideClusters: false,
 		})
 	},
 	deactivateRouteIfActive: () => {
 		const state = useMapNavigationStore.getState()
 		if (state.hasActiveRoute) {
 			clearRouteCorridorCache()
-			console.log('✅ [ROUTE] Deactivating route, showing clusters again')
+			console.log('✅ [ROUTE] Deactivating route')
 			set({
 				route: null,
 				isError: false,
 				isLoading: false,
 				hasActiveRoute: false,
-				shouldHideClusters: false,
 			})
 		}
 	},

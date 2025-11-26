@@ -1,4 +1,4 @@
-import { UpdateStrategy } from "@map/types/userLocation";
+import type { UpdateStrategy } from '@map/types/userLocation'
 
 export const DEFAULT_STRATEGY: Required<UpdateStrategy> = {
 	minDistanceMeters: 5, // evita “ruido” del GPS

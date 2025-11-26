@@ -42,7 +42,7 @@ path      = "${project_root}/apps/mobile"
 install   = "bun install"
 dev       = "bunx expo start"
 test      = "bun test"
-lint      = "bunx eslint ."
+lint      = "bunx biome lint"
 build     = "bunx expo export" # o proceso EAS manual
 
 [[workspaces]]
@@ -51,7 +51,7 @@ path      = "${project_root}/apps/nativescript"
 install   = "bun install"
 dev       = "bunx ns run ios"   # o android
 test      = "bun test"
-lint      = "bunx eslint ."
+lint      = "bunx biome lint."
 build     = "bunx ns build ios" # o android
 
 [[workspaces]]

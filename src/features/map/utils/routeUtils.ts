@@ -1,5 +1,9 @@
-import { BinPoint, LngLatBounds, MapZoomLevels } from '@map/types/mapData'
-import { RouteData, RouteGeometryFeature } from '@map/types/navigation'
+import {
+	type BinPoint,
+	type LngLatBounds,
+	MapZoomLevels,
+} from '@map/types/mapData'
+import type { RouteData, RouteGeometryFeature } from '@map/types/navigation'
 import { buffer } from '@turf/buffer'
 import {
 	along,
@@ -9,7 +13,7 @@ import {
 	lineString,
 	point,
 } from '@turf/turf'
-import {
+import type {
 	Feature,
 	FeatureCollection,
 	GeoJsonProperties,

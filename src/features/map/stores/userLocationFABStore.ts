@@ -70,7 +70,8 @@ export const useUserLocationFABStore = create<UserLocationFABStore>(
 		},
 
 		setIsManuallyActivated: manual => set({ isManuallyActivated: manual }),
-		setIsUserLocationCentered: centered => set({ isUserLocationCentered: centered }),
+		setIsUserLocationCentered: centered =>
+			set({ isUserLocationCentered: centered }),
 
 		setIsMapStylesFABActivated: active => {
 			set({ isMapStylesFABActivated: active })

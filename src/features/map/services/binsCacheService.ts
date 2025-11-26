@@ -3,7 +3,7 @@ import {
 	loadInitialData,
 	scheduleBackgroundDownload,
 } from '@/shared/services/binsDownloadService'
-import { BinType } from '@/shared/types/bins'
+import type { BinType } from '@/shared/types/bins'
 import { useBinsCountStore } from '@map/stores/binsCountStore'
 import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
 

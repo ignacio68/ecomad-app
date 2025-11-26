@@ -4,7 +4,7 @@ import { useMapBottomSheetStore } from '@map/stores/mapBottomSheetStore'
 import { useMapChipsMenuStore } from '@map/stores/mapChipsMenuStore'
 import { useMapNavigationStore } from '@map/stores/mapNavigationStore'
 import { MarkerType } from '@map/types/mapData'
-import React, { memo, useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import Popover from 'react-native-popover-view'
 
@@ -40,15 +40,6 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 
 	return (
 		<View className="w-full">
-			{/* <View className="flex-">
-				<Image
-					source={require('../../assets/images/clothes_bin_small_02.png')}
-					className="w-full bg-green-500"
-					resizeMode="contain"
-					accessibilityLabel={'`foto de un contenedor`'}
-					testID={'contenedor_foto'}
-				/>
-			</View> */}
 			<View className="flex-row items-center justify-between py-4 px-2">
 				<View className="flex-1 flex-row items-center">
 					<Text className="font-lato-semibold text-2xl text-gray-900">
@@ -77,12 +68,13 @@ const MapBottomSheetTitle = memo(({ title }: { title: string }) => {
 						</View>
 					</Popover>
 				</View>
-				{markerState.markerType != MarkerType.BIN && (
+				{markerState.markerType !== MarkerType.BIN && (
 					<Pressable onPress={handleClose} className="p-2">
-					<Text className="text-center font-lato-semibold text-base text-secondary">
-						Cancelar
-					</Text>
-				</Pressable>)}
+						<Text className="text-center font-lato-semibold text-base text-secondary">
+							Cancelar
+						</Text>
+					</Pressable>
+				)}
 			</View>
 		</View>
 	)

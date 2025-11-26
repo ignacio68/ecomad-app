@@ -1,5 +1,5 @@
 import { RestoreBinIcon as RestoreBinIconDuotone } from '@hugeicons-pro/core-duotone-rounded'
-import { IconSvgElement } from '@hugeicons/react-native'
+import type { IconSvgElement } from '@hugeicons/react-native'
 
 export interface Category {
 	id: string

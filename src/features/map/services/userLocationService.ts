@@ -1,6 +1,6 @@
 import * as Location from 'expo-location'
 import { PermissionStatus } from 'expo-location'
-import { UserLocation, LocationOptions } from '@map/types/userLocation'
+import type { UserLocation, LocationOptions } from '@map/types/userLocation'
 
 const MAX_ACCEPTABLE_ACCURACY_METERS = 20
 

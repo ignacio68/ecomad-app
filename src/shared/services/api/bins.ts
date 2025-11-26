@@ -1,5 +1,5 @@
-import { BinType, LocationType } from '@/shared/types/bins'
-import { NearByCoordinates } from '@/shared/types/search'
+import type { BinType, LocationType } from '@/shared/types/bins'
+import type { NearByCoordinates } from '@/shared/types/search'
 import { normalizeLocationName } from '@/shared/utils/locationsUtils'
 import {
 	binsNearbyApiResponseSchema,

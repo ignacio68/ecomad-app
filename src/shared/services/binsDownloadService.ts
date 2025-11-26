@@ -1,15 +1,16 @@
 import {
 	getTotalCount,
-	saveContainersData,
+	saveBinsData,
 	saveHierarchyData,
 	saveTotalCount,
 } from '@/db/bins/service'
-import { useSuperclusterCacheStore } from '@/features/map/stores/superclusterCacheStore'
-import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
+import { useBinsCacheStore } from '@/features/map/stores/binsCacheStore'
 import type { BinType } from '@/shared/types/bins'
 import type { NearByCoordinates } from '@/shared/types/search'
+import { clearGeoJsonCache } from '@map/services/geoJsonCacheService'
 import type { LngLatBounds } from '@map/types/mapData'
 import { getAllBins, getBinsByNearby, getBinsCount } from './api/bins'
+import { calculateDynamicRadius, calculateLimit } from '@map/utils/geoUtils'
 
 /**
  * Mutex para evitar descargas duplicadas
@@ -58,13 +59,13 @@ const downloadAndSaveBins = async (
 	const bins = response.data
 	onProgress?.(bins.length, bins.length)
 
-	await saveContainersData(binType, bins)
+	await saveBinsData(binType, bins)
 	await clearGeoJsonCache(binType)
 	const hierarchyData = calculateHierarchyData(bins)
 	await saveHierarchyData(binType, hierarchyData)
 	await saveTotalCount(binType, bins.length)
 
-	const { clearPointsCache } = useSuperclusterCacheStore.getState()
+	const { clearPointsCache } = useBinsCacheStore.getState()
 	clearPointsCache(binType)
 
 	return { success: true, count: bins.length }
@@ -177,9 +178,6 @@ export const loadNearbyBins = async (
 		let dynamicLimit = 1000 // Default del backend
 
 		if (bounds && zoom !== undefined) {
-			const { calculateDynamicRadius, calculateLimit } = await import(
-				'@map/services/binsLoader'
-			)
 			dynamicRadius = calculateDynamicRadius(bounds)
 			dynamicLimit = calculateLimit(bounds, zoom)
 		}

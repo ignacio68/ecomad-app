@@ -67,7 +67,7 @@ export const binsContainersCache = sqliteTable('bins_containers_cache', {
 			'other_bins',
 		],
 	}).notNull(),
-	containerId: text('container_id').notNull(), // ID del backend
+	binId: text('container_id').notNull(), // ID del backend
 	category_group_id: integer('category_group_id').notNull(),
 	category_id: integer('category_id').notNull(),
 	district_code: text('district_code').notNull(),

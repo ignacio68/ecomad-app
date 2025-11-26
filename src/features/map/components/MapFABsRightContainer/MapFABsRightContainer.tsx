@@ -5,7 +5,10 @@ import {
 	Layers01Icon as Layers01IconDuotone,
 } from '@hugeicons-pro/core-duotone-rounded'
 import { Gps02Icon as Gps02IconSolid } from '@hugeicons-pro/core-solid-rounded'
-import { Layers01Icon, UserRoadsideIcon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+	Layers01Icon,
+	UserRoadsideIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { MAP_FAB_STYLES } from '@map/constants/map'
 import { userLocationService } from '@map/services/userLocationService'
 import { useMapStyleStore } from '@map/stores/mapStyleStore'
@@ -13,7 +16,7 @@ import { useMapViewportStore } from '@map/stores/mapViewportStore'
 import { useUserLocationFABStore } from '@map/stores/userLocationFABStore'
 import { useUserLocationStore } from '@map/stores/userLocationStore'
 import { MapZoomLevels } from '@map/types/mapData'
-import { StyleURL } from '@rnmapbox/maps'
+import type { StyleURL } from '@rnmapbox/maps'
 import { PermissionStatus } from 'expo-location'
 import { View } from 'react-native'
 
