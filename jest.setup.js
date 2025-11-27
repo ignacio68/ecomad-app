@@ -62,14 +62,17 @@ jest.mock("expo/fetch", () => ({
 jest.mock("expo/src/winter/runtime.native.ts", () => ({}), { virtual: true });
 
 // Mock para expo/src/winter/installGlobal.ts que usa runtime.native
-jest.mock("expo/src/winter/installGlobal.ts", () => ({
-  installGlobal: jest.fn(),
-}), { virtual: true });
+jest.mock(
+  "expo/src/winter/installGlobal.ts",
+  () => ({
+    installGlobal: jest.fn(),
+  }),
+  { virtual: true }
+);
 
 // Mock para APIs globales que Expo winter runtime necesita
 if (typeof global.TextDecoderStream === "undefined") {
   global.TextDecoderStream = class TextDecoderStream {
-    constructor() {}
     readable = {};
     writable = {};
   };
@@ -78,7 +81,6 @@ if (typeof global.TextDecoderStream === "undefined") {
 if (typeof global.TextEncoderStream === "undefined") {
   global.TextEncoderStream = class TextEncoderStream {
     constructor() {}
-    readable = {};
     writable = {};
   };
 }
