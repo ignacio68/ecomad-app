@@ -20,12 +20,19 @@
 	},
 	"linter": {
 		"enabled": true,
+		"domains": {
+      "react": "recommended",
+      "test": "all"
+    },
 		"rules": {
-			"recommended": true,
-			"nursery": {
+      "recommended": true,
+      "nursery": {
         "useSortedClasses": "error"
-			}
-		}
+      },
+      "suspicious": {
+        "noMisplacedAssertion": "error"
+      }
+    }
 	},
 	"javascript": {
 		"formatter": {
@@ -57,7 +64,8 @@
 
 		"actions": {
 			"source": {
-				"organizeImports": "on"
+				"organizeImports": "on",
+				"useSortedAttributes": "on"
 			}
 		},
 		"includes": [

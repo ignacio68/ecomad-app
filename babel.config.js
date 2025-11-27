@@ -3,6 +3,7 @@ module.exports = api => {
 	return {
 		presets: [
 			['babel-preset-expo', { jsxImportSource: 'nativewind' }],
+			'@babel/preset-typescript',
 			'nativewind/babel',
 		],
 		plugins: [

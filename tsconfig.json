@@ -9,7 +9,7 @@
 			"@shared/*": ["src/shared/*"],
 			"@map/*": ["src/features/map/*"]
 		},
-		"typeRoots": ["./types", "./node_modules/@types"]
+		"typeRoots": ["./types", "./node_modules/@types"],
 	},
 	"include": [
 		"**/*.ts",
@@ -17,6 +17,7 @@
 		".expo/types/**/*.ts",
 		"expo-env.d.ts",
 		"nativewind-env.d.ts",
+		"global.d.ts",
 		"types/**/*.d.ts"
 	]
 }
